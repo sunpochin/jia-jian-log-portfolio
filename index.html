@@ -1,0 +1,28 @@
+<!--
+檔案用途：SPA 主頁面 HTML 進入點，配置 PWA 網頁標頭、品牌 Title 與 Favicon 連結。
+所在層：repository root；全站 Vite 前端應用的單頁入口。
+主要關聯：src/main.tsx、public/favicon.svg、vite.config.ts。
+-->
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- 採用純向量 favicon.svg 與點陣 apple-touch-icon.png，確保桌面分頁與安裝至手機/電腦主畫面時皆能正確顯示品牌圖示。 -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- 為保留無障礙縮放，這裡不限制 viewport 尺寸；表單字級由 src/index.css 處理。 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#ef4444" />
+    <!-- React 載入後會依目前語系更新標題；這裡只放不偏向任一語言的品牌預設值。 -->
+    <title>JiaJian Log</title>
+    <!-- iOS Safari「加入主畫面」優先讀這個 meta 而非 <title>；React 載入後會依語系改成中文「家健錄」或印尼文「Family Health Note」，這裡先放預設語系（中文）的值。 -->
+    <meta name="apple-mobile-web-app-title" content="家健錄" />
+    <!-- 分享預覽卡（LINE／Facebook／Slack）與 SEO meta 由 vite.config.ts 的 shareMetaPlugin 於建置期插入下方標記處； -->
+    <!-- 實際文案與網址集中在 src/lib/shareMeta.ts，這裡只保留插入點，避免兩處各自維護一份重複字串。 -->
+    <!--share-meta-placeholder-->
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

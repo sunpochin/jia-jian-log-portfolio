@@ -1,0 +1,6 @@
+{
+  "minEntries": 5,
+  "literalReplacements": {
+    "real.person@example.com": "demo.chen@example.test"
+  }
+}

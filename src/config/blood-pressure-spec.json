@@ -1,0 +1,189 @@
+{
+  "rules": [
+    {
+      "key": "danger_high",
+      "conditions": {
+        "systolic": { "gte": 180 },
+        "diastolic": { "gte": 120 }
+      },
+      "operator": "or",
+      "labels": {
+        "zh": "🔴 極高危險，需立即複測",
+        "id": "🔴 Bahaya Sangat Tinggi, ukur ulang segera",
+        "en": "🔴 Extremely high — measure again immediately"
+      },
+      "recommendations": {
+        "zh": "休息 1–5 分鐘重測；若持續，請立刻就醫或聯絡醫師。",
+        "id": "Istirahat 1–5 menit lalu ukur ulang; jika tetap tinggi, segera ke dokter atau hubungi dokter.",
+        "en": "Rest for 1–5 minutes and measure again; if it remains high, seek care or contact your doctor immediately."
+      },
+      "webAlertLevel": "danger"
+    },
+    {
+      "key": "cukup_tinggi",
+      "conditions": {
+        "systolic": { "gte": 160 },
+        "diastolic": { "gte": 100 }
+      },
+      "operator": "or",
+      "labels": {
+        "zh": "🔴 明顯偏高",
+        "id": "🔴 Cukup Tinggi",
+        "en": "🔴 Significantly high"
+      },
+      "recommendations": {
+        "zh": "10 分鐘內重測；確認是否漏藥；今日內回報醫師。",
+        "id": "Ukur ulang dalam 10 menit; periksa apakah lupa minum obat; laporkan ke dokter hari ini.",
+        "en": "Measure again within 10 minutes, check for a missed dose, and report it to your doctor today."
+      },
+      "webAlertLevel": "danger"
+    },
+    {
+      "key": "tinggi",
+      "conditions": {
+        "systolic": { "gte": 135 },
+        "diastolic": { "gte": 85 }
+      },
+      "operator": "or",
+      "labels": {
+        "zh": "⚠️ 偏高",
+        "id": "⚠️ Tinggi",
+        "en": "⚠️ High"
+      },
+      "recommendations": {
+        "zh": "",
+        "id": "",
+        "en": ""
+      },
+      "webAlertLevel": "warning"
+    },
+    {
+      "key": "observasi",
+      "conditions": {
+        "systolic": { "range": [130, 134] },
+        "diastolic": { "range": [80, 84] }
+      },
+      "operator": "or",
+      "labels": {
+        "zh": "🟡 偏高觀察",
+        "id": "🟡 Observasi (Agak tinggi)",
+        "en": "🟡 Observe — slightly high"
+      },
+      "recommendations": {
+        "zh": "記錄即可，無須警報。",
+        "id": "Cukup catat saja, tidak perlu alarm.",
+        "en": "Record it; no alert is needed."
+      },
+      "webAlertLevel": "warning"
+    },
+    {
+      "key": "danger_low",
+      "conditions": {
+        "systolic": { "lt": 90 },
+        "diastolic": { "lt": 50 }
+      },
+      "operator": "or",
+      "labels": {
+        "zh": "🔴 明顯偏低",
+        "id": "🔴 Sangat Rendah",
+        "en": "🔴 Significantly low"
+      },
+      "recommendations": {
+        "zh": "跌倒高風險區。立刻重測；若有頭暈、混亂、快昏倒等症狀，聯絡醫師。",
+        "id": "Zona risiko tinggi jatuh. Segera ukur ulang; jika pusing, linglung, atau lemas mau pingsan, segera hubungi dokter.",
+        "en": "This is a high fall-risk range. Measure again immediately; contact your doctor if you feel dizzy, confused, or close to fainting."
+      },
+      "webAlertLevel": "danger-low"
+    },
+    {
+      "key": "warning_low",
+      "conditions": {
+        "systolic": { "range": [90, 99] },
+        "diastolic": { "range": [50, 54] }
+      },
+      "operator": "or",
+      "labels": {
+        "zh": "⚠️ 偏低",
+        "id": "⚠️ Rendah",
+        "en": "⚠️ Low"
+      },
+      "recommendations": {
+        "zh": "需坐下或躺下休息，5-10 分鐘後重測，並詢問是否有頭暈、冒冷汗。",
+        "id": "Istirahat duduk or berbaring, ukur ulang setelah 5-10 menit, dan tanyakan apakah pusing atau keringat dingin.",
+        "en": "Sit or lie down to rest, measure again after 5–10 minutes, and check for dizziness or cold sweats."
+      },
+      "webAlertLevel": "warning-low"
+    },
+    {
+      "key": "diastolic_low",
+      "conditions": {
+        "systolic": { "range": [110, 129] },
+        "diastolic": { "range": [55, 59] }
+      },
+      "operator": "and",
+      "labels": {
+        "zh": "✅ 正常 (舒張壓偏低點)",
+        "id": "✅ Normal (Diastolik agak rendah)",
+        "en": "✅ Normal (slightly low diastolic pressure)"
+      },
+      "recommendations": {
+        "zh": "舒張壓稍低但無礙，此區間不拉警報 🚦，避免狼來了效應。",
+        "id": "Diastolik agak rendah tapi aman, area ini tidak memicu alarm 🚦 untuk menghindari alarm fatigue.",
+        "en": "Diastolic pressure is slightly low but safe; this range does not trigger an alert 🚦 to avoid alarm fatigue."
+      },
+      "webAlertLevel": "normal"
+    },
+    {
+      "key": "normal_low",
+      "conditions": {
+        "systolic": { "range": [100, 109] },
+        "diastolic": { "gte": 55 }
+      },
+      "operator": "and",
+      "labels": {
+        "zh": "✅ 正常 (偏低點)",
+        "id": "✅ Normal (Agak rendah)",
+        "en": "✅ Normal (slightly low)"
+      },
+      "recommendations": {
+        "zh": "偏低但仍屬安全範圍。",
+        "id": "Agak rendah tapi masih dalam batas aman.",
+        "en": "Slightly low but still within a safe range."
+      },
+      "webAlertLevel": "normal"
+    },
+    {
+      "key": "normal",
+      "conditions": {
+        "systolic": { "range": [110, 129] },
+        "diastolic": { "range": [60, 79] }
+      },
+      "operator": "and",
+      "labels": {
+        "zh": "✅ 正常",
+        "id": "✅ Normal",
+        "en": "✅ Normal"
+      },
+      "recommendations": {
+        "zh": "理想穩定血壓甜區。",
+        "id": "Rentang tekanan darah ideal yang stabil.",
+        "en": "An ideal, stable blood pressure range."
+      },
+      "webAlertLevel": "normal"
+    }
+  ],
+  "defaultRule": {
+    "key": "normal_default",
+    "labels": {
+      "zh": "✅ 正常",
+      "id": "✅ Normal",
+      "en": "✅ Normal"
+    },
+    "recommendations": {
+      "zh": "理想穩定血壓甜區。",
+      "id": "Rentang tekanan darah ideal yang stabil.",
+      "en": "An ideal, stable blood pressure range."
+    },
+    "webAlertLevel": "normal"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "minEntries": 10,
+  "emails": [
+    "real.person@example.com"
+  ],
+  "emailLocalParts": [
+    "real.person"
+  ],
+  "namesAndTitles": [
+    "王小明"
+  ],
+  "supabaseProjectRefs": [],
+  "domains": [
+    "real-app.vercel.app"
+  ],
+  "other": []
+}

@@ -1,0 +1,282 @@
+[
+  {
+    "sys": 180,
+    "dia": 80,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "🔴 極高危險，需立即複測",
+      "gasStatusId": "🔴 Bahaya Sangat Tinggi, ukur ulang segera",
+      "webAlertLevel": "danger"
+    }
+  },
+  {
+    "sys": 120,
+    "dia": 120,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "🔴 極高危險，需立即複測",
+      "gasStatusId": "🔴 Bahaya Sangat Tinggi, ukur ulang segera",
+      "webAlertLevel": "danger"
+    }
+  },
+  {
+    "sys": 160,
+    "dia": 80,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "🔴 明顯偏高",
+      "gasStatusId": "🔴 Cukup Tinggi",
+      "webAlertLevel": "danger"
+    }
+  },
+  {
+    "sys": 120,
+    "dia": 100,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "🔴 明顯偏高",
+      "gasStatusId": "🔴 Cukup Tinggi",
+      "webAlertLevel": "danger"
+    }
+  },
+  {
+    "sys": 135,
+    "dia": 80,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "⚠️ 偏高",
+      "gasStatusId": "⚠️ Tinggi",
+      "webAlertLevel": "warning"
+    }
+  },
+  {
+    "sys": 120,
+    "dia": 85,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "⚠️ 偏高",
+      "gasStatusId": "⚠️ Tinggi",
+      "webAlertLevel": "warning"
+    }
+  },
+  {
+    "sys": 130,
+    "dia": 75,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "🟡 偏高觀察",
+      "gasStatusId": "🟡 Observasi (Agak tinggi)",
+      "webAlertLevel": "warning"
+    }
+  },
+  {
+    "sys": 120,
+    "dia": 80,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "🟡 偏高觀察",
+      "gasStatusId": "🟡 Observasi (Agak tinggi)",
+      "webAlertLevel": "warning"
+    }
+  },
+  {
+    "sys": 89,
+    "dia": 60,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "🔴 明顯偏低",
+      "gasStatusId": "🔴 Sangat Rendah",
+      "webAlertLevel": "danger-low"
+    }
+  },
+  {
+    "sys": 110,
+    "dia": 49,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "🔴 明顯偏低",
+      "gasStatusId": "🔴 Sangat Rendah",
+      "webAlertLevel": "danger-low"
+    }
+  },
+  {
+    "sys": 90,
+    "dia": 60,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "⚠️ 偏低",
+      "gasStatusId": "⚠️ Rendah",
+      "webAlertLevel": "warning-low"
+    }
+  },
+  {
+    "sys": 110,
+    "dia": 50,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "⚠️ 偏低",
+      "gasStatusId": "⚠️ Rendah",
+      "webAlertLevel": "warning-low"
+    }
+  },
+  {
+    "sys": 115,
+    "dia": 57,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "✅ 正常 (舒張壓偏低點)",
+      "gasStatusId": "✅ Normal (Diastolik agak rendah)",
+      "webAlertLevel": "normal"
+    }
+  },
+  {
+    "sys": 110,
+    "dia": 55,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "✅ 正常 (舒張壓偏低點)",
+      "gasStatusId": "✅ Normal (Diastolik agak rendah)",
+      "webAlertLevel": "normal"
+    }
+  },
+  {
+    "sys": 129,
+    "dia": 59,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "✅ 正常 (舒張壓偏低點)",
+      "gasStatusId": "✅ Normal (Diastolik agak rendah)",
+      "webAlertLevel": "normal"
+    }
+  },
+  {
+    "sys": 105,
+    "dia": 65,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "✅ 正常 (偏低點)",
+      "gasStatusId": "✅ Normal (Agak rendah)",
+      "webAlertLevel": "normal"
+    }
+  },
+  {
+    "sys": 100,
+    "dia": 55,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "✅ 正常 (偏低點)",
+      "gasStatusId": "✅ Normal (Agak rendah)",
+      "webAlertLevel": "normal"
+    }
+  },
+  {
+    "sys": 109,
+    "dia": 75,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "✅ 正常 (偏低點)",
+      "gasStatusId": "✅ Normal (Agak rendah)",
+      "webAlertLevel": "normal"
+    }
+  },
+  {
+    "sys": 120,
+    "dia": 70,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "✅ 正常",
+      "gasStatusId": "✅ Normal",
+      "webAlertLevel": "normal"
+    }
+  },
+  {
+    "sys": 110,
+    "dia": 60,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "✅ 正常",
+      "gasStatusId": "✅ Normal",
+      "webAlertLevel": "normal"
+    }
+  },
+  {
+    "sys": 129,
+    "dia": 79,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "✅ 正常",
+      "gasStatusId": "✅ Normal",
+      "webAlertLevel": "normal"
+    }
+  },
+  {
+    "sys": 115,
+    "dia": 70,
+    "pul": 125,
+    "expected": {
+      "gasStatusZh": "✅ 正常",
+      "gasStatusId": "✅ Normal",
+      "webAlertLevel": "warning"
+    }
+  },
+  {
+    "sys": 115,
+    "dia": 70,
+    "pul": 120,
+    "expected": {
+      "gasStatusZh": "✅ 正常",
+      "gasStatusId": "✅ Normal",
+      "webAlertLevel": "normal"
+    }
+  },
+  {
+    "sys": 115,
+    "dia": 70,
+    "pul": null,
+    "expected": {
+      "gasStatusZh": "✅ 正常",
+      "gasStatusId": "✅ Normal",
+      "webAlertLevel": "normal"
+    }
+  },
+  {
+    "sys": 179,
+    "dia": 119,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "🔴 明顯偏高",
+      "gasStatusId": "🔴 Cukup Tinggi",
+      "webAlertLevel": "danger"
+    }
+  },
+  {
+    "sys": 159,
+    "dia": 99,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "⚠️ 偏高",
+      "gasStatusId": "⚠️ Tinggi",
+      "webAlertLevel": "warning"
+    }
+  },
+  {
+    "sys": 134,
+    "dia": 84,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "🟡 偏高觀察",
+      "gasStatusId": "🟡 Observasi (Agak tinggi)",
+      "webAlertLevel": "warning"
+    }
+  },
+  {
+    "sys": 129,
+    "dia": 79,
+    "pul": 70,
+    "expected": {
+      "gasStatusZh": "✅ 正常",
+      "gasStatusId": "✅ Normal",
+      "webAlertLevel": "normal"
+    }
+  }
+]

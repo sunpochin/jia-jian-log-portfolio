@@ -1,0 +1,251 @@
+/*
+檔案用途：全域 CSS 樣式與 Tailwind CSS 基礎設計系統設定。
+所在層：src 根目錄；定義全域視覺基調與客製化 utility 類別。
+主要關聯：由 main.tsx 引入，影響全站視覺樣式與圖表色系。
+*/
+@import "tailwindcss";
+
+@utility scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* 指標色直接放在數字可節省手機橫向空間；警示仍由 Badge 表達，不能把這些色當成風險等級。 */
+.vital-systolic { color: #C23B3B; }
+.vital-diastolic { color: #2563EB; }
+.vital-pulse { color: #7C3AED; }
+
+@media (prefers-color-scheme: dark) {
+  .vital-systolic { color: #F87171; }
+  .vital-diastolic { color: #60A5FA; }
+  .vital-pulse { color: #C084FC; }
+}
+
+.record-filter-hidden {
+  display: none !important;
+}
+
+/*
+ * 閱讀字級（無障礙）：以 root font-size 的「百分比」放大，不寫死 px。
+ *
+ * 為什麼用百分比而不是 16px/18px/20px：百分比是相對於使用者自己在系統或瀏覽器設定的預設字級。
+ * 長輩常常已經先把手機字體調大了；若這裡寫死 px，等於把他們調過的設定又壓回去。
+ * 用百分比則是「在他習慣的大小上再放大」，兩層設定會疊加而不是互相覆蓋。
+ *
+ * 為什麼放在 :root 而不是各元件：Tailwind 的 text-sm／text-base／p-4／gap-2 幾乎都是 rem，
+ * 只要改 root font-size，字級與間距會一起等比放大，版面比例不變——這比逐頁調字級安全太多，
+ * 也不需要每加一個新頁面就記得補一次無障礙處理。
+ *
+ * 預設值刻意留 100%：沒設定過的人看到的畫面跟改版前完全一樣，這個功能只對主動開啟的人生效。
+ */
+:root { font-size: 100%; }
+:root[data-reading-scale='large'] { font-size: 112.5%; }
+:root[data-reading-scale='xlarge'] { font-size: 125%; }
+
+/*
+ * 微型輔助字改用 rem 表達同一個視覺大小。
+ *
+ * 為什麼要改：畫面上仍有 9/10/11px 的輔助字（單位、時間戳、註記）。px 不會隨 root font-size 變動，
+ * 長輩把閱讀字級調到「特大」之後，這些字仍舊小到看不見，是整個放大功能最明顯的破口。
+ * 在預設 16px 的 root 下 0.5625/0.625/0.6875rem 就等於 9/10/11px，所以沒開放大的人零視覺變化。
+ *
+ * 為什麼寫在 layer 外：Tailwind v4 把 utility 放進 @layer utilities，未分層的規則優先權更高，
+ * 因此這裡可以覆寫同名 utility。已確認這三個 class 沒有和 sm:／md:／lg: 響應式字級併用，
+ * 未來若要對這些元素加響應式字級，必須改用其他 class，否則會被這裡蓋掉。
+ */
+.text-\[9px\] { font-size: 0.5625rem; }
+.text-\[10px\] { font-size: 0.625rem; }
+.text-\[11px\] { font-size: 0.6875rem; }
+
+/*
+ * 觸控裝置的表單欄位字級下限 16px。
+ *
+ * 為什麼需要：index.html 已移除 user-scalable=no，iOS Safari 因此恢復「聚焦到小於 16px 的輸入欄
+ * 就自動放大整頁」的行為，放大後畫面會偏移、使用者還得手動縮回來。這是 issue #439 指定的正確解法
+ * ——把欄位字級拉到 16px 以上，而不是把禁止縮放加回來。
+ *
+ * 為什麼用 max(1rem, 16px)：1rem 讓欄位跟著上面的閱讀字級一起放大；16px 是不論如何都不能再低的地板
+ * （避免使用者把瀏覽器預設字級調到小於 16px 時又觸發自動放大）。
+ *
+ * 為什麼排除 text-lg 以上：血壓等輸入頁刻意用了更大的字級，若無條件套下去反而會把它們縮小。
+ * 這裡只補足「太小」的欄位，不動已經夠大的欄位。
+ */
+@media (pointer: coarse) {
+  input:not(.text-lg, .text-xl, .text-2xl, .text-3xl, .text-4xl),
+  select:not(.text-lg, .text-xl, .text-2xl, .text-3xl, .text-4xl),
+  textarea:not(.text-lg, .text-xl, .text-2xl, .text-3xl, .text-4xl) {
+    font-size: max(1rem, 16px);
+  }
+}
+
+/*
+為什麼：App shell 內的 main 是唯一應該捲動的區域；若外層不裁切，事件頁的 min-h-full 內容會把 document 一起撐高，手機就會出現第二條垂直捲軸。
+怎麼做：只限制登入後的 app shell，不影響登入、公開頁與其他需要自行捲動的畫面。
+*/
+.app-shell {
+  overflow: hidden;
+}
+
+/*
+ * 使用者明確要求減少動態時，只縮短視覺動畫，不隱藏焦點或狀態切換，讓照護流程仍可理解與操作。
+ * 以全域規則涵蓋 Tailwind 與元件自訂 transition，避免新頁面漏加同一份無障礙處理。
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  /* 螢幕上的閱讀字級是「這支手機的使用者看得清楚」，不該改變交給醫師的 A4 報告版面；
+     列印一律回到 100%，讓下方那些 pt 字級與分頁規則永遠算在同一個基準上。
+     這條規則本身贏不了 inline style：閱讀字級是用 element.style.fontSize 寫在
+     <html> 上的 inline style，其優先權高於任何一般 stylesheet 規則（含 @media print）。
+     真正負責重設的是 src/lib/readingScale.ts 的 initReadingScalePrintReset()，
+     它在 beforeprint／afterprint 主動改寫同一個 inline style；這裡保留只是防呆備援。 */
+  :root {
+    font-size: 100%;
+  }
+
+  html,
+  body,
+  #root {
+    height: auto;
+    background: white;
+  }
+
+  /* 列印只保留同一份結構化報告，避免導覽與照護操作卡片混進醫師資料。 */
+  .app-shell {
+    width: 100%;
+    max-width: none;
+    height: auto;
+    overflow: visible;
+  }
+
+  .app-shell > main {
+    overflow: visible;
+    background: white;
+  }
+
+  /* 列印只保留每日紀錄、結構化報告與趨勢圖，避免導覽與照護操作卡片混進醫師病歷資料。 */
+  .app-shell > nav,
+  .dashboard-page > :not(.record-report-container):not(.daily-records-section):not(.record-report):not(.print-report-chart),
+  .print-hidden {
+    display: none !important;
+  }
+
+  .dashboard-page {
+    padding: 0;
+    background: white;
+  }
+
+  .daily-records-section,
+  .record-report {
+    border: 0;
+    padding: 0;
+    box-shadow: none;
+    color: #0f172a;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .record-report-print-only {
+    display: block !important;
+  }
+
+  /* 醫師版需要看到走勢；保留圖表並去掉螢幕用陰影，避免列印成灰框。 */
+  .print-report-chart {
+    break-inside: avoid;
+    box-shadow: none;
+  }
+
+  /* 螢幕上的微型輔助字在 A4 會太小，列印時提升到可閱讀的病歷字級。 */
+  .daily-records-section .text-\[9px\],
+  .daily-records-section .text-\[10px\],
+  .daily-records-section .text-\[11px\],
+  .record-report .text-\[9px\],
+  .record-report .text-\[10px\],
+  .record-report .text-\[11px\] {
+    font-size: 9pt;
+    line-height: 1.35;
+  }
+
+  .daily-records-section .text-xs:not([class*="print:text-"]),
+  .record-report .text-xs:not([class*="print:text-"]) {
+    font-size: 10pt;
+  }
+
+  .daily-records-section .text-sm,
+  .record-report .text-sm {
+    font-size: 11pt;
+  }
+
+  /* 畫面上的篩選按鈕（如「只看需留意」）僅輔助螢幕快速掃描；列印／PDF 匯出時必須強制復原並顯示完整逐筆紀錄。 */
+  .daily-records-section article.record-filter-hidden,
+  .record-report article.record-filter-hidden {
+    display: block !important;
+  }
+
+  .daily-records-section li.record-filter-hidden,
+  .record-report li.record-filter-hidden {
+    display: grid !important;
+  }
+
+  .record-day,
+  .record-row {
+    break-inside: avoid;
+  }
+
+  /* 交接手冊：禁忌／作息／聯絡人改印鏡射的唯讀文字區塊，因為瀏覽器列印 <textarea>
+     時常只印出目前捲動到的內容，容易漏字；<textarea> 本身已標 print-hidden，
+     由上方既有的全域 .print-hidden 規則隱藏，這裡不需要再重複一次。 */
+  .care-handbook-print-only {
+    display: block !important;
+  }
+
+  .care-handbook-section {
+    border: 0;
+    padding: 0.35rem 0;
+    break-inside: avoid;
+  }
+
+  /* 來源 footer 只在紙本出現；QR 保留四格 quiet zone，縮小後仍能被手機辨識。 */
+  .print-source-footer {
+    display: flex !important;
+    margin-top: 8mm;
+    border-top-width: 0.25pt;
+    padding-top: 3mm;
+    break-inside: avoid;
+    color: #334155;
+  }
+
+  .print-source-qr {
+    width: 18mm;
+    height: 18mm;
+    color: #0f172a;
+  }
+
+  .print-source-footer p {
+    margin: 0;
+    font-size: 7.5pt;
+    line-height: 1.35;
+  }
+
+  .print-source-footer a {
+    color: inherit;
+    text-decoration: none;
+  }
+}

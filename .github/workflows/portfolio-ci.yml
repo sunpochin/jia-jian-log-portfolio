@@ -1,0 +1,20 @@
+# 公開作品集的精簡 CI：只做 lint／typecheck／test／build／gitleaks，不含任何身分掃描。
+# 為什麼不掃身分字串：禁字清單本身就是要隱藏的識別資訊，放進公開 repo 的 CI 等於直接公布；
+# 身分掃描永遠只留在私有側的 portfolio:check（見 docs/operations/portfolio-pipeline.md 3.3、5.5 節）。
+# gitleaks 特意用 --no-git（掃工作目錄，不掃 git 歷史）而不是官方 gitleaks-action：
+# --no-git 的 fingerprint 只跟檔案路徑／行號有關、不含 commit hash，才能跟 repo 根目錄的
+# .gitleaksignore（build.ts 產生）用同一份格式對得上，不受每次 push 產生新 commit hash 影響。
+name: portfolio-ci
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: npx tsc --noEmit
+      - run: bun test tests/unit
+      - run: bun run build
+      - run: docker run --rm -v "${{ github.workspace }}:/repo" ghcr.io/gitleaks/gitleaks:v8.30.0 detect --source /repo --no-git

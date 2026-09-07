@@ -1,0 +1,62 @@
+<!--
+檔案用途：家健錄 (JiaJian Log) 官方向量圖示 (Favicon 與 PWA App Icon)。
+所在層：public/；提供瀏覽器分頁標題圖示與 iOS/Android PWA 主畫面圖示。
+主要關聯：index.html、vite.config.ts (VitePWA manifest)。
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <!-- 
+    家庭照護 (Family Care) 向量 Favicon 設計：
+    融合「家 (Home)」、「暖心 (Heart)」與「照護 (Care/Health)」三個核心意象。
+    色彩選用溫暖極致的高質感玫瑰亮紅與粉紫漸層，襯托安穩、安心與溫馨的照護氛圍。
+  -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e1b4b" />
+    </linearGradient>
+    
+    <linearGradient id="heartGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f43f5e" />
+      <stop offset="50%" stop-color="#fb7185" />
+      <stop offset="100%" stop-color="#e11d48" />
+    </linearGradient>
+
+    <linearGradient id="roofGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#818cf8" />
+    </linearGradient>
+
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- 圓角暗色背景底牌 -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGradient)" />
+  <rect x="20" y="20" width="472" height="472" rx="108" fill="none" stroke="rgba(255, 255, 255, 0.1)" stroke-width="6" />
+
+  <!-- 溫馨家庭房屋屋頂外框 -->
+  <path d="M 256 96 L 416 224 V 384 Q 416 408 392 408 H 120 Q 96 408 96 384 V 224 Z" 
+        fill="none" 
+        stroke="url(#roofGradient)" 
+        stroke-width="24" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" 
+        filter="url(#softGlow)" />
+
+  <!-- 守護愛心核心圖騰 (Heart in Care) -->
+  <path d="M 256 348 
+           C 256 348, 168 290, 168 225 
+           A 45 45 0 0 1 242 190 
+           L 256 204 
+           L 270 190 
+           A 45 45 0 0 1 344 225 
+           C 344 290, 256 348, 256 348 Z" 
+        fill="url(#heartGradient)" 
+        filter="url(#softGlow)" />
+
+  <!-- 心中照護十字光環 -->
+  <rect x="246" y="222" width="20" height="44" rx="6" fill="#ffffff" opacity="0.9" />
+  <rect x="234" y="234" width="44" height="20" rx="6" fill="#ffffff" opacity="0.9" />
+</svg>

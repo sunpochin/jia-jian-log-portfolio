@@ -1,0 +1,10 @@
+# 檔案用途：搜尋引擎爬蟲規則，允許公開頁被索引並指向 sitemap，明確封鎖需要登入的後台與未來的分享連結路徑。
+# 所在層：public/ 靜態資源；Vite build 會原封不動複製到 dist/ 根目錄，不經過任何模板處理。
+# 主要關聯：dist/sitemap.xml（由 vite.config.ts 的 sitemapPlugin 於建置期產生）、src/lib/publicRoutes.ts、issue #441。
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /share
+
+Sitemap: https://demo.careapp.local/sitemap.xml

@@ -1,0 +1,4 @@
+# gitleaks 誤判白名單（--no-git 模式的 path:rule:line fingerprint，不含 commit hash）：
+# 下面這筆是測試假資料（日期＋場次＋假病患 id），熵值恰好觸發 generic-api-key 規則，不是真實密鑰。
+# 路徑用 /repo/ 開頭：對應 docker run -v ...:/repo --source /repo（見 check.ts、portfolio-ci.yml）。
+/repo/tests/unit/bloodPressureMeasurementSession.test.ts:generic-api-key:79

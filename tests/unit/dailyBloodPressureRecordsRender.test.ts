@@ -52,9 +52,12 @@ mock.module('../../src/lib/demoStorage', () => ({
   // 繁體中文註解：Bun 的 mock.module 在同一行程跨測試檔全域生效，若 demo.isDemoMode 為 false 時固定回傳 false，
   // 會破壞後續測試檔依賴 window.location.pathname === '/demo' 的展示模式判定。
   isDemoMode: () => demo.isDemoMode || (typeof window !== 'undefined' && window.location?.pathname === '/demo'),
-  getDemoBpRecordsCreatedBetween: (...args: [unknown, unknown, unknown?]) => (demo.isDemoMode ? demo.records : actualGetDemoBpRecordsCreatedBetween(...args)),
-  updateDemoBpRecord: () => demo.updateOk,
-  deleteDemoBpRecord: () => demo.deleteOk,
+  getDemoBpRecordsCreatedBetween: (...args: Parameters<typeof actualDemoStorage.getDemoBpRecordsCreatedBetween>) =>
+    (demo.isDemoMode ? demo.records : actualGetDemoBpRecordsCreatedBetween(...args)),
+  updateDemoBpRecord: (...args: Parameters<typeof actualDemoStorage.updateDemoBpRecord>) =>
+    (demo.isDemoMode ? demo.updateOk : actualDemoStorage.updateDemoBpRecord(...args)),
+  deleteDemoBpRecord: (...args: Parameters<typeof actualDemoStorage.deleteDemoBpRecord>) =>
+    (demo.isDemoMode ? demo.deleteOk : actualDemoStorage.deleteDemoBpRecord(...args)),
 }))
 
 const { DailyBloodPressureRecords } = await import('../../src/features/vitals/components/DailyBloodPressureRecords')

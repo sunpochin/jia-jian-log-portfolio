@@ -71,15 +71,15 @@ async function runPortfolioCheck(): Promise<void> {
 }
 
 async function initCommitAndPush(remoteUrl: string): Promise<void> {
-  const initSteps: [string, string[]][] = [
-    ['git', ['init', '-q']],
-    ['git', ['remote', 'add', 'origin', remoteUrl]],
-  ]
-  for (const [command, args] of initSteps) {
-    const { exitCode, stderr } = await run(command, args, OUTPUT_DIR)
-    if (exitCode !== 0) {
-      console.error(`❌ PORTFOLIO RELEASE FAILED: \`${command} ${args.join(' ')}\` 失敗。`)
-      console.error(stderr.trim())
+  await run('git', ['init', '-q'], OUTPUT_DIR)
+  const remoteCheck = await run('git', ['remote', 'get-url', 'origin'], OUTPUT_DIR)
+  if (remoteCheck.exitCode === 0) {
+    await run('git', ['remote', 'set-url', 'origin', remoteUrl], OUTPUT_DIR)
+  } else {
+    const addRes = await run('git', ['remote', 'add', 'origin', remoteUrl], OUTPUT_DIR)
+    if (addRes.exitCode !== 0) {
+      console.error('❌ PORTFOLIO RELEASE FAILED: `git remote add origin` 失敗。')
+      console.error(addRes.stderr.trim())
       process.exit(1)
     }
   }

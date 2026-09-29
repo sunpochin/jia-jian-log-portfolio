@@ -222,6 +222,7 @@ export const EXCLUDE_WITHIN_ALLOWLIST = [
   // aad50de）就踩到了這個問題，才發現需要排除。
   'tests/unit/reactStateHooks.test.ts',
   'tests/unit/latestVitalsRender.test.ts',
+  'tests/unit/bpStandardSettingsPanel.test.ts',
 ]
 
 // package.json 的 scripts 欄位裡，只保留跟「跑得起來這個 repo」直接相關的指令；

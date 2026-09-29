@@ -2,6 +2,10 @@
 檔案用途：在隱私政策版本更新後取得使用者明確確認，避免登入 session 恢復時靜默改寫法律稽核時間。
 所在層：src/features/care-family/components 同意流程畫面層；由 App.tsx 在健康資料畫面前呈現。
 主要關聯：使用 lib/legalConsent.ts 寫入帳號層政策接受，並連結公開 PrivacyPage 與 TermsPage。
+2026-09-25（issue #424）：更新摘要改為說明本次新增的 Telegram／LINE／Resend 揭露與唯讀分享連結——這個畫面是既有使用者在升版後
+唯一會看到的變更摘要，若仍停留在上一版的「匿名分析、不送健康數值」，會讓使用者在誤導的摘要下確認新政策。
+唯讀分享連結另升為 2026-09-25.2（PR #922）；只接受過 2026-09-25 的使用者會再看到本畫面一次，
+摘要與勾選文字必須同時提到兩者：從更舊版本直接升上來的人兩項都沒看過，缺一項就等於那一項沒有告知。
 */
 import { useState } from 'react'
 import { useI18n, type LocalizedText } from '../../../lib/i18n'
@@ -41,9 +45,9 @@ export function PrivacyPolicyUpdateScreen({ onAccepted }: { onAccepted: () => Pr
       <p className="text-sm font-bold text-indigo-700">{text({ id: 'Pembaruan kebijakan privasi', zh: '隱私權政策更新', en: 'Privacy Policy Update' })}</p>
       <h1 className="mt-2 text-2xl font-black">{text({ id: 'Sebelum melanjutkan', zh: '繼續使用前', en: 'Before you continue' })}</h1>
       <p className="mt-3 text-sm leading-6 text-gray-700">{text({
-        id: 'Kebijakan Privasi telah diperbarui untuk menjelaskan kunjungan halaman dan peristiwa anonim yang membantu kami memahami alur pengenalan. Peristiwa ini tidak mengirim identitas atau nilai kesehatan.',
-        zh: '《隱私權政策》已更新，補充說明頁面瀏覽與匿名事件如何協助我們了解介紹流程。這些事件不會送出身分資料或健康數值。',
-        en: 'The Privacy Policy has been updated to explain page visits and anonymous events that help us understand the introduction flow. These events do not send identity information or health values.',
+        id: 'Kebijakan Privasi telah diperbarui untuk mencantumkan layanan notifikasi dan email di luar Taiwan: Telegram dan LINE dapat menerima nama penerima perawatan dan nilai tekanan darah melalui notifikasi, dan Resend mengirim email undangan keluarga. Kebijakan ini juga menjelaskan tautan berbagi baca-saja: anggota keluarga yang diberi izin dapat membuat tautan berbatas waktu (bawaan 24 jam, paling lama 7 hari) agar orang di luar aplikasi, termasuk yang berada di luar Taiwan, dapat melihat ringkasan tekanan darah atau perawatan; siapa pun yang memegang tautan dapat melihatnya, dan fitur ini belum ditinjau oleh pengacara atau petugas perlindungan data pribadi. Baca Kebijakan Privasi untuk rincian data yang dikirim dan cara memilih.',
+        zh: '《隱私權政策》已更新，補充列出台灣以外的通知與寄信服務：Telegram 與 LINE 會透過通知收到照護對象姓名與血壓數值，Resend 負責寄送家庭邀請信。另外也說明「唯讀分享連結」：被授權的家屬可以建立有期限的連結（預設 24 小時、最長 7 天），讓 App 以外的人（可能在台灣以外）查看血壓或照護摘要；任何拿到連結的人都能查看，本功能也未經律師或個資專責人員審閱。送出哪些資料、如何選用，請閱讀《隱私權政策》。',
+        en: 'The Privacy Policy has been updated to list notification and email services outside Taiwan: Telegram and LINE can receive the care recipient’s name and blood-pressure values through notifications, and Resend sends family invitation emails. It also explains read-only share links: authorized family members can create time-limited links (24 hours by default, 7 days at most) that let people outside the app, including people outside Taiwan, view a blood-pressure or care summary; anyone holding a link can view it, and this feature has not been reviewed by a lawyer or a data-protection specialist. Read the Privacy Policy for what is sent and how to opt in.',
       })}</p>
       <div className="mt-4 flex gap-3 text-sm">
         <a href="/privacy" className="font-bold text-blue-700 underline">{text({ id: 'Baca Kebijakan Privasi', zh: '閱讀隱私權政策', en: 'Read the Privacy Policy' })}</a>
@@ -53,9 +57,9 @@ export function PrivacyPolicyUpdateScreen({ onAccepted }: { onAccepted: () => Pr
         <label className="flex items-start gap-3 rounded-2xl border border-indigo-100 bg-indigo-50 p-4 text-sm leading-6 text-indigo-950">
           <input required type="checkbox" checked={checked} onChange={event => setChecked(event.target.checked)} className="mt-1 h-4 w-4" />
           <span>{text({
-            id: 'Saya telah membaca Kebijakan Privasi dan Syarat Layanan yang berlaku, termasuk penjelasan tentang analitik anonim.',
-            zh: '我已閱讀目前適用的《隱私權政策》與《服務條款》，包括匿名分析的說明。',
-            en: 'I have read the current Privacy Policy and Terms of Service, including the explanation of anonymous analytics.',
+            id: 'Saya telah membaca Kebijakan Privasi dan Syarat Layanan yang berlaku, termasuk penjelasan tentang layanan notifikasi dan email pihak ketiga serta tautan berbagi baca-saja.',
+            zh: '我已閱讀目前適用的《隱私權政策》與《服務條款》，包括第三方通知與寄信服務，以及唯讀分享連結的說明。',
+            en: 'I have read the current Privacy Policy and Terms of Service, including the explanation of third-party notification and email services and of read-only share links.',
           })}</span>
         </label>
         {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{text(error)}</p>}

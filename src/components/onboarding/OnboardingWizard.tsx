@@ -64,17 +64,17 @@ export function OnboardingWizard({ initialCareTarget, canUseMedication, saving, 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col bg-gray-50 px-5 py-10 text-gray-900">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-bold text-indigo-700">{text({ id: `Langkah ${step} dari ${TOTAL_STEPS}`, zh: `第 ${step} / ${TOTAL_STEPS} 題` ,en: `Langkah ${step} from ${TOTAL_STEPS}` })}</p>
+        <p className="text-sm font-bold text-indigo-700">{text({ id: `Langkah ${step} dari ${TOTAL_STEPS}`, zh: `第 ${step} / ${TOTAL_STEPS} 題`, en: `Step ${step} of ${TOTAL_STEPS}` })}</p>
         <button type="button" onClick={onSkip} disabled={saving} className="min-h-11 text-sm font-semibold text-gray-500 underline disabled:opacity-60">
-          {text({ id: 'Lewati, atur nanti', zh: '略過，稍後再設定' ,en: "Lewati, atur nanti" })}
+          {text({ id: 'Lewati, atur nanti', zh: '略過，稍後再設定', en: 'Skip, set up later' })}
         </button>
       </div>
 
       <section className="mt-4 rounded-3xl bg-white p-6 shadow-sm">
         {step === 1 && (
           <fieldset>
-            <legend className="text-xl font-black">{text({ id: 'Siapa yang Anda rawat?', zh: '照顧誰？' ,en: "Siapa that You rawat?" })}</legend>
-            <p className="mt-2 text-sm text-gray-500">{text({ id: 'Ini menentukan item perawatan yang relevan untuknya.', zh: '這會決定接下來要顯示哪些相關的照護項目。' ,en: "This menentukan item care that relevan fornya." })}</p>
+            <legend className="text-xl font-black">{text({ id: 'Siapa yang Anda rawat?', zh: '照顧誰？', en: 'Who are you caring for?' })}</legend>
+            <p className="mt-2 text-sm text-gray-500">{text({ id: 'Ini menentukan item perawatan yang relevan untuknya.', zh: '這會決定接下來要顯示哪些相關的照護項目。', en: 'This determines the relevant care modules to display.' })}</p>
             <div className="mt-4 space-y-2">
               {ONBOARDING_CARE_TARGET_OPTIONS.map(option => (
                 <label key={option.value} className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl bg-gray-50 px-3 py-2 text-sm">
@@ -84,15 +84,15 @@ export function OnboardingWizard({ initialCareTarget, canUseMedication, saving, 
               ))}
             </div>
             <button type="button" disabled={!careTarget} onClick={() => setStep(2)} className="mt-6 w-full rounded-xl bg-indigo-700 px-4 py-3 font-bold text-white disabled:opacity-60">
-              {text({ id: 'Lanjut', zh: '下一步' ,en: "Next" })}
+              {text({ id: 'Lanjut', zh: '下一步', en: 'Next' })}
             </button>
           </fieldset>
         )}
 
         {step === 2 && (
           <fieldset>
-            <legend className="text-xl font-black">{text({ id: 'Siapa yang akan mencatat?', zh: '誰記錄？' ,en: "Siapa that will record?" })}</legend>
-            <p className="mt-2 text-sm text-gray-500">{text({ id: 'Ini hanya menentukan item awal; Anda tetap bisa mengubahnya di Pengaturan.', zh: '這只是決定一開始顯示的項目，之後仍可以在設定頁調整。' ,en: "This only menentukan item awal; You tetap can mengubahnya in Settings." })}</p>
+            <legend className="text-xl font-black">{text({ id: 'Siapa yang akan mencatat?', zh: '誰記錄？', en: 'Who will be recording?' })}</legend>
+            <p className="mt-2 text-sm text-gray-500">{text({ id: 'Ini hanya menentukan item awal; Anda tetap bisa mengubahnya di Pengaturan.', zh: '這只是決定一開始顯示的項目，之後仍可以在設定頁調整。', en: 'This only determines the initial modules; you can always customize them in Settings.' })}</p>
             <div className="mt-4 space-y-2">
               {ONBOARDING_RECORDER_OPTIONS.map(option => (
                 <label key={option.value} className="flex min-h-12 cursor-pointer items-start gap-3 rounded-xl bg-gray-50 px-3 py-2 text-sm">
@@ -105,16 +105,16 @@ export function OnboardingWizard({ initialCareTarget, canUseMedication, saving, 
               ))}
             </div>
             <div className="mt-6 flex gap-3">
-              <button type="button" onClick={() => setStep(1)} className="min-h-12 flex-1 rounded-xl border border-gray-300 px-4 py-3 font-bold text-gray-700">{text({ id: 'Kembali', zh: '上一步' ,en: "Back" })}</button>
-              <button type="button" disabled={!recorder} onClick={() => recorder && goToStep3(recorder)} className="min-h-12 flex-1 rounded-xl bg-indigo-700 px-4 py-3 font-bold text-white disabled:opacity-60">{text({ id: 'Lanjut', zh: '下一步' ,en: "Next" })}</button>
+              <button type="button" onClick={() => setStep(1)} className="min-h-12 flex-1 rounded-xl border border-gray-300 px-4 py-3 font-bold text-gray-700">{text({ id: 'Kembali', zh: '上一步', en: 'Back' })}</button>
+              <button type="button" disabled={!recorder} onClick={() => recorder && goToStep3(recorder)} className="min-h-12 flex-1 rounded-xl bg-indigo-700 px-4 py-3 font-bold text-white disabled:opacity-60">{text({ id: 'Lanjut', zh: '下一步', en: 'Next' })}</button>
             </div>
           </fieldset>
         )}
 
         {step === 3 && selectedModuleIds && (
           <fieldset>
-            <legend className="text-xl font-black">{text({ id: 'Apa yang ingin dicatat?', zh: '要記什麼？' ,en: "Apa that ingin direcord?" })}</legend>
-            <p className="mt-2 text-sm text-gray-500">{text({ id: 'Kami sudah memilihkan beberapa; centang atau hapus sesuai kebutuhan.', zh: '我們先幫你勾選建議項目，你可以再自行增減。' ,en: "We already memilihkan beberapa; centang or delete sesuai tobutuhan." })}</p>
+            <legend className="text-xl font-black">{text({ id: 'Apa yang ingin dicatat?', zh: '要記什麼？', en: 'What would you like to track?' })}</legend>
+            <p className="mt-2 text-sm text-gray-500">{text({ id: 'Kami sudah memilihkan beberapa; centang atau hapus sesuai kebutuhan.', zh: '我們先幫你勾選建議項目，你可以再自行增減。', en: 'We have pre-selected recommended items for you; check or uncheck as needed.' })}</p>
             <div className="mt-4 space-y-2">
               {applicableModules.map(module => (
                 <label key={module.id} htmlFor={`onboarding-module-${module.id}`} className="flex min-h-12 cursor-pointer items-center justify-between gap-3 rounded-xl bg-gray-50 px-3 py-2 text-sm">

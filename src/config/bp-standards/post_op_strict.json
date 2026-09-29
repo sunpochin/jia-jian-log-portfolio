@@ -1,0 +1,80 @@
+{
+  "key": "post_op_strict",
+  "names": {
+    "zh": "術後嚴格控制",
+    "id": "Kontrol ketat pascaoperasi",
+    "en": "Post-op strict control"
+  },
+  "descriptions": {
+    "zh": "出血性事件或血管手術後的再出血預防。醫師給窄帶收縮壓目標、且表示舒張壓不是控制標的時使用；收縮壓落在目標帶以外（含低於下界）一律標記。",
+    "id": "Pencegahan perdarahan ulang setelah kejadian perdarahan atau operasi pembuluh darah. Dipakai saat dokter memberi target sistolik dalam rentang sempit dan menyatakan diastolik bukan sasaran kontrol; sistolik di luar rentang target (termasuk di bawah batas bawah) selalu ditandai.",
+    "en": "Rebleeding prevention after a haemorrhagic event or vascular surgery. Used when the doctor prescribes a narrow systolic band and states that diastolic is not a control target; any systolic outside the target band, including below the lower bound, is flagged."
+  },
+  "ladder": {
+    "kind": "dual-axis",
+    "systolic": [
+      {
+        "levelKey": "cukup_tinggi",
+        "min": 160,
+        "max": 179
+      },
+      {
+        "levelKey": "tinggi",
+        "min": 135,
+        "max": 159
+      },
+      {
+        "levelKey": "off_target",
+        "min": 121,
+        "max": 134
+      },
+      {
+        "levelKey": "on_target",
+        "min": 110,
+        "max": 120
+      },
+      {
+        "levelKey": "below_target",
+        "min": 100,
+        "max": 109
+      },
+      {
+        "levelKey": "warning_low",
+        "min": 90,
+        "max": 99
+      }
+    ],
+    "diastolic": [
+      {
+        "levelKey": "cukup_tinggi",
+        "min": 100,
+        "max": 119
+      },
+      {
+        "levelKey": "tinggi",
+        "min": 85,
+        "max": 99
+      },
+      {
+        "levelKey": "observasi",
+        "min": 80,
+        "max": 84
+      },
+      {
+        "levelKey": null,
+        "min": 60,
+        "max": 79
+      },
+      {
+        "levelKey": "diastolic_below_ref",
+        "min": 55,
+        "max": 59
+      },
+      {
+        "levelKey": "warning_low",
+        "min": 50,
+        "max": 54
+      }
+    ]
+  }
+}

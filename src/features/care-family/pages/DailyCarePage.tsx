@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react'
 import type { MedicationManagementPatient, PatientIdentity, Subject } from '../../../lib/auth'
 import { useI18n } from '../../../lib/i18n'
 import type { DailyCareModule, DailyCareModuleId } from '../../../lib/dailyCareModules'
-import { readLastDailyCareSection, saveLastDailyCareSection } from '../../../lib/dailyCareSectionPreference'
+import { readLastDailyCareSection, saveLastDailyCareSection } from '../../../lib/preferences/dailyCareSectionPreference'
 import { InputPage } from '../../vitals/pages/InputPage'
 import { TemperaturePage } from '../../vitals/pages/TemperaturePage'
 import { WeightPage } from '../../vitals/pages/WeightPage'
@@ -22,6 +22,8 @@ import { PetEndocrinePage } from '../../pet-care/pages/PetEndocrinePage'
 import { DementiaCarePage } from '../../dementia-care/pages/DementiaCarePage'
 import { FluidBalancePage } from '../../postop-care/pages/FluidBalancePage'
 import { CareDueRemindersPage } from '../../reminders/pages/CareDueRemindersPage'
+import { VisitQuestionsPage } from '../../reminders/pages/VisitQuestionsPage'
+import { LabResultsPage } from '../../labs/pages/LabResultsPage'
 import { SubjectSwitcher } from '../../../components/ui/SubjectSwitcher'
 import { TabHeader } from '../../../components/ui/TabHeader'
 import { DailyCareSectionTabs } from '../../../components/daily-care/DailyCareSectionTabs'
@@ -87,7 +89,7 @@ export function DailyCarePage({ subject, patientId, patientName, availablePatien
     : (visibleModules[0]?.id ?? 'bloodPressure')
   const activeModule = visibleModules.find(module => module.id === activeSection)
   // patientName 由外層以「含已歸檔」的完整病人清單解析，是目前唯一保證對應 patientId 的名稱來源。
-  const activePatientName = patientName || text({ id: 'Orang yang dirawat', zh: '被照護者' ,en: 'Person that dirawat' })
+  const activePatientName = patientName || text({ id: 'Orang yang dirawat', zh: '被照護者', en: 'Care recipient' })
   // petEndocrine 現在也對人類開放（見 dailyCareModules.ts），內分泌頁的血糖判讀門檻與報告用語要能依物種分流，不能整頁預設當成寵物。
   const activeCareRecipientType = availablePatients.find(patient => patient.patientId === patientId)?.careRecipientType
 
@@ -121,6 +123,10 @@ export function DailyCarePage({ subject, patientId, patientName, availablePatien
         return <FluidBalancePage patientId={patientId} patientName={patientName} userEmail={userEmail} />
       case 'careReminders':
         return <CareDueRemindersPage patientId={patientId} canManage={availablePatients.find(patient => patient.patientId === patientId)?.canManageMedication ?? false} careRecipientType={activeCareRecipientType} />
+      case 'visitQuestions':
+        return <VisitQuestionsPage patientId={patientId} />
+      case 'labResults':
+        return <LabResultsPage patientId={patientId} patientName={patientName} userEmail={userEmail} />
     }
   }
 
@@ -136,8 +142,8 @@ export function DailyCarePage({ subject, patientId, patientName, availablePatien
           <button
             type="button"
             onClick={onOpenDisplaySettings}
-            aria-label={text({ id: 'Sesuaikan tampilan perawatan harian', zh: '自訂每日照護顯示' ,en: 'Sesuaikan tampilan care daysan' })}
-            title={text({ id: 'Sesuaikan tampilan', zh: '自訂顯示' ,en: 'Sesuaikan tampilan' })}
+            aria-label={text({ id: 'Sesuaikan tampilan perawatan harian', zh: '自訂每日照護顯示', en: 'Customize daily care display' })}
+            title={text({ id: 'Sesuaikan tampilan', zh: '自訂顯示', en: 'Customize view' })}
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-200/80 text-lg text-slate-700 ring-1 ring-inset ring-slate-300/60 transition hover:bg-white active:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
           >
             <span aria-hidden="true">⚙</span>

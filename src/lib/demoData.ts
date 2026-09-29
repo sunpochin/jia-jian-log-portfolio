@@ -4,8 +4,8 @@
 主要關聯：由 useAuth、血壓／體溫 hooks、CareTimeline、MedicationPage 與 App.tsx 呼叫，確保無網路或資料庫尚未 push 時也能順暢展示。
 */
 
-import type { BpRecord, MedicationCatalog, MedicationPlan, TemperatureRecord } from '../types/database'
-import type { MedicationPlanChangeLogView } from './medications'
+import type { BpRecord, MedicationCatalog, MedicationPlan, PatientMedicationInstruction, TemperatureRecord } from '../types/database'
+import type { MedicationPlanChangeLogView } from './medication/medications'
 import type { CareTimelineEntry } from './careTimeline'
 
 export const DEMO_MEILING_PATIENT_ID = '55555555-5555-4555-a555-555555555555'
@@ -108,7 +108,7 @@ export function getFallbackDemoBpRecords(days: number, patientId: string = DEMO_
         pulse: 104,
         measured_at: firstMeasuredIso,
         created_at: firstMeasuredIso,
-        recorded_by: 'demo.caregiver@example.test',
+        recorded_by: 'caregiver@example.com',
         source: 'manual',
       })
       sysE = 162; diaE = 94; pulseE = 84
@@ -129,7 +129,7 @@ export function getFallbackDemoBpRecords(days: number, patientId: string = DEMO_
       pulse: pulseM,
       measured_at: morningIso,
       created_at: morningIso,
-      recorded_by: 'demo.caregiver@example.test',
+      recorded_by: 'caregiver@example.com',
       source: 'manual',
     })
 
@@ -141,7 +141,7 @@ export function getFallbackDemoBpRecords(days: number, patientId: string = DEMO_
       pulse: pulseE,
       measured_at: eveningIso,
       created_at: eveningIso,
-      recorded_by: 'demo.caregiver@example.test',
+      recorded_by: 'caregiver@example.com',
       source: 'manual',
     })
   }
@@ -167,7 +167,7 @@ export function getFallbackDemoTemperatureRecords(days: number, patientId: strin
       notes: null,
       measured_at: measuredAt,
       created_at: measuredAt,
-      recorded_by: patientId === DEMO_CHEN_PATIENT_ID ? 'demo.chen@example.test' : 'demo.caregiver@example.test',
+      recorded_by: patientId === DEMO_CHEN_PATIENT_ID ? 'demo.chen@example.test' : 'caregiver@example.com',
       source: 'demo_fallback',
     }
   }).sort((left, right) => Date.parse(right.measured_at) - Date.parse(left.measured_at))
@@ -216,7 +216,9 @@ export function getFallbackDemoLeeMedicationCatalog(): MedicationCatalog[] {
     // atc_code 皆為公開可查證的 WHO ATC 分類碼（依成分學名對照，非猜測）：
     // Aspirin→B01AC06、Ticagrelor→B01AC24、Amlodipine+Valsartan→C09DB01、
     // Atorvastatin→C10AA05、Nebivolol→C07AB12。
-    mockMedication('demo-med-lee-bokey-100', 'Bokey', '伯基腸溶微粒膠囊 100毫克', 'Bokey 100mg', 100, '100mg', 'orange', 'capsule', 'Aspirin', 'capsule', 'B01AC06'),
+    // official_dosage_form_text 是服用方式 A 層 demo：伯基本來就是腸溶微粒膠囊（品名已寫明「腸溶」），
+    // 填官方原文讓 resolveSwallowGuidance() 命中 swallow_whole，不必真實 Supabase 資料就能驗證 A 層徽章。
+    { ...mockMedication('demo-med-lee-bokey-100', 'Bokey', '伯基腸溶微粒膠囊 100毫克', 'Bokey 100mg', 100, '100mg', 'orange', 'capsule', 'Aspirin', 'capsule', 'B01AC06'), official_dosage_form_text: '腸溶微粒膠囊' },
     mockMedication('demo-med-lee-brilinta-90', 'BRILINTA', '百無凝膜衣錠 90毫克', 'BRILINTA 90mg', 90, '90mg', null, 'round', 'Ticagrelor', 'tablet', 'B01AC24'),
     mockMedication('demo-med-lee-exforge-5-160', 'Exforge', '易安穩膜衣錠 5/160毫克', 'Exforge 5/160mg', 165, '5/160mg', 'yellow', 'oval', 'Amlodipine + Valsartan', 'tablet', 'C09DB01'),
     mockMedication('demo-med-lee-lipitor-40', 'Lipitor', '立普妥膜衣錠 40毫克', 'Lipitor 40mg', 40, '40mg', 'white', 'round', 'Atorvastatin', 'tablet', 'C10AA05'),
@@ -244,6 +246,21 @@ export function getFallbackDemoLeeMedicationPlans(): MedicationPlan[] {
     plan('demo-plan-lee-exforge', 'demo-med-lee-exforge-5-160', 'before_dinner', 7, 1),
     plan('demo-plan-lee-calcium-pm', 'demo-med-lee-calcium-vitd-302', 'before_dinner', 8),
   ]
+}
+
+// 服用方式 B 層 demo：立普妥（膜衣錠，官方劑型沒有任何 A 層關鍵字，屬於 unknown）藥師交代過可以磨粉配水，
+// 讓 staging 不必真實紀錄就能驗證詳情視窗與交接手冊同時顯示來源、交代日期與備註。
+export function getFallbackDemoLeePatientMedicationInstructions(): PatientMedicationInstruction[] {
+  return [{
+    patient_id: DEMO_LEE_PATIENT_ID,
+    medication_id: 'demo-med-lee-lipitor-40',
+    instruction_codes: ['crush_ok', 'with_food'],
+    instruction_note: '吞不下的時候才磨粉配溫水',
+    source: 'pharmacist',
+    confirmed_on: '2026-07-20',
+    updated_by: 'demo.lee@example.test',
+    updated_at: DEMO_FALLBACK_BASE_DATE,
+  }]
 }
 
 export function getFallbackDemoMedicationCatalog(): MedicationCatalog[] {
@@ -321,7 +338,7 @@ export function getFallbackDemoMedicationHistory(): MedicationPlanChangeLogView[
       dose_count: 1,
       as_needed: false,
       reason: '門診診斷：舊型降壓藥血壓控制未達標 (162/98 mmHg)，遵醫囑停用並更換處方。',
-      actor_email: 'admin@careapp.local',
+      actor_email: 'owner@example.com',
       before_snapshot: { plan_id: 'demo-plan-legacy', medication_id: 'demo-med-legacy-bp-25', schedule_slot: 'morning', dose_amount: 1, dose_count: 1, as_needed: false, active: true, brand_name: 'Atenolol', brand_name_zh: '壓樂適錠 25毫克', dosage_form: 'tablet' },
       after_snapshot: { plan_id: 'demo-plan-legacy', medication_id: 'demo-med-legacy-bp-25', schedule_slot: 'morning', dose_amount: 1, dose_count: 1, as_needed: false, active: false, brand_name: 'Atenolol', brand_name_zh: '壓樂適錠 25毫克', dosage_form: 'tablet' },
       recorded_at: dateAgoIso(75), effective_at: dateAgoIso(75),
@@ -339,7 +356,7 @@ export function getFallbackDemoMedicationHistory(): MedicationPlanChangeLogView[
       dose_count: 1,
       as_needed: false,
       reason: '門診開立：開始使用易安穩 Exforge 5/80mg 每日早晨 0.5 錠，密切觀察前三日下降趨勢。',
-      actor_email: 'admin@careapp.local',
+      actor_email: 'owner@example.com',
       before_snapshot: {},
       after_snapshot: { plan_id: 'demo-plan-exforge', medication_id: 'demo-med-exforge-5-80', schedule_slot: 'morning', dose_amount: 0.5, dose_count: 1, as_needed: false, active: true, brand_name: 'Exforge', brand_name_zh: '易安穩膜衣錠 5/80毫克', dosage_form: 'tablet' },
       recorded_at: dateAgoIso(75), effective_at: dateAgoIso(75),
@@ -357,7 +374,7 @@ export function getFallbackDemoMedicationHistory(): MedicationPlanChangeLogView[
       dose_count: 1,
       as_needed: false,
       reason: '緊急醫囑停用：因出現姿勢性頭暈且連三日舒張壓下降至 48-52 mmHg，主治醫師指示停用硝酸鹽類 Isormol。',
-      actor_email: 'demo.caregiver@example.test',
+      actor_email: 'caregiver@example.com',
       before_snapshot: { plan_id: 'demo-plan-isormol', medication_id: 'demo-med-isormol-5', schedule_slot: 'before_bed', dose_amount: 1, dose_count: 1, as_needed: false, active: true, brand_name: 'Isormol', brand_name_zh: '伊索莫持續錠 5毫克', dosage_form: 'tablet' },
       after_snapshot: { plan_id: 'demo-plan-isormol', medication_id: 'demo-med-isormol-5', schedule_slot: 'before_bed', dose_amount: 1, dose_count: 1, as_needed: false, active: false, brand_name: 'Isormol', brand_name_zh: '伊索莫持續錠 5毫克', dosage_form: 'tablet' },
       recorded_at: dateAgoIso(64), effective_at: dateAgoIso(64),
@@ -375,7 +392,7 @@ export function getFallbackDemoMedicationHistory(): MedicationPlanChangeLogView[
       dose_count: 1,
       as_needed: false,
       reason: '門診加開：微調心律，早晨加開 Concor 5mg 半錠以輔助心率穩定 (70-75 bpm)。',
-      actor_email: 'admin@careapp.local',
+      actor_email: 'owner@example.com',
       before_snapshot: {},
       after_snapshot: { plan_id: 'demo-plan-concor', medication_id: 'demo-med-concor-5', schedule_slot: 'morning', dose_amount: 0.5, dose_count: 1, as_needed: false, active: true, brand_name: 'Concor', brand_name_zh: '康肯膜衣錠 5毫克', dosage_form: 'tablet' },
       recorded_at: dateAgoIso(30), effective_at: dateAgoIso(30),
@@ -397,7 +414,7 @@ export function getFallbackDemoCareTimeline(): CareTimelineEntry[] {
       details: '血壓連三週為 162/98 mmHg 偏高。主治醫師建議停用舊藥 Atenolol，改開易安穩 Exforge 5/80mg 每日早晨 0.5 錠，交代看護 caregiver 每日記錄雙時段讀值。',
       occurred_at: dateAgoIso(75),
       reassess_on: null,
-      created_by: 'admin@careapp.local',
+      created_by: 'owner@example.com',
       created_at: dateAgoIso(75),
       medication_plan_id: null,
     },
@@ -409,19 +426,23 @@ export function getFallbackDemoCareTimeline(): CareTimelineEntry[] {
       details: '看護 caregiver 筆記：媽媽早上起床反映頭眩暈、下床站立不穩，當量血壓 108/48 mmHg（舒張壓低於 50 mmHg）。已協助躺平休息，並致電門診護理師報備。',
       occurred_at: dateAgoIso(65),
       reassess_on: null,
-      created_by: 'demo.caregiver@example.test',
+      created_by: 'caregiver@example.com',
       created_at: dateAgoIso(65),
       medication_plan_id: null,
     },
     {
       id: 'demo-timeline-3',
       patient_id: DEMO_MEILING_PATIENT_ID,
-      event_type: 'medication_change',
+      // 這筆是手寫的敘事筆記，不是由調藥 RPC 建立的系統事件；event_type 曾誤用保留給系統事件的
+      // 'medication_change'（沒有對應的 medication_plan_change_log_id／snapshot），會讓軌跡頁把它
+      // 誤判成 MedicationChangeTrajectoryEvent 而在讀取 .medication 時壞掉（issue #735 發現）。
+      // 內容本質是醫師指示，改用 doctor_instruction 才符合 docs/features/care-timeline.md 的既有規則。
+      event_type: 'doctor_instruction',
       title: '門診急診通告：停用 Isormol 血管擴張劑',
       details: '醫師評估頭暈與低舒張壓後，指示立即停用晚間 Isormol 5mg，避免血管擴張過度。停藥後兩日舒張壓即回升至 74 mmHg，頭暈症狀消失。',
       occurred_at: dateAgoIso(64),
       reassess_on: null,
-      created_by: 'admin@careapp.local',
+      created_by: 'owner@example.com',
       created_at: dateAgoIso(64),
       medication_plan_id: null,
     },
@@ -433,7 +454,7 @@ export function getFallbackDemoCareTimeline(): CareTimelineEntry[] {
       details: '當晚因家中活動忘記服用晚間降壓與血糖藥，系統標記今日晚藥未確認。隔日早晨補點收並提醒每日鬧鐘。',
       occurred_at: dateAgoIso(45),
       reassess_on: null,
-      created_by: 'demo.caregiver@example.test',
+      created_by: 'caregiver@example.com',
       created_at: dateAgoIso(45),
       medication_plan_id: null,
     },
@@ -445,7 +466,7 @@ export function getFallbackDemoCareTimeline(): CareTimelineEntry[] {
       details: '心臟科門診複診，血壓維持 122/78 mmHg 良好。因平均心率 86 bpm 微快，醫師加開 Concor 康肯 5mg 每日早晨 0.5 錠。',
       occurred_at: dateAgoIso(30),
       reassess_on: null,
-      created_by: 'admin@careapp.local',
+      created_by: 'owner@example.com',
       created_at: dateAgoIso(30),
       medication_plan_id: null,
     },
@@ -457,7 +478,7 @@ export function getFallbackDemoCareTimeline(): CareTimelineEntry[] {
       details: '晚間 20:00 測得 220/110 mmHg。看護 caregiver 按照照護 SOP 讓媽媽靜臥 15 分鐘，於 20:15 進行二次複測，讀值降至 162/96 mmHg，無言語不清或肢體無力。已傳送 LINE 通知台中家屬備查。',
       occurred_at: dateAgoIso(15),
       reassess_on: null,
-      created_by: 'demo.caregiver@example.test',
+      created_by: 'caregiver@example.com',
       created_at: dateAgoIso(15),
       medication_plan_id: null,
     },
@@ -466,12 +487,14 @@ export function getFallbackDemoCareTimeline(): CareTimelineEntry[] {
       patient_id: DEMO_MEILING_PATIENT_ID,
       event_type: 'symptom_observation',
       title: '輕微感冒症狀與心衰竭體重水腫監測',
-      details: '媽媽出現鼻塞與輕微咳嗽，體重由 58.1 kg 略升至 59.4 kg。看護密切觀察是否為下肢水腫或心衰竭積水，經補充溫水與三日後體重已回復 58.2 kg。',
+      details: '媽媽出現鼻塞與輕微咳嗽，體重由 58.1 kg 略升至 59.4 kg。看護密切觀察是否為下肢水腫或心衰竭積水，拍照記錄小腿凹陷程度方便家屬遠端判斷，經補充溫水與三日後體重已回復 58.2 kg、腫脹消退。',
       occurred_at: dateAgoIso(8),
       reassess_on: null,
-      created_by: 'demo.caregiver@example.test',
+      created_by: 'caregiver@example.com',
       created_at: dateAgoIso(8),
       medication_plan_id: null,
+      // 展示模式專屬：兩張抽象示意圖，不是任何真人的照片，用來示範「文字講不清楚，拍照最快」這個功能。
+      demo_photo_urls: ['/demo/care-timeline/edema-day1.svg', '/demo/care-timeline/edema-day3.svg'],
     },
     {
       id: 'demo-timeline-8',
@@ -481,7 +504,7 @@ export function getFallbackDemoCareTimeline(): CareTimelineEntry[] {
       details: '主治醫師參閱全三個月血壓趨勢圖表與服藥遵從率，稱讚照護品質優良，血壓控制良好（平均 122/77 mmHg），開立未來 3 個月慢性病連續處方箋。',
       occurred_at: dateAgoIso(1),
       reassess_on: null,
-      created_by: 'admin@careapp.local',
+      created_by: 'owner@example.com',
       created_at: dateAgoIso(1),
       medication_plan_id: null,
     },

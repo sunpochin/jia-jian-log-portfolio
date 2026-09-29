@@ -1,7 +1,7 @@
 /*
 檔案用途：顯示與操作特定帳號的今日服藥紀錄 MVP 卡片，支援跨裝置同步與安全復原。
 所在層：src/components；為 DailyCarePage/InputPage 所掛載的服藥狀態卡片。
-主要關聯：使用 lib/medicationToday 資料層與 lib/i18n 雙語文字機制。
+主要關聯：使用 lib/medication/medicationToday 資料層與 lib/i18n 雙語文字機制。
 */
 import { useEffect, useState } from 'react'
 import dayjs from 'dayjs'
@@ -18,7 +18,7 @@ import {
   taipeiDateKey,
   TODAY_MEDICATION_MVP,
   type MedicationTodayLog,
-} from '../../../lib/medicationToday'
+} from '../../../lib/medication/medicationToday'
 import { useConfirm } from '../../../hooks/useConfirm'
 
 dayjs.extend(utc)
@@ -88,10 +88,11 @@ export function MedicationTodayCard({ userEmail }: { userEmail?: string }) {
   }
 
   const undoTaken = async () => {
-    // 繁體中文註解：取消會刪除跨裝置共用的今日紀錄，先以雙語二次確認，避免手滑後所有裝置都誤判為未服藥。
+    // 取消服藥確認對話框的英文修正為自然流暢英文
     const confirmPrompt = text({
       id: 'Apakah Anda yakin ingin membatalkan catatan obat hari perawatan ini?\nTindakan ini akan disinkronkan ke perangkat lain.',
-      zh: '確定要取消本照護日的服藥紀錄嗎？\n此操作會同步到其他裝置。', en: 'Apakah You yakin ingin membatalkan record medication days care this?\nTindakan this will disinkronkan to pernumberst lain.',
+      zh: '確定要取消本照護日的服藥紀錄嗎？\n此操作會同步到其他裝置。',
+      en: 'Are you sure you want to cancel the medication record for this care day?\nThis action will sync to other devices.',
     })
     if (!(await confirm(confirmPrompt, { danger: true }))) return
 
@@ -135,7 +136,7 @@ export function MedicationTodayCard({ userEmail }: { userEmail?: string }) {
             log ? 'bg-green-100 text-green-700' : 'bg-amber-500 text-white active:scale-[0.99]'
           }`}
         >
-          {status === 'loading' ? text({ id: 'Memuat catatan hari perawatan ini...', zh: '讀取本照護日紀錄…', en: 'Loading record days care this...' }) :
+          {status === 'loading' ? text({ id: 'Memuat catatan hari perawatan ini...', zh: '讀取本照護日紀錄…', en: 'Loading records for this care day…' }) :
            status === 'saving' ? text({ id: 'Menyinkronkan...', zh: '同步中…', en: 'Syncing…' }) :
            log ? text({ id: `Sudah minum obat pada hari perawatan ini${takenTime ? ` · ${takenTime}` : ''}`, zh: `本照護日已吃過${takenTime ? ` · ${takenTime}` : ''}`, en: `Taken on this care day${takenTime ? ` · ${takenTime}` : ''}` }) :
            text({ id: 'Saya sudah minum, catat hari perawatan ini', zh: '我吃完了，記錄本照護日已服用', en: 'I’m done, record that the care day has been taken' })}
@@ -154,7 +155,8 @@ export function MedicationTodayCard({ userEmail }: { userEmail?: string }) {
             disabled={status === 'saving'}
             className="mt-2 w-full text-xs font-semibold text-green-700 underline underline-offset-2 disabled:opacity-50"
           >
-            {text({ id: 'Salah tekan, batalkan catatan hari perawatan ini', zh: '誤按，取消本照護日紀錄', en: 'Salah tekan, batalkan record days care this' })}
+            {/* 誤按取消按鈕英文翻譯修正 */}
+            {text({ id: 'Salah tekan, batalkan catatan hari perawatan ini', zh: '誤按，取消本照護日紀錄', en: 'Pressed by mistake? Cancel this care day’s record' })}
           </button>
         )}
       </div>

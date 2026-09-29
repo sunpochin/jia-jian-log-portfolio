@@ -1,0 +1,30 @@
+{
+  "key": "elderly_relaxed",
+  "names": {
+    "zh": "高齡寬鬆",
+    "id": "Lansia (longgar)",
+    "en": "Relaxed (older adult)"
+  },
+  "descriptions": {
+    "zh": "高齡者過低比過高更危險（姿勢性低血壓→跌倒→骨折）。收縮壓 130–139 刻意由警示降為正常，低側門檻同步提高而非降低。",
+    "id": "Pada lansia, terlalu rendah lebih berbahaya daripada terlalu tinggi (hipotensi ortostatik→jatuh→patah tulang). Sistolik 130–139 sengaja diturunkan dari peringatan menjadi normal, sementara batas sisi rendah justru dinaikkan.",
+    "en": "For older adults, too low is more dangerous than too high (orthostatic hypotension → fall → fracture). Systolic 130–139 is deliberately downgraded from a warning to normal, while the low-side threshold is raised rather than lowered."
+  },
+  "ladder": {
+    "kind": "dual-axis",
+    "systolic": [
+      { "levelKey": "cukup_tinggi", "min": 160, "max": 179 },
+      { "levelKey": "tinggi", "min": 140, "max": 159 },
+      { "levelKey": "on_target", "min": 120, "max": 139 },
+      { "levelKey": "below_target", "min": 110, "max": 119 },
+      { "levelKey": "warning_low", "min": 90, "max": 109 }
+    ],
+    "diastolic": [
+      { "levelKey": "cukup_tinggi", "min": 100, "max": 119 },
+      { "levelKey": "tinggi", "min": 85, "max": 99 },
+      { "levelKey": null, "min": 60, "max": 84 },
+      { "levelKey": "diastolic_below_ref", "min": 55, "max": 59 },
+      { "levelKey": "warning_low", "min": 50, "max": 54 }
+    ]
+  }
+}

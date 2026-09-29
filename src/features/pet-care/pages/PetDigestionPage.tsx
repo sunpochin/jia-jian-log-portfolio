@@ -56,7 +56,7 @@ export function PetDigestionPage({ patientId, userEmail }: {
         if (error) {
           console.error('[pet digestion load error]', error)
           setStatus('err')
-          setMessage(text({ id: 'Tidak dapat memuat data.', zh: '暫時無法讀取資料。' ,en: "Could not loading data." }))
+          setMessage(text({ id: 'Tidak dapat memuat data.', zh: '暫時無法讀取資料。' ,en: 'Unable to load data right now.' }))
           return
         }
         const record = data as PetDigestionRecord | null
@@ -79,7 +79,8 @@ export function PetDigestionPage({ patientId, userEmail }: {
     if (!userEmail) return
 
     if (formData.defecationCount === '' && formData.stoolScore === '' && formData.vomitingCount === '') {
-      setMessage(text({ id: 'Masukkan setidaknya satu nilai.', zh: '請至少輸入一個值。' ,en: "Masukkan setidaknya satu nilai." }))
+      // 至少輸入一項提示英文修正
+      setMessage(text({ id: 'Masukkan setidaknya satu nilai.', zh: '請至少輸入一個值。' ,en: "Please enter at least one value." }))
       return
     }
 
@@ -111,7 +112,7 @@ export function PetDigestionPage({ patientId, userEmail }: {
     const { data, error } = await request.select('*').single()
     if (error) {
       console.error('[pet digestion save error]', error)
-      setMessage(text({ id: 'Tidak dapat menyimpan. Coba lagi.', zh: '暫時無法儲存，請再試一次。' ,en: "Could not saving. Try again." }))
+      setMessage(text({ id: 'Tidak dapat menyimpan. Coba lagi.', zh: '暫時無法儲存，請再試一次。' ,en: "Could not save. Please try again." }))
       setStatus('err')
       return
     }
@@ -126,12 +127,13 @@ export function PetDigestionPage({ patientId, userEmail }: {
       <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl bg-white p-5 shadow-sm">
         {todayRecord && (
           <p className="text-xs font-semibold text-indigo-700">
-            {text({ id: 'Mengedit catatan hari ini.', zh: '目前正在修改今天已存的紀錄。' ,en: "Mengedit recordan days this." })}
+            {/* 編輯今日紀錄提示英文修正 */}
+            {text({ id: 'Mengedit catatan hari ini.', zh: '目前正在修改今天已存的紀錄。' ,en: "Editing today's saved record." })}
           </p>
         )}
         <div>
           <label className="block text-sm font-semibold text-gray-800">
-            {text({ id: 'Frekuensi buang air besar', zh: '排便次數' ,en: "Frekuensi bowel movement" })}
+            {text({ id: 'Frekuensi buang air besar', zh: '排便次數' ,en: "Bowel movement frequency" })}
           </label>
           <input
             type="number"
@@ -146,28 +148,29 @@ export function PetDigestionPage({ patientId, userEmail }: {
 
         <div>
           <label className="block text-sm font-semibold text-gray-800">
-            {text({ id: 'Skor kesehatan feses (1-5)', zh: '糞便評分 (1-5)' ,en: "Skor tosehatan feses (1-5)" })}
+            {/* 糞便評分與各選項英文修正 */}
+            {text({ id: 'Skor kesehatan feses (1-5)', zh: '糞便評分 (1-5)' ,en: "Stool consistency score (1-5)" })}
           </label>
           <p className="mt-1 text-xs text-gray-500">
-            {text({ id: '1=diare, 3=normal, 5=sembelit', zh: '1=腹瀉, 3=正常, 5=便秘' ,en: "1=diare, 3=normal, 5=sembelit" })}
+            {text({ id: '1=diare, 3=normal, 5=sembelit', zh: '1=腹瀉, 3=正常, 5=便秘' ,en: "1=diarrhea, 3=normal, 5=constipation" })}
           </p>
           <select
             value={formData.stoolScore}
             onChange={e => handleInputChange('stoolScore', e.target.value)}
             className="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2.5"
           >
-            <option value="">{text({ id: '(Opsional)', zh: '（可不填）' ,en: "(Opsional)" })}</option>
-            <option value="1">1 - {text({ id: 'Diare', zh: '腹瀉' ,en: "Diare" })}</option>
-            <option value="2">2 - {text({ id: 'Lembek', zh: '軟便' ,en: "Lembek" })}</option>
+            <option value="">{text({ id: '(Opsional)', zh: '（可不填）' ,en: "(Optional)" })}</option>
+            <option value="1">1 - {text({ id: 'Diare', zh: '腹瀉' ,en: "Diarrhea" })}</option>
+            <option value="2">2 - {text({ id: 'Lembek', zh: '軟便' ,en: "Soft stool" })}</option>
             <option value="3">3 - {text({ id: 'Normal', zh: '正常' ,en: "Normal" })}</option>
-            <option value="4">4 - {text({ id: 'Keras', zh: '硬便' ,en: "Keras" })}</option>
-            <option value="5">5 - {text({ id: 'Sembelit', zh: '便秘' ,en: "Sembelit" })}</option>
+            <option value="4">4 - {text({ id: 'Keras', zh: '硬便' ,en: "Hard stool" })}</option>
+            <option value="5">5 - {text({ id: 'Sembelit', zh: '便秘' ,en: "Constipated" })}</option>
           </select>
         </div>
 
         <div>
           <label className="block text-sm font-semibold text-gray-800">
-            {text({ id: 'Frekuensi muntah', zh: '嘔吐次數' ,en: "Frekuensi muntah" })}
+            {text({ id: 'Frekuensi muntah', zh: '嘔吐次數' ,en: "Vomiting frequency" })}
           </label>
           <input
             type="number"

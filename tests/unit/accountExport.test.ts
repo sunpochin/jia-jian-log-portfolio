@@ -314,6 +314,13 @@ describe('account CSV export builder & downloader', () => {
           calorie_basis: 'estimated', created_at: '2026-07-29T04:05:00Z',
         },
       ],
+      patientMedicationInstructions: [
+        {
+          patient_id: 'patient-1', medication_id: 'med-1', instruction_codes: ['crush_ok', 'mix_with_water'],
+          instruction_note: '藥師交代磨粉配水', source: 'pharmacist', confirmed_on: '2026-07-28',
+          updated_by: 'caregiver@example.com', updated_at: '2026-07-28T09:00:00Z',
+        },
+      ],
     })
 
     expect(csv.startsWith('\uFEFF')).toBe(true)
@@ -331,6 +338,12 @@ describe('account CSV export builder & downloader', () => {
     expect(csv).toContain('雞肉粥')
     // 交接檔要保留可長期使用的相對 path，而不是會過期的 signed URL。
     expect(csv).not.toContain('https://')
+    // 服用方式 B 層：代碼、來源、確認日期與備註都必須出現在匯出裡，這是換手交接最需要的一格。
+    expect(csv).toContain('Cara minum obat / 服用方式')
+    expect(csv).toContain('crush_ok; mix_with_water')
+    expect(csv).toContain('pharmacist')
+    expect(csv).toContain('2026-07-28')
+    expect(csv).toContain('藥師交代磨粉配水')
   })
 
   test('downloadAccountCsv throws when patientId is missing', async () => {

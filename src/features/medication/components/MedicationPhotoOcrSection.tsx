@@ -47,7 +47,10 @@ export function MedicationPhotoOcrSection({ patientId, onPickCandidate }: { pati
       const { blob, contentType } = await prepareSingleCompressedImage(file, OCR_PHOTO_MAX_DIMENSION, OCR_PHOTO_MAX_BYTES)
       const { data, error: invokeError } = await supabase.functions.invoke('medication-ocr', {
         body: blob,
-        headers: { 'x-patient-id': patientId, 'content-type': contentType },
+        // 大小寫必須是 'Content-Type'：見 MedicationAiDraftSection.tsx 同一行的註解（issue #808）——
+        // 這支 Vision OCR 目前沒受影響（Vision 用內容自動偵測格式，不依賴宣告的 mimeType），
+        // 但同一個 supabase-js 大小寫陷阱仍在，這裡一併修正避免未來改動時重演。
+        headers: { 'x-patient-id': patientId, 'Content-Type': contentType },
       })
       if (invokeError) {
         // 為什麼要試著解析回應內容：Edge Function 回傳 4xx/5xx 時 supabase-js 只給我們一個泛用錯誤物件，

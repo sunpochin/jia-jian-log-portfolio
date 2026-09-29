@@ -104,11 +104,24 @@ export function captureCaregiverInvitationToken(): string | null {
   try {
     // sessionStorage 只在同一瀏覽器工作階段短暫保留，讓 Google GIS 登入重新載入後仍能接續邀請。
     window.sessionStorage.setItem(CAREGIVER_INVITATION_STORAGE_KEY, token)
+  } catch {
+    // 私密瀏覽器可能停用 storage；本次仍用記憶體內的 token 繼續，登入重新載入後則需重新打開邀請連結。
+  }
+  clearInvitationFragment()
+  return token
+}
+
+/**
+ * 把 #token=… 從網址列與瀏覽器歷史清掉。刻意與 sessionStorage 寫入分開 try：
+ * 以前兩者在同一個 try，storage 被停用時 setItem 先丟錯，replaceState 就被跳過，
+ * 邀請 secret 會留在網址列、歷史紀錄、截圖與複製出去的網址裡（issue #806 讓全新瀏覽器也能直接打開這兩個入口）。
+ */
+function clearInvitationFragment(): void {
+  try {
     window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
   } catch {
-    // 私密瀏覽器可能停用 storage；URL 已清理，但使用者仍可重新打開邀請連結。
+    // 極少數嵌入式 WebView 不允許改寫歷史；清不掉也不能讓邀請流程整個失敗，token 仍只在記憶體中使用。
   }
-  return token
 }
 
 export function readStoredCaregiverInvitationToken(): string | null {
@@ -132,12 +145,13 @@ export function capturePatientInvitationToken(): string | null {
   const token = readInvitationToken(typeof window === 'undefined' ? '' : window.location.hash)
   if (!token) return readStoredPatientInvitationToken()
   try {
-    // sessionStorage 只保留登入接續所需的短暫 token；清掉 fragment 可避免連結被瀏覽器歷史或截圖再次暴露。
+    // sessionStorage 只保留登入接續所需的短暫 token。
     window.sessionStorage.setItem(PATIENT_INVITATION_STORAGE_KEY, token)
-    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
   } catch {
     // 私密瀏覽器可能停用 storage；RPC 仍會以 email 與 token 雙重驗證，不能因此放寬權限。
   }
+  // 不論 storage 成功與否都要清 fragment，避免連結被瀏覽器歷史或截圖再次暴露（原因見 clearInvitationFragment）。
+  clearInvitationFragment()
   return token
 }
 

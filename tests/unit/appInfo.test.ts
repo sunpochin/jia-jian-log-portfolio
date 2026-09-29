@@ -14,7 +14,7 @@ if (typeof (globalThis as any).__APP_VERSION__ === 'undefined') {
   ;(globalThis as any).__APP_BUILD_TIME__ = '2026-08-13T00:00:00.000Z'
 }
 
-const { APP_AUTHOR_URL, APP_CANONICAL_URL, APP_GITHUB_RELEASES_URL, APP_DOCUMENT_TITLE, APP_HEADER_TITLE, APP_HOME_SCREEN_TITLE, APP_SUBTITLE } = await import('../../src/lib/appInfo')
+const { APP_AUTHOR_URL, APP_CANONICAL_URL, APP_GITHUB_RELEASES_URL, APP_DOCUMENT_TITLE, APP_HEADER_TITLE, APP_HOME_SCREEN_TITLE, APP_SUBTITLE, APP_RELEASE_CODENAME } = await import('../../src/lib/appInfo')
 
 describe('appInfo links and constants', () => {
   test('exports correct author personal website URL', () => {
@@ -29,9 +29,9 @@ describe('appInfo links and constants', () => {
 
   test('keeps visible subtitle and document title bilingual', () => {
     expect(APP_SUBTITLE).toMatchObject({ id: 'Catatan Kesehatan Keluarga', zh: '家庭健康紀錄', en: 'Family Health Record' })
-    expect(APP_DOCUMENT_TITLE.id).toContain('JiaJian Log')
+    expect(APP_DOCUMENT_TITLE.id).toContain('Family Health Note')
     expect(APP_DOCUMENT_TITLE.id).toContain('Catatan Kesehatan Keluarga')
-    expect(APP_DOCUMENT_TITLE.zh).toContain('家健錄 JiaJian Log')
+    expect(APP_DOCUMENT_TITLE.zh).toContain('家健錄 Family Health Note')
     expect(APP_DOCUMENT_TITLE.zh).toContain('家庭健康紀錄')
   })
 
@@ -42,7 +42,12 @@ describe('appInfo links and constants', () => {
 
   test('keeps the public brand header labels bilingual', () => {
     // 公開登入與 WebView 標頭共用這組常數，避免其中一個入口退回單一語言品牌。
-    expect(APP_HEADER_TITLE).toMatchObject({ id: 'JiaJian Log', zh: '家健錄 JiaJian Log', en: expect.any(String) })
+    expect(APP_HEADER_TITLE).toMatchObject({ id: 'Family Health Note', zh: '家健錄 Family Health Note', en: expect.any(String) })
     expect(APP_SUBTITLE).toMatchObject({ id: 'Catatan Kesehatan Keluarga', zh: '家庭健康紀錄', en: 'Family Health Record' })
+  })
+
+  test('keeps release codename bilingual with Mog-Nee for English and Indonesian', () => {
+    // 驗證小黑狗猛膩在英文與印尼文介面皆統一為 Mog-Nee，中文保留猛膩
+    expect(APP_RELEASE_CODENAME).toEqual({ id: 'Mog-Nee', zh: '猛膩', en: 'Mog-Nee' })
   })
 })

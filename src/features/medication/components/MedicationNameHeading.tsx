@@ -1,13 +1,13 @@
 /*
 檔案用途：以固定的紅色醒目樣式呈現藥物名稱（主要名稱＋次要名稱），並依偏好決定英文名或本地化名何者在前。
 所在層：src/features/medication/components；服藥打卡、本週藥單、排藥、變更藥物四個分頁共用同一份名稱呈現邏輯，避免各分頁各自重寫顏色與排序判斷。
-主要關聯：由 lib/medications 的 resolveMedicationNames／pairMedicationNames 提供文字；MedicationPage、MedicationHistory、MedicationAdminSection 皆可引用。
+主要關聯：由 lib/medication/medications 的 resolveMedicationNames／pairMedicationNames 提供文字；MedicationPage、MedicationHistory、MedicationAdminSection 皆可引用。
 */
 import type { MedicationCatalog } from '../../../types/database'
 import type { Locale } from '../../../lib/i18n'
 import { useI18n } from '../../../lib/i18n'
-import { pairMedicationNames, resolveMedicationNames } from '../../../lib/medications'
-import { resolveMedicationCategory } from '../../../lib/medicationAtcCategories'
+import { pairMedicationNames, resolveMedicationNames } from '../../../lib/medication/medications'
+import { resolveMedicationCategory } from '../../../lib/medication/medicationAtcCategories'
 
 const SIZE_CLASSES = {
   lg: { primary: 'text-lg', secondary: 'text-sm' },

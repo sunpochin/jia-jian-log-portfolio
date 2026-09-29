@@ -159,7 +159,9 @@ function bchDigit(value: number): number {
   return digit
 }
 
-function bchTypeInfo(data: number): number {
+// 為什麼保留這個純函式 export：QR format information 的 BCH 除法在固定首頁 payload
+// 可能只走「零次迴圈」；讓測試能用另一個合法 5-bit format value 驗證真正的除法路徑，避免規格演算法被未執行的 branch 掩蓋。
+export function bchTypeInfo(data: number): number {
   const generator = 0x537
   const mask = 0x5412
   let value = data << 10

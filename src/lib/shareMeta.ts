@@ -16,14 +16,14 @@ export const SHARE_PREVIEW_IMAGE_URL = new URL(SHARE_PREVIEW_IMAGE_PATH, APP_CAN
 // 若強行提供 hreflang 分頁網址，兩個網址其實會回傳一模一樣的內容，對搜尋引擎反而是誤導。
 // 這個選擇滿足 issue #437 驗收條件「不得只留單一語言」——印尼文讀者在標題、說明都能直接看到印尼文。
 // 兩語言並列的段落一律「印尼文在前、中文在後」，與 src/lib/recordReport.ts 的 `${id} / ${zh}` 慣例一致
-// （品牌名稱「家健錄 JiaJian Log」是固定不隨語言排序的商標字串，不受此規則影響）。
-export const SHARE_PREVIEW_TITLE = '家健錄 JiaJian Log — Catatan Kesehatan Keluarga / 家庭健康紀錄'
+// （品牌名稱「家健錄 Family Health Note」是固定不隨語言排序的商標字串，不受此規則影響）。
+export const SHARE_PREVIEW_TITLE = '家健錄 Family Health Note — Catatan Kesehatan Keluarga / 家庭健康紀錄'
 
 // LINE／Facebook 會截斷過長說明，因此中印文各壓成一句，合計仍在多數平台顯示上限內。
 export const SHARE_PREVIEW_DESCRIPTION = 'Catat tekanan darah, suhu, berat badan, obat, dan perawatan harian bersama keluarga dan perawat. Gratis, tanpa instalasi, dwibahasa Mandarin–Indonesia. ／ 家人與看護一起記錄血壓、體溫、體重、用藥與每日照護，趨勢與交接一次看懂。免費、免安裝、繁中與印尼文雙語介面。'
 
 // alt／aria 文字同樣是使用者可見文案，讀屏器與圖片載入失敗時會用到，維持雙語並列。
-export const SHARE_PREVIEW_IMAGE_ALT = '家健錄 JiaJian Log 分享預覽圖：Catatan Kesehatan Keluarga / 家庭健康紀錄'
+export const SHARE_PREVIEW_IMAGE_ALT = '家健錄 Family Health Note 分享預覽圖：Catatan Kesehatan Keluarga / 家庭健康紀錄'
 
 export const SHARE_OG_LOCALE = 'zh_TW'
 export const SHARE_OG_LOCALE_ALTERNATE = 'id_ID'

@@ -1,0 +1,28 @@
+{
+  "key": "custom",
+  "names": {
+    "zh": "自訂（醫師指定）",
+    "id": "Kustom (dari dokter)",
+    "en": "Custom (from doctor)"
+  },
+  "descriptions": {
+    "zh": "醫囑不落在任何預設模板時的逃生門。照護者輸入醫師指定的目標區間，其餘分界沿用既有九級表的數字；仍受 R1 hard floor 限制。",
+    "id": "Jalan keluar ketika resep dokter tidak cocok dengan template mana pun. Perawat memasukkan rentang target dari dokter, sedangkan batas lainnya mengikuti angka tabel sembilan tingkat; tetap dibatasi hard floor R1.",
+    "en": "The escape hatch when a prescription fits no preset template. The caregiver enters the doctor's target range while the remaining boundaries reuse the nine-level table's numbers; the R1 hard floors still apply."
+  },
+  "ladder": {
+    "kind": "custom-bounds",
+    "defaultBounds": {
+      "systolicMin": 110,
+      "systolicMax": 129,
+      "diastolicMin": 60,
+      "diastolicMax": 79
+    },
+    "allowedBounds": {
+      "systolicMin": 90,
+      "systolicMax": 179,
+      "diastolicMin": 50,
+      "diastolicMax": 119
+    }
+  }
+}

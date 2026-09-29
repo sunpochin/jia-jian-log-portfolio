@@ -8,13 +8,15 @@ import { clearDemoModuleHandoff, readDemoModuleHandoff, writeDemoModuleHandoff }
 
 const originalLocalStorage = globalThis.localStorage
 const values = new Map<string, string>()
+let storageThrows = false
 
 beforeEach(() => {
   values.clear()
+  storageThrows = false
   ;(globalThis as typeof globalThis & { localStorage: Storage }).localStorage = {
-    getItem: key => values.get(key) ?? null,
-    setItem: (key, value) => { values.set(key, value) },
-    removeItem: key => { values.delete(key) },
+    getItem: key => { if (storageThrows) throw new Error('storage blocked'); return values.get(key) ?? null },
+    setItem: (key, value) => { if (storageThrows) throw new Error('storage blocked'); values.set(key, value) },
+    removeItem: key => { if (storageThrows) throw new Error('storage blocked'); values.delete(key) },
   } as Storage
 })
 
@@ -55,5 +57,13 @@ describe('demo module handoff', () => {
     const raw = values.get('jiajianlog.demo-handoff.v1')
     const parsed = JSON.parse(raw ?? '{}')
     expect(Object.keys(parsed).sort()).toEqual(['capturedAt', 'moduleIds', 'useCustomTemplate'])
+  })
+
+  test('keeps demo navigation usable when the browser blocks localStorage', () => {
+    storageThrows = true
+    // localStorage 可能因私密模式或瀏覽器政策整組拒絕；承接失敗不能反過來阻斷試用或登入。
+    expect(() => writeDemoModuleHandoff({ moduleIds: ['bloodPressure'], useCustomTemplate: false })).not.toThrow()
+    expect(readDemoModuleHandoff()).toBeNull()
+    expect(() => clearDemoModuleHandoff()).not.toThrow()
   })
 })

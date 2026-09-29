@@ -1,0 +1,16 @@
+{
+  "key": "general_adult",
+  "names": {
+    "zh": "一般成人",
+    "id": "Dewasa umum",
+    "en": "General adult"
+  },
+  "descriptions": {
+    "zh": "預設標準。沿用全 app 既有的九級表，未指定個別醫囑目標的照護對象都用這一份。",
+    "id": "Standar bawaan. Memakai tabel sembilan tingkat yang sudah ada di aplikasi, untuk penerima perawatan tanpa target khusus dari dokter.",
+    "en": "The default standard. It reuses the app's existing nine-level table for every care recipient without a doctor-prescribed target."
+  },
+  "ladder": {
+    "kind": "nine-level-spec"
+  }
+}

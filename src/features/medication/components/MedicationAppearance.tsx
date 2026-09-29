@@ -5,7 +5,9 @@
 */
 import { useEffect, useState } from 'react'
 import { useI18n } from '../../../lib/i18n'
-import { resolveMedicationCategory } from '../../../lib/medicationAtcCategories'
+import { signMedicationAppearancePhotoPath } from '../../../lib/medication/medicationAppearancePhotos'
+import { resolveMedicationCategory } from '../../../lib/medication/medicationAtcCategories'
+import { resolveMedicationAppearanceImageUrl } from '../../../lib/medication/tfdaAppearanceImage'
 
 interface MedicationAppearanceData {
   brand_name: string
@@ -19,6 +21,9 @@ interface MedicationAppearanceData {
   // 人工查證過的成分分類補上（見 20260828020047_backfill_generic_medication_atc_codes.sql）。
   // 缺值時不顯示任何主要功能標籤，不用猜測的分類誤導照護判斷。
   atc_code?: string | null
+  // 不是資料庫欄位；呼叫端合併 patient_medication_appearance_overrides 後標記外觀來源（issue #759），
+  // 用來決定是否顯示「此人專屬外觀」徽章。呼叫端不需要另外傳一個獨立的 prop，直接讀合併後的欄位即可。
+  appearance_source?: 'shared' | 'patient_override'
 }
 
 const colorOptions = {
@@ -29,13 +34,13 @@ const colorOptions = {
   red: { id: 'Merah', zh: '紅色', en: 'Red', swatch: '#ef4444' },
   green: { id: 'Hijau', zh: '綠色', en: 'Green', swatch: '#4ade80' },
   blue: { id: 'Biru', zh: '藍色', en: 'Blue', swatch: '#60a5fa' },
-  brown: { id: 'Cokelat', zh: '棕色', en: 'chocolate brown', swatch: '#a16207' },
+  brown: { id: 'Cokelat', zh: '棕色', en: 'Brown', swatch: '#a16207' },
   transparent: { id: 'Transparan', zh: '透明', en: 'Transparent', swatch: '#e0f2fe' },
 } as const
 
 const shapeOptions = {
   round: { id: 'Tablet bulat', zh: '圓形錠' ,en: 'Round tablet' },
-  oval: { id: 'Tablet oval', zh: '橢圓形錠' ,en: 'Oval Tablet' },
+  oval: { id: 'Tablet oval', zh: '橢圓形錠' ,en: 'Oval tablet' },
   oblong: { id: 'Tablet lonjong', zh: '長橢圓形錠' ,en: 'Oblong tablet' },
   capsule: { id: 'Kapsul', zh: '膠囊' ,en: 'Capsule' },
   // 粉包沒有「錠形」，但照護者仍要能一眼分辨手上是藥錠還是要沖泡的粉包。
@@ -67,13 +72,34 @@ export function MedicationAppearance({ medication, compact = false, showAppearan
   const shape = shapeKey ? shapeOptions[shapeKey] : undefined
   // 粉劑沒登錄形狀時不能退回圓錠示意圖，否則畫面會暗示照護者手上是一顆藥。
   const genericShape = medication.dosage_form === 'capsule' ? 'capsule' : medication.dosage_form === 'powder' ? 'sachet' : 'round'
-  const hasPhoto = Boolean(medication.appearance_photo_url) && !imageFailed
+  // 官方 TFDA 圖片仍是公開目錄資料；同源 proxy 的好處是 TFDA 看到本站伺服器，而不是照護者手機的 IP／瀏覽器資訊，
+  // 也仍保留圖片 path 供官方取圖。未知外站不渲染，避免 CSP 擋住前才發生跨站請求。
+  const rawPhotoUrl = medication.appearance_photo_url
+  const tfdaPhotoUrl = resolveMedicationAppearanceImageUrl(rawPhotoUrl)
+  const [signedPhotoUrl, setSignedPhotoUrl] = useState<string | null>(null)
+
+  // 照護者自行上傳的照片存在 private bucket，只有 bare path；渲染前要換一次簽名網址才能給 <img> 用，
+  // 換照片或藥品時要清掉上一張的簽名網址，避免短暫顯示到別張藥的照片。signMedicationAppearancePhotoPath
+  // 也認得 rollout 過渡期間舊前端寫入的完整 public URL，這裡不用另外判斷格式。
+  useEffect(() => {
+    setSignedPhotoUrl(null)
+    setImageFailed(false)
+    if (tfdaPhotoUrl || !rawPhotoUrl) return
+    let cancelled = false
+    signMedicationAppearancePhotoPath(rawPhotoUrl)
+      .then(url => { if (!cancelled) setSignedPhotoUrl(url) })
+      .catch(() => { if (!cancelled) setImageFailed(true) })
+    return () => { cancelled = true }
+  }, [rawPhotoUrl, tfdaPhotoUrl])
+
+  const photoUrl = tfdaPhotoUrl ?? signedPhotoUrl
+  const hasPhoto = Boolean(photoUrl) && !imageFailed
   // 這段提示會被螢幕閱讀器讀出；跟著目前語系切換，避免印尼文照護者聽到中文。
   const illustrationLabel = text({ id: 'Ilustrasi tampilan obat, bukan foto produk asli', zh: '藥品外觀示意圖，並非實物照片' ,en: 'Medication appearance illustration, not a product photo' })
   const medicationLabel = medication.brand_name_zh ? `${medication.brand_name_zh} (${medication.brand_name})` : medication.brand_name
   // 只有官方連結藥品才會有 ATC 碼；未命中對照表（分類太罕見或碼缺漏）一律不顯示，避免猜錯的功能標籤誤導照護判斷。
   const category = resolveMedicationCategory(medication.atc_code)
-  const zoomLabel = text({ id: 'Ketuk untuk memperbesar foto asli', zh: '點一下放大看原始照片' ,en: "Tap for enlarge photo original" })
+  const zoomLabel = text({ id: 'Ketuk untuk memperbesar foto asli', zh: '點一下放大看原始照片' ,en: 'Tap to enlarge the original photo' })
   const closeZoomLabel = text({ id: 'Tutup', zh: '關閉' ,en: "Close" })
 
   const openZoom = (event: React.MouseEvent | React.KeyboardEvent) => {
@@ -97,7 +123,7 @@ export function MedicationAppearance({ medication, compact = false, showAppearan
             }}
             className={`${compact ? 'h-10 w-10' : 'h-20 w-20'} shrink-0 cursor-zoom-in overflow-hidden rounded-lg border border-gray-200 bg-white`}
           >
-            <img src={medication.appearance_photo_url ?? ''} alt={medicationLabel} referrerPolicy="no-referrer" onError={() => setImageFailed(true)} className={`h-full w-full ${compact ? 'object-contain' : 'origin-bottom scale-[1.7] object-cover'}`} />
+            <img src={photoUrl ?? ''} alt={medicationLabel} referrerPolicy="no-referrer" onError={() => setImageFailed(true)} className={`h-full w-full ${compact ? 'object-contain' : 'origin-bottom scale-[1.7] object-cover'}`} />
           </span>
         /* 圓錠與膠囊尺寸不同，照片失效時也能靠示意圖快速區分，而不是顯示無用的破圖圖示；粉包沒有錠形高度，畫成扁長條才不會被誤認成藥錠。 */
         : <span role="img" aria-label={illustrationLabel} title={illustrationLabel} className={`block shrink-0 border border-gray-400/70 ${shapeKey === 'round' || (!shapeKey && genericShape === 'round') ? 'h-7 w-7 rounded-full' : shapeKey === 'capsule' || (!shapeKey && genericShape === 'capsule') ? 'h-7 w-10 rounded-full' : shapeKey === 'oval' ? 'h-7 w-10 rounded-[50%]' : shapeKey === 'sachet' || (!shapeKey && genericShape === 'sachet') ? 'h-3 w-10 rounded-sm' : 'h-7 w-10 rounded-md'}`} style={{ backgroundColor: color?.swatch ?? '#f8fafc' }} />}
@@ -106,11 +132,14 @@ export function MedicationAppearance({ medication, compact = false, showAppearan
         {details && <span className="block text-sm font-semibold text-gray-700">{details}</span>}
         {/* 主要功能標籤只在官方資料回填出可信分類時出現；showCategory=false 代表呼叫端已在藥名下方顯示過，這裡不重複。 */}
         {showCategory && category && <span className="mt-1 inline-block rounded-full bg-fuchsia-100 px-2.5 py-1 text-sm font-black text-fuchsia-800">{text(category)}</span>}
+        {/* 徽章一律文字＋圖示，不只靠顏色（規劃文件 §4.5）：讓照護者一眼看出這顆藥的顏色／形狀／照片
+            是這個人專屬的覆蓋值，不是全站共用的那一版，也不會被誤以為共用資料已經改了。 */}
+        {medication.appearance_source === 'patient_override' && <span className={`mt-1 inline-flex items-center gap-1 rounded-full bg-sky-100 font-black text-sky-800 ${compact ? 'px-1.5 py-0.5 text-[10px]' : 'px-2.5 py-1 text-sm'}`}>👤 {text({ id: 'Tampilan khusus orang ini', zh: '此人專屬外觀' ,en: 'Appearance set for this person' })}</span>}
         {/* 直接顯示顏色與形狀即可辨識藥品，省略固定標籤把有限寬度留給真正有用的描述。 */}
-        <span className={`${compact ? 'block' : 'mt-1 block text-lg font-black leading-tight'}`}>{color ? text(color) : text({ id: 'Warna belum tercatat', zh: '顏色未登錄' ,en: 'Color not yet recorded' })} · {shape ? text(shape) : text({ id: 'Bentuk belum tercatat', zh: '形狀未登錄' ,en: 'Shape is not logged in' })}
+        <span className={`${compact ? 'block' : 'mt-1 block text-lg font-black leading-tight'}`}>{color ? text(color) : text({ id: 'Warna belum tercatat', zh: '顏色未登錄' ,en: 'Color not yet recorded' })} · {shape ? text(shape) : text({ id: 'Bentuk belum tercatat', zh: '形狀未登錄' ,en: 'Shape not yet recorded' })}
         {showAppearanceNote && medication.appearance_note && ` · ${medication.appearance_note}`}
         {/* 沒有實拍照時仍標示為示意圖，避免照護者把介面提示誤當成產品資訊。 */}
-        {!hasPhoto && <span className="text-gray-400"> · {text({ id: 'Ilustrasi', zh: '示意圖' ,en: 'Ilustrasi' })}</span>}
+        {!hasPhoto && <span className="text-gray-400"> · {text({ id: 'Ilustrasi', zh: '示意圖' ,en: 'Illustration' })}</span>}
         </span>
       </span>
       {hasPhoto && isZoomOpen && (
@@ -137,7 +166,7 @@ export function MedicationAppearance({ medication, compact = false, showAppearan
           </button>
           {/* 這裡不加 scale／object-cover，直接用原始官方照片全圖，讓照護者能看清楚藥丸真實比例與細節。 */}
           <img
-            src={medication.appearance_photo_url ?? ''}
+            src={photoUrl ?? ''}
             alt={medicationLabel}
             referrerPolicy="no-referrer"
             onClick={event => event.stopPropagation()}

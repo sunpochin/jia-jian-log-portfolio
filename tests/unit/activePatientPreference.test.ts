@@ -1,7 +1,7 @@
 /*
 檔案用途：測試活躍對象偏好解析與讀寫函數。
 所在層：tests/unit 單元測試層。
-主要關聯：驗證 src/lib/activeSubjectPreference.ts 邏輯。
+主要關聯：驗證 src/lib/preferences/activeSubjectPreference.ts 邏輯。
 */
 import { describe, expect, mock, test } from 'bun:test'
 
@@ -34,7 +34,7 @@ const mockSupabase = {
 
 mock.module('../../src/lib/supabase', () => ({ supabase: mockSupabase }))
 
-const { readActivePatientPreference, resolveActivePatientPreference, saveActivePatientPreference } = await import('../../src/lib/activeSubjectPreference')
+const { readActivePatientPreference, resolveActivePatientPreference, saveActivePatientPreference } = await import('../../src/lib/preferences/activeSubjectPreference')
 
 describe('active patient preference', () => {
   test('keeps a saved patient UUID only while the account is still authorized', () => {

@@ -1,8 +1,10 @@
 /*
-檔案用途：藥量倒數與回診／抽血／打針／疫苗到期提醒的資料轉接層與純邏輯函式。
-所在層：src/lib 共用資料層；隔離 Supabase RLS 細節，供 CareDueRemindersPage 與相關單元測試使用。
-主要關聯：care_due_reminders migration、supabase/functions/care-due-reminders（Edge Function 端另有自己的
-純函式副本，因為 Deno Edge Function 不引入瀏覽器端 src 模組，兩邊的到期日／倒數天數計算規則必須保持一致）。
+檔案用途：藥量倒數與回診／抽血／打針／疫苗到期提醒的資料轉接層與純邏輯函式；照護閉環 T2（issue #946）起
+回診／複驗提醒可連回同一位病人的時間線事件或檢驗值並記科別（Appointment 不另開表，ADR-005 決策一）。
+所在層：src/lib 共用資料層；隔離 Supabase RLS 細節，供 CareDueRemindersPage、門診頁與相關單元測試使用。
+主要關聯：care_due_reminders migration（20260906020000、20260925190000）、supabase/functions/care-due-reminders
+（Edge Function 端另有自己的純函式副本，因為 Deno Edge Function 不引入瀏覽器端 src 模組，兩邊的到期日／倒數
+天數計算規則必須保持一致）、docs/product/care-loop-domain-model.md §3 Q2／Q5。
 */
 import dayjs from 'dayjs'
 import { supabase } from './supabase'
@@ -38,6 +40,12 @@ export interface CareDueReminder {
   created_by_user_id: string | null
   created_at: string
   updated_at: string
+  // 照護閉環 T2：連回觸發這筆提醒的時間線事件（手術、醫囑）或檢驗值列，兩者互斥、皆可為 null；
+  // 複合外鍵綁同一位病人，來源列被刪時資料庫只清空關聯欄位。medication_refill 一律 null。
+  related_entry_id: string | null
+  related_lab_result_id: string | null
+  // 科別自由文字（≤ 40 字），沿用 care_timeline_entries.visit_department 的慣例，不建第二套科別列舉。
+  visit_department: string | null
 }
 
 export interface CreateCareDueReminderInput {
@@ -49,6 +57,11 @@ export interface CreateCareDueReminderInput {
   daysSupply?: number
   dueDate?: string
   medicationPlanId?: string | null
+  // 照護閉環 T2：只有非 medication_refill 型別會送出；兩個關聯至多擇一（資料庫 CHECK 也會擋），科別最長 40 字。
+  // 三欄都是 patch 語意：undefined＝不送、保留資料庫既有值；null＝清除；字串＝設定（Codex review PR #952 P2）。
+  relatedEntryId?: string | null
+  relatedLabResultId?: string | null
+  visitDepartment?: string | null
 }
 
 // 為什麼提醒文案只放事實：驗收條件明訂不得推論病因或建議調藥，這裡的中印文案只描述「還剩幾天」與「到期日」。
@@ -87,10 +100,18 @@ export function classifyReminderDueLevel(remainingDays: number, thresholdDays: n
   return 'ok'
 }
 
+export const REMINDER_VISIT_DEPARTMENT_MAX_LENGTH = 40
+
 function toReminderFields(input: CreateCareDueReminderInput) {
   const isMedication = input.reminderType === 'medication_refill'
   if (isMedication && !input.daysSupply) throw new Error('days_supply is required for medication_refill reminders')
   if (!isMedication && !input.dueDate) throw new Error('dueDate is required for non-medication reminders')
+  // 先在 adapter 擋下資料庫一定會拒絕的組合，讓表單拿到可讀的錯誤，而不是 23514 的 constraint 名稱。
+  if (!isMedication && input.relatedEntryId && input.relatedLabResultId) throw new Error('relatedEntryId and relatedLabResultId are mutually exclusive')
+  // 只驗證非藥量倒數：藥量倒數的科別一律被 toClinicalLinkFields 丟成 null，表單從回診切成藥量倒數時殘留的長字串
+  // 不該擋下整筆寫入（2026-09-26 獨立複審）。
+  const visitDepartment = input.visitDepartment?.trim() ?? ''
+  if (!isMedication && visitDepartment.length > REMINDER_VISIT_DEPARTMENT_MAX_LENGTH) throw new Error(`visitDepartment must be at most ${REMINDER_VISIT_DEPARTMENT_MAX_LENGTH} characters`)
 
   return {
     reminder_type: input.reminderType,
@@ -100,7 +121,26 @@ function toReminderFields(input: CreateCareDueReminderInput) {
     due_date: isMedication ? computeMedicationDueDate(input.startDate, input.daysSupply as number) : (input.dueDate as string),
     threshold_days: input.thresholdDays,
     status: 'active' as ReminderStatus,
+    ...toClinicalLinkFields(input, isMedication),
   }
+}
+
+// 照護閉環 T2（Codex review PR #952 P2）：關聯欄位走 patch 語意——表單沒提供的欄位就不送，讓只改到期日或門檻的
+// 編輯（CareDueRemindersPage 目前沒有連結欄位）不會把既有的 related_entry_id／related_lab_result_id／
+// visit_department 覆寫成 null；明確傳 null 才代表清除。藥量倒數例外：它跟臨床事件／檢驗值／科別無關，一律送
+// null——型別從回診改成藥量倒數時也要一併清掉，否則 care_due_reminders_medication_fields_check 會擋。
+function toClinicalLinkFields(input: CreateCareDueReminderInput, isMedication: boolean) {
+  if (isMedication) return { related_entry_id: null, related_lab_result_id: null, visit_department: null }
+  const fields: { related_entry_id?: string | null; related_lab_result_id?: string | null; visit_department?: string | null } = {}
+  if (input.relatedEntryId !== undefined) fields.related_entry_id = input.relatedEntryId || null
+  if (input.relatedLabResultId !== undefined) fields.related_lab_result_id = input.relatedLabResultId || null
+  // 兩個關聯互斥，而 patch 語意下「沒提供」代表保留資料庫原值：只送其中一個新連結時，資料庫裡另一個舊連結會留著，
+  // 更新後兩欄同時有值，被 care_due_reminders_related_source_check 以 23514 擋下，上面的 JS 互斥檢查也看不到
+  // 資料庫原值。所以「設定其中一個」一律同時清掉另一個——換連結＝取代，不是疊加（2026-09-26 獨立複審）。
+  if (fields.related_entry_id && input.relatedLabResultId === undefined) fields.related_lab_result_id = null
+  if (fields.related_lab_result_id && input.relatedEntryId === undefined) fields.related_entry_id = null
+  if (input.visitDepartment !== undefined) fields.visit_department = input.visitDepartment?.trim() || null
+  return fields
 }
 
 function toRow(input: CreateCareDueReminderInput) {

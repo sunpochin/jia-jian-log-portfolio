@@ -1,7 +1,7 @@
 /*
 檔案用途：驗證存在 localStorage 的每日照護顯示偏好以病人為單位讀寫（含自訂範本開關），且儲存失敗時仍保留完整入口。
 所在層：tests/unit；只覆蓋本機偏好分支，資料庫分支另由 *Db 測試檔負責。
-主要關聯：src/lib/dailyCarePreferences.ts 與 /demo 展示流程。
+主要關聯：src/lib/preferences/dailyCarePreferences.ts 與 /demo 展示流程。
 */
 import { afterAll, beforeAll, beforeEach, describe, expect, mock, test } from 'bun:test'
 
@@ -30,10 +30,10 @@ beforeAll(() => {
   })
 })
 
-const { readDailyCarePreference, saveDailyCarePreference } = await import('../../src/lib/dailyCarePreferences')
+const { readDailyCarePreference, saveDailyCarePreference } = await import('../../src/lib/preferences/dailyCarePreferences')
 
 const DAILY_CARE_KEY = 'jiajianlog.daily-care-visibility'
-const ALL_VISIBLE = { bloodPressure: true, temperature: true, medication: true, nutrition: true, weight: true, petLiquidIntake: true, petDigestion: true, petAppetite: true, petFluidTherapy: true, petEndocrine: true, dementiaCare: false, fluidBalance: false, careReminders: true }
+const ALL_VISIBLE = { bloodPressure: true, temperature: true, medication: true, nutrition: true, weight: true, petLiquidIntake: true, petDigestion: true, petAppetite: true, petFluidTherapy: true, petEndocrine: true, dementiaCare: false, fluidBalance: false, careReminders: true, visitQuestions: false, labResults: false }
 const DEFAULT_STATE = { preference: ALL_VISIBLE, useCustomTemplate: false }
 
 beforeEach(() => {
@@ -64,7 +64,7 @@ describe('local daily care visibility preference', () => {
   })
 
   test('normalizes a stored all-off preference back to a usable screen', () => {
-    store.set(DAILY_CARE_KEY, JSON.stringify({ 'patient-1': { bloodPressure: false, temperature: false, medication: false, nutrition: false, weight: false, petLiquidIntake: false, petDigestion: false, petAppetite: false, petFluidTherapy: false, petEndocrine: false, dementiaCare: false, fluidBalance: false, careReminders: false, useCustomTemplate: false } }))
+    store.set(DAILY_CARE_KEY, JSON.stringify({ 'patient-1': { bloodPressure: false, temperature: false, medication: false, nutrition: false, weight: false, petLiquidIntake: false, petDigestion: false, petAppetite: false, petFluidTherapy: false, petEndocrine: false, dementiaCare: false, fluidBalance: false, careReminders: false, visitQuestions: false, useCustomTemplate: false } }))
     expect(readDailyCarePreference('patient-1').preference.bloodPressure).toBe(true)
   })
 

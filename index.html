@@ -13,10 +13,17 @@
     <!-- 為保留無障礙縮放，這裡不限制 viewport 尺寸；表單字級由 src/index.css 處理。 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#ef4444" />
-    <!-- React 載入後會依目前語系更新標題；這裡只放不偏向任一語言的品牌預設值。 -->
-    <title>JiaJian Log</title>
+    <!-- React 載入後會依目前語系更新標題；預設品牌標題統一更新為英文 Family Health Note。 -->
+    <title>Family Health Note</title>
     <!-- iOS Safari「加入主畫面」優先讀這個 meta 而非 <title>；React 載入後會依語系改成中文「家健錄」或印尼文「Family Health Note」，這裡先放預設語系（中文）的值。 -->
     <meta name="apple-mobile-web-app-title" content="家健錄" />
+    <!-- iOS Safari 不看 manifest 的 display:standalone，只認這個 meta；沒有它，從主畫面開啟仍會帶網址列／分享列，
+         跟原生 App 的差異一眼就看得出來——原生 iOS 發布鏈路擱置後（issue #856／#818），PWA 是目前唯一的 iOS dogfood 管道，這個差異變得重要。 -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <!-- 不用 black-translucent：那個模式狀態列會疊在畫面內容上方，但 src/index.css 目前沒有處理
+         env(safe-area-inset-top)，疊上去會蓋住畫面最上緣的內容。用 default（不透明、不疊加）先求正確，
+         之後要做沉浸式狀態列再一併補 safe-area padding。 -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <!-- 分享預覽卡（LINE／Facebook／Slack）與 SEO meta 由 vite.config.ts 的 shareMetaPlugin 於建置期插入下方標記處； -->
     <!-- 實際文案與網址集中在 src/lib/shareMeta.ts，這裡只保留插入點，避免兩處各自維護一份重複字串。 -->
     <!--share-meta-placeholder-->

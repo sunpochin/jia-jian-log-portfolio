@@ -11,12 +11,12 @@ export function FamilyInvitationGuidePage() {
 
   return (
     <ContentGuideLayout
-      title={{ id: 'Cara Mengundang Keluarga ke JiaJian Log', zh: '如何邀請家人使用家健錄', en: 'How to invite family to JiaJian Log' }}
-      sourceNote={{ id: 'Sumber: fitur undangan keluarga JiaJian Log · Diperbarui 2026-09-06', zh: '資料來源：家健錄家庭邀請功能 · 更新日期 2026-09-06', en: 'Source: JiaJian Log family invitation feature · Updated 2026-09-06' }}
+      title={{ id: 'Cara Mengundang Keluarga ke Family Health Note', zh: '如何邀請家人使用家健錄', en: 'How to invite family to Family Health Note' }}
+      sourceNote={{ id: 'Sumber: fitur undangan keluarga Family Health Note · Diperbarui 2026-09-06', zh: '資料來源：家健錄家庭邀請功能 · 更新日期 2026-09-06', en: 'Source: Family Health Note family invitation feature · Updated 2026-09-06' }}
       metaDescription={{
-        id: 'Panduan langkah demi langkah untuk mengundang orang yang dirawat atau anggota keluarga sebagai pengasuh di JiaJian Log.',
+        id: 'Panduan langkah demi langkah untuk mengundang orang yang dirawat atau anggota keluarga sebagai pengasuh di Family Health Note.',
         zh: '一步一步說明如何在家健錄邀請被照顧者本人，或邀請兄弟姐妹成為照護者。',
-        en: 'Step-by-step instructions for inviting a patient or a family member caregiver in JiaJian Log.',
+        en: 'Step-by-step instructions for inviting a patient or a family member caregiver in Family Health Note.',
       }}
     >
       <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm leading-6 text-indigo-950">

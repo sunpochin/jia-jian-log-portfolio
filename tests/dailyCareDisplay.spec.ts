@@ -10,6 +10,9 @@ test.use({ viewport: { width: 375, height: 812 } })
 test('shows only the selected daily care modules and keeps the choice after reload', async ({ page }) => {
   await page.goto('/demo')
   await page.getByRole('button', { name: /設定/ }).click()
+
+  // 「每日照護顯示」現在收在「顯示與提醒偏好」這個預設收合的分類卡片裡，要先展開才看得到裡面的勾選格。
+  await page.getByRole('button', { name: /顯示與提醒偏好/ }).click()
   await expect(page.getByText('若要讓這個帳號看見體重，還要在「每日照護顯示」開啟體重。', { exact: false })).toBeVisible()
 
   await page.locator('#daily-care-setting-bloodPressure').uncheck()

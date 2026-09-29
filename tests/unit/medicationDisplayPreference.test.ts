@@ -1,10 +1,10 @@
 /*
 檔案用途：驗證每日服藥藥卡顯示偏好的展示模式本機備援與安全預設。
 所在層：tests/unit；只測試未登入展示模式的瀏覽器儲存，不連線 Supabase。
-主要關聯：對應 src/lib/medicationDisplayPreference.ts 的 localStorage 轉接。
+主要關聯：對應 src/lib/preferences/medicationDisplayPreference.ts 的 localStorage 轉接。
 */
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { readMedicationNameEnglishFirstPreference, readMedicationSlotsExpandedPreference, saveMedicationNameEnglishFirstPreference, saveMedicationSlotsExpandedPreference } from '../../src/lib/medicationDisplayPreference'
+import { readMedicationNameEnglishFirstPreference, readMedicationSlotsExpandedPreference, saveMedicationNameEnglishFirstPreference, saveMedicationSlotsExpandedPreference } from '../../src/lib/preferences/medicationDisplayPreference'
 
 const originalLocalStorage = globalThis.localStorage
 const values = new Map<string, string>()

@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useI18n, type LocalizedText } from '../../../lib/i18n'
 import { calendarDateKey } from '../../../lib/careDay'
 import { isDemoPatientId } from '../../../lib/demoData'
+import { AttentionItem } from '../../../components/ui/AttentionItem'
 import {
   classifyReminderDueLevel,
   computeMedicationDueDate,
@@ -22,18 +23,6 @@ import {
   type CareRecipientType,
   type ReminderType,
 } from '../../../lib/careDueReminders'
-
-const DUE_LEVEL_STYLE: Record<ReturnType<typeof classifyReminderDueLevel>, string> = {
-  overdue: 'border-red-300 bg-red-50',
-  due_soon: 'border-amber-300 bg-amber-50',
-  ok: 'border-slate-200 bg-white',
-}
-
-const DUE_LEVEL_BADGE_STYLE: Record<ReturnType<typeof classifyReminderDueLevel>, string> = {
-  overdue: 'bg-red-700 text-white',
-  due_soon: 'bg-amber-600 text-white',
-  ok: 'bg-slate-200 text-slate-700',
-}
 
 function remainingDaysText(remainingDays: number): LocalizedText {
   if (remainingDays < 0) return { id: `Terlambat ${Math.abs(remainingDays)} hari`, zh: `已逾期 ${Math.abs(remainingDays)} 天`, en: `${Math.abs(remainingDays)} days overdue` }
@@ -290,24 +279,23 @@ export function CareDueRemindersPage({ patientId, canManage, careRecipientType }
           {activeReminders.map(reminder => {
             const remainingDays = computeRemainingDays(reminder.due_date, today)
             const level = classifyReminderDueLevel(remainingDays, reminder.threshold_days)
+            const description = reminder.reminder_type === 'medication_refill'
+              ? text({ id: `Ambil ${reminder.start_date}, cukup ${reminder.days_supply} hari · jatuh tempo ${reminder.due_date}`, zh: `領藥日 ${reminder.start_date}，共 ${reminder.days_supply} 天份・到期日 ${reminder.due_date}`, en: `Picked up ${reminder.start_date}, ${reminder.days_supply} days supplied · due ${reminder.due_date}` })
+              : text({ id: `Jatuh tempo ${reminder.due_date}`, zh: `到期日 ${reminder.due_date}`, en: `Due ${reminder.due_date}` })
             return (
-              <li key={reminder.id} className={`rounded-2xl border p-4 shadow-sm ${DUE_LEVEL_STYLE[level]}`}>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-base font-black text-slate-900">{text(REMINDER_TYPE_META[reminder.reminder_type].label)}</p>
-                  <span className={`rounded-full px-3 py-1 text-xs font-black ${DUE_LEVEL_BADGE_STYLE[level]}`}>{text(remainingDaysText(remainingDays))}</span>
-                </div>
-                <p className="mt-1 text-sm font-medium text-slate-600">
-                  {reminder.reminder_type === 'medication_refill'
-                    ? text({ id: `Ambil ${reminder.start_date}, cukup ${reminder.days_supply} hari · jatuh tempo ${reminder.due_date}`, zh: `領藥日 ${reminder.start_date}，共 ${reminder.days_supply} 天份・到期日 ${reminder.due_date}`, en: `Picked up ${reminder.start_date}, ${reminder.days_supply} days supplied · due ${reminder.due_date}` })
-                    : text({ id: `Jatuh tempo ${reminder.due_date}`, zh: `到期日 ${reminder.due_date}`, en: `Due ${reminder.due_date}` })}
-                </p>
-                {canManage && <div className="mt-3 flex flex-wrap gap-2">
+              <AttentionItem
+                key={reminder.id}
+                tone={level}
+                title={text(REMINDER_TYPE_META[reminder.reminder_type].label)}
+                badge={text(remainingDaysText(remainingDays))}
+                description={description}
+                actions={canManage && <>
                   <button type="button" disabled={busyId === reminder.id} onClick={() => openEditForm(reminder)} className="min-h-9 rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700 active:bg-slate-100">{text({ id: 'Ubah', zh: '編輯', en: 'Edit' })}</button>
                   <button type="button" disabled={busyId === reminder.id} onClick={() => changeStatus(reminder, 'completed')} className="min-h-9 rounded-xl border border-emerald-300 bg-emerald-50 px-3 text-xs font-black text-emerald-800 active:bg-emerald-100">{text({ id: 'Selesai', zh: '已完成', en: 'Completed' })}</button>
                   <button type="button" disabled={busyId === reminder.id} onClick={() => changeStatus(reminder, 'dismissed')} className="min-h-9 rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700 active:bg-slate-100">{text({ id: 'Abaikan', zh: '略過', en: 'Dismiss' })}</button>
                   <button type="button" disabled={busyId === reminder.id} onClick={() => removeReminder(reminder)} className="min-h-9 rounded-xl border border-red-300 bg-red-50 px-3 text-xs font-black text-red-800 active:bg-red-100">{text({ id: 'Hapus', zh: '刪除', en: 'Delete' })}</button>
-                </div>}
-              </li>
+                </>}
+              />
             )
           })}
         </ul>}

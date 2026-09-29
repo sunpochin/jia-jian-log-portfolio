@@ -6,18 +6,20 @@
 import type { KeyboardEvent } from 'react'
 import { useI18n, type LocalizedText } from '../../../lib/i18n'
 
-export type MedicationView = 'today' | 'week' | 'manage' | 'history'
+// 'history'（變更藥物子頁，顯示 MedicationHistory）已併入軌跡頁（issue #735，#659 D 期），
+// 不再是服藥頁自己的分頁；藥單異動改在底部導覽「軌跡」tab 統一檢視。
+export type MedicationView = 'today' | 'week' | 'manage'
 
 interface MedicationViewTabConfig {
   id: MedicationView
   label: LocalizedText
 }
 
+// 修正頁籤導覽與標籤的英文翻譯
 const ALL_TABS: MedicationViewTabConfig[] = [
-  { id: 'today', label: { id: 'Catat obat', zh: '服藥打卡' ,en: "Record medication" } },
-  { id: 'week', label: { id: 'Jadwal minggu ini', zh: '每週藥單' ,en: "Schedule weeks this" } },
-  { id: 'manage', label: { id: 'Jadwalkan obat', zh: '排藥' ,en: "Schedulekan medication" } },
-  { id: 'history', label: { id: 'Ubah obat', zh: '變更藥物' ,en: "Edit medication" } },
+  { id: 'today', label: { id: 'Catat obat', zh: '服藥打卡' ,en: "Log Doses" } },
+  { id: 'week', label: { id: 'Jadwal minggu', zh: '每週藥單' ,en: "Weekly Schedule" } },
+  { id: 'manage', label: { id: 'Atur obat', zh: '排藥' ,en: "Manage Schedule" } },
 ]
 
 export function MedicationViewTabs({ activeView, onSelect, canManage }: {
@@ -43,7 +45,7 @@ export function MedicationViewTabs({ activeView, onSelect, canManage }: {
   return (
     <div
       role="tablist"
-      aria-label={text({ id: 'Bagian obat', zh: '服藥區段' ,en: "Bagian medication" })}
+      aria-label={text({ id: 'Bagian obat', zh: '服藥區段' ,en: "Medication views" })}
       className="grid min-w-0 gap-1 rounded-2xl bg-slate-200/80 p-1 ring-1 ring-inset ring-slate-300/60"
       style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
     >
@@ -60,7 +62,7 @@ export function MedicationViewTabs({ activeView, onSelect, canManage }: {
             aria-controls={`medication-view-${tab.id}-panel`}
             onClick={() => onSelect(tab.id)}
             onKeyDown={handleKeyDown}
-            className={`min-h-11 min-w-0 rounded-xl px-1 text-xs font-bold whitespace-nowrap transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 sm:px-2 sm:text-sm ${selected ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:bg-white/60'}`}
+            className={`min-h-11 min-w-0 overflow-hidden text-ellipsis rounded-xl px-1 text-xs font-bold whitespace-nowrap transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 sm:px-2 sm:text-sm ${selected ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:bg-white/60'}`}
           >
             {text(tab.label)}
           </button>

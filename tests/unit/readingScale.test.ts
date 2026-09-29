@@ -124,6 +124,25 @@ describe('reading scale preference', () => {
     expect(root.style.fontSize).toBe('112.5%')
     expect(root.attributes.get('data-reading-scale')).toBe('large')
   })
+
+  test('沒有 document 或 root 時套用與列印初始化都安全略過', () => {
+    const previousDocument = Object.getOwnPropertyDescriptor(globalThis, 'document')
+    const previousWindow = Object.getOwnPropertyDescriptor(globalThis, 'window')
+    try {
+      // 為什麼明確暫時清掉全域：整批 Bun 測試可能由其他檔案提供 DOM 替身，
+      // 只傳 null 無法保證會走到 source 的「沒有瀏覽器環境」分支。
+      Object.defineProperty(globalThis, 'document', { configurable: true, value: undefined })
+      Object.defineProperty(globalThis, 'window', { configurable: true, value: undefined })
+      expect(() => applyReadingScale('large', null)).not.toThrow()
+      const cleanup = initReadingScalePrintReset(null, null)
+      expect(() => cleanup()).not.toThrow()
+    } finally {
+      if (previousDocument) Object.defineProperty(globalThis, 'document', previousDocument)
+      else Reflect.deleteProperty(globalThis, 'document')
+      if (previousWindow) Object.defineProperty(globalThis, 'window', previousWindow)
+      else Reflect.deleteProperty(globalThis, 'window')
+    }
+  })
 })
 
 // code-review 發現：index.css 的 `@media print { :root { font-size: 100% } }` 贏不了

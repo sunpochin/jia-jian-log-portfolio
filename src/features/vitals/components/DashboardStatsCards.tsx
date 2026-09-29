@@ -1,9 +1,11 @@
 /*
 檔案用途：呈現血壓報告的最新量測、平均值與偏高／偏低統計卡片。
 所在層：src/components；由 BloodPressureReportPanel 組合的摘要區，不負責讀取或修改資料。
-主要關聯：接收 lib/dashboardStats 的 DashboardSummary，並使用 LatestVitals、VitalReading 與 evaluateReading 維持共同生命徵象規則。
+主要關聯：接收 lib/dashboardStats 的 DashboardSummary，判讀走 useBpEvaluator（病人綁定的標準），
+卡片與徽章配色一律取自 lib/alertPresentation，不在本檔另建一份等級對照表。
 */
-import { evaluateReading } from '../../../types/database'
+import { ALERT_CARD_CLASS, ALERT_CHIP_CLASS, alertTone } from '../../../lib/alertPresentation'
+import { useBpEvaluator } from '../hooks/useBpEvaluator'
 import { LatestVitals } from './LatestVitals'
 import { VitalReading } from './VitalReading'
 import { VitalAlertBadge } from './VitalAlertBadge'
@@ -17,42 +19,27 @@ export function DashboardStatsCards({
   summary: DashboardSummary
 }) {
   const { text } = useI18n()
+  const evaluator = useBpEvaluator()
 
   // 1. 最新血壓判定與樣式定義
   const latest = summary.latest
-  const latestRule = latest ? evaluateReading(latest.systolic, latest.diastolic, latest.pulse) : null
-  const latestLevel = latestRule?.level ?? 'normal'
-
-  let latestCardStyle = 'bg-white border-gray-250 text-gray-900'
+  // 最新一筆有自己的 measured_at，所以用**那個時間點**生效的標準判讀，與下方 chip 一致。
+  const latestRule = latest ? evaluator.evaluateAt(latest.systolic, latest.diastolic, latest.pulse, latest.measured_at) : null
+  const latestCardStyle = latestRule
+    ? `${ALERT_CARD_CLASS[alertTone(latestRule)]} text-gray-900 shadow-sm`
+    : 'bg-white border-gray-250 text-gray-900'
   const latestValueStyle = 'text-gray-950'
-
-  if (latestLevel === 'danger' || latestLevel === 'danger-low') {
-    latestCardStyle = 'bg-red-50/75 border-red-200 text-red-950 shadow-sm'
-  } else if (latestLevel === 'warning' || latestLevel === 'warning-low') {
-    latestCardStyle = 'bg-orange-50/70 border-orange-200 text-orange-950 shadow-sm'
-  } else if (latestLevel === 'normal') {
-    latestCardStyle = 'bg-emerald-50/30 border-emerald-100 text-emerald-950'
-  }
 
   // 2. 期間平均血壓判定與樣式定義
   const hasAvg = summary.avgSystolic != null && summary.avgDiastolic != null
-  const avgRule = hasAvg ? evaluateReading(summary.avgSystolic!, summary.avgDiastolic!, summary.avgPulse) : null
-  const avgLevel = avgRule?.level ?? 'normal'
-
-  let avgCardStyle = 'bg-white border-gray-200'
+  // 平均值橫跨整個區間、沒有單一的 measured_at，所以用**現在**生效的標準判讀：
+  // 那是照護者此刻被要求達到的目標。區間內若換過標準，逐筆的顏色仍各自正確，
+  // 報告表頭的 R5 標示也會把兩份標準都列出來，不會讓這張卡假裝整段都用同一份。
+  const avgRule = hasAvg ? evaluator.evaluateNow(summary.avgSystolic!, summary.avgDiastolic!, summary.avgPulse) : null
+  const avgTone = avgRule ? alertTone(avgRule) : 'normal'
+  const avgCardStyle = avgRule ? ALERT_CARD_CLASS[avgTone] : 'bg-white border-gray-200'
   const avgValueStyle = 'text-gray-950'
-  let avgBadgeStyle = 'bg-emerald-600 text-white'
-
-  if (avgLevel === 'danger' || avgLevel === 'danger-low') {
-    avgCardStyle = 'bg-red-50/50 border-red-200'
-    avgBadgeStyle = 'bg-red-600 text-white border-transparent'
-  } else if (avgLevel === 'warning' || avgLevel === 'warning-low') {
-    avgCardStyle = 'bg-orange-50/50 border-orange-200'
-    avgBadgeStyle = 'bg-orange-500 text-white border-transparent'
-  } else if (avgLevel === 'normal') {
-    avgCardStyle = 'bg-emerald-50/20 border-emerald-100'
-    avgBadgeStyle = 'bg-emerald-600 text-white border-transparent'
-  }
+  const avgBadgeStyle = ALERT_CHIP_CLASS[avgTone]
 
   // 3. 偏高統計樣式定義 (合併 warning-high 和 danger-high)
   const hasDangerHigh = summary.alertCounts.danger > 0
@@ -113,7 +100,7 @@ export function DashboardStatsCards({
         <div className={`rounded-2xl border p-3.5 transition-all duration-300 ${latestCardStyle}`}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-xs font-bold tracking-wider text-gray-500 uppercase">{text({ id: 'Terakhir', zh: '最新' ,en: 'Latest' })}</span>
-            {latest && <VitalAlertBadge systolic={latest.systolic} diastolic={latest.diastolic} pulse={latest.pulse} />}
+            {latest && <VitalAlertBadge systolic={latest.systolic} diastolic={latest.diastolic} pulse={latest.pulse} measuredAt={latest.measured_at} />}
           </div>
           <LatestVitals
             className="mt-2.5 text-xs"
@@ -145,7 +132,7 @@ export function DashboardStatsCards({
                 : <span className={`text-2xl font-extrabold tracking-tight ${avgValueStyle}`}>-</span>}
             </div>
             <div className="text-right text-xs text-gray-500">
-              <span className="text-gray-400">{text({ id: 'Jumlah:', zh: '樣本：' ,en: 'Sample' })}</span>{' '}
+              <span className="text-gray-400">{text({ id: 'Jumlah:', zh: '樣本：' ,en: 'Samples:' })}</span>{' '}
               <span className="font-semibold text-gray-700">{text({ id: `${summary.recordCount} catatan`, zh: `${summary.recordCount} 筆` ,en: `${summary.recordCount} records` })}</span>
             </div>
           </div>
@@ -157,7 +144,7 @@ export function DashboardStatsCards({
             <span className="text-xs font-bold tracking-wider text-gray-500 uppercase">{text({ id: 'Tinggi', zh: '偏高' ,en: 'Somewhat high' })}</span>
             {hasDangerHigh && (
               <span className="rounded-full bg-red-600 px-2.5 py-0.5 text-xs font-bold text-white">
-                {text({ id: 'Bahaya', zh: '危險' ,en: '(Danger' })}
+                {text({ id: 'Bahaya', zh: '危險' ,en: 'Danger' })}
               </span>
             )}
           </div>
@@ -172,7 +159,7 @@ export function DashboardStatsCards({
             </div>
             <div className="flex items-center gap-3 text-xs">
               <div className="flex items-center gap-1 text-red-750 font-medium">
-                <span>{text({ id: 'Sangat tinggi:', zh: '危險：' ,en: '(Danger' })}</span>
+                <span>{text({ id: 'Sangat tinggi:', zh: '危險：' ,en: 'Danger:' })}</span>
                 <span className="font-bold">{summary.alertCounts.danger}</span>
               </div>
               <div className="flex items-center gap-1 text-orange-650 font-medium">
@@ -189,7 +176,7 @@ export function DashboardStatsCards({
             <span className="text-xs font-bold tracking-wider text-gray-500 uppercase">{text({ id: 'Rendah Malam', zh: '夜間偏低' ,en: 'Low at night' })}</span>
             {nightLow > 0 && (
               <span className="rounded-full bg-red-600 px-2.5 py-0.5 text-xs font-bold text-white">
-                {text({ id: 'Perlu dilihat', zh: '需留意' ,en: 'Perlu dilihat' })}
+                {text({ id: 'Perlu dilihat', zh: '需留意' ,en: 'Needs attention' })}
               </span>
             )}
           </div>

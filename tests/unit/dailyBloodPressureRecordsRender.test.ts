@@ -3,7 +3,7 @@
 所在層：tests/unit；以最小 hook 執行環境呼叫元件函式，不啟動瀏覽器。
 主要關聯：src/features/vitals/components/DailyBloodPressureRecords.tsx、blood_pressure_records RLS 與 demoStorage。
 */
-import { beforeEach, describe, expect, mock, test } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 import { installReactHookHarness, renderHook } from './helpers/reactHookHarness'
 import { fire, findAll, findButton, findInput, textContent } from './helpers/elementTree'
 import type { BpRecord } from '../../src/types/database'
@@ -45,11 +45,14 @@ const demo = {
 }
 
 const actualDemoStorage = await import('../../src/lib/demoStorage')
+const actualGetDemoBpRecordsCreatedBetween = actualDemoStorage.getDemoBpRecordsCreatedBetween
 // 保留其餘匯出：其他模組仍會從同一個 demoStorage 取用展示資料 helper。
 mock.module('../../src/lib/demoStorage', () => ({
   ...actualDemoStorage,
-  isDemoMode: () => demo.isDemoMode,
-  getDemoBpRecordsCreatedBetween: () => demo.records,
+  // 繁體中文註解：Bun 的 mock.module 在同一行程跨測試檔全域生效，若 demo.isDemoMode 為 false 時固定回傳 false，
+  // 會破壞後續測試檔依賴 window.location.pathname === '/demo' 的展示模式判定。
+  isDemoMode: () => demo.isDemoMode || (typeof window !== 'undefined' && window.location?.pathname === '/demo'),
+  getDemoBpRecordsCreatedBetween: (...args: [unknown, unknown, unknown?]) => (demo.isDemoMode ? demo.records : actualGetDemoBpRecordsCreatedBetween(...args)),
   updateDemoBpRecord: () => demo.updateOk,
   deleteDemoBpRecord: () => demo.deleteOk,
 }))
@@ -74,11 +77,12 @@ const bpRecord = (overrides: Partial<BpRecord> = {}): BpRecord => ({
 
 const flush = () => new Promise(resolve => setTimeout(resolve, 0))
 
-async function renderList(records: BpRecord[], options: { optimisticRecord?: BpRecord | null; onChanged?: () => void } = {}) {
+async function renderList(records: BpRecord[], options: { optimisticRecord?: BpRecord | null; onChanged?: () => void; pendingRecords?: BpRecord[] } = {}) {
   selectResult = { data: records, error: null }
   const view = renderHook(() => DailyBloodPressureRecords({
     patientId: 'patient-1',
     refreshVersion: 0,
+    pendingRecords: options.pendingRecords,
     optimisticRecord: options.optimisticRecord ?? null,
     onChanged: options.onChanged,
   }), { defaultContext: LOCALE_CONTEXT_VALUE })
@@ -91,6 +95,15 @@ beforeEach(() => {
   selectResult = { data: [], error: null }
   writeResult = { data: null, error: null }
   writeIsPending = false
+  demo.isDemoMode = false
+  demo.records = []
+  demo.updateOk = true
+  demo.deleteOk = true
+})
+
+afterEach(() => {
+  // 繁體中文註解：最後一個測試為 demo mode，若無 afterEach 重置，會導致 Bun 在同一行程跑下一個測試檔時
+  // isDemoMode() 永遠殘留 true，使正式資料庫測試被污染。
   demo.isDemoMode = false
   demo.records = []
   demo.updateOk = true
@@ -127,6 +140,28 @@ describe('daily blood pressure list rendering', () => {
     const view = renderHook(() => DailyBloodPressureRecords({ patientId: 'patient-1', refreshVersion: 0 }), { defaultContext: LOCALE_CONTEXT_VALUE })
     await flush()
     expect(textContent(view.current)).toContain('目前無法讀取今天的血壓紀錄。')
+    view.unmount()
+  })
+
+  test('filters pending records by patient and care day', async () => {
+    // 為什麼指定相異量測時間與收縮壓：
+    // 確保斷言能同時透過畫面時間字串、列表筆數與元素屬性，驗證只有符合「當日照護區間」且「屬於該病患」的 pending 紀錄被保留，
+    // 防止只要出現「同步中…」就誤判其餘兩筆也存在的假陽性。
+    const inside = bpRecord({ id: 'pending-bp-today', patient_id: 'patient-1', created_at: new Date().toISOString(), measured_at: '2026-08-14T14:09:00.000Z', systolic: 121 })
+    const outside = bpRecord({ id: 'pending-bp-old', patient_id: 'patient-1', created_at: '2020-01-01T00:00:00Z', measured_at: '2020-01-01T00:00:00Z', systolic: 177 })
+    const other = bpRecord({ id: 'pending-bp-other', patient_id: 'patient-other', created_at: new Date().toISOString(), measured_at: '2026-08-14T15:00:00.000Z', systolic: 188 })
+    const view = await renderList([], { pendingRecords: [inside, outside, other] })
+    const rendered = textContent(view.current)
+    expect(rendered).toContain('同步中…')
+    expect(rendered).toContain('2026/08/14 22:09')
+    expect(rendered).toContain('本照護日新增 1 筆')
+    expect(rendered).not.toContain('2020/01/01')
+    expect(rendered).not.toContain('2026/08/14 23:00')
+    expect(findAll(view.current, el => el.type === 'li')).toHaveLength(1)
+    // 列表中有 VitalAlertBadge 與 VitalReading 兩個子元件接收該筆紀錄的 systolic 屬性
+    expect(findAll(view.current, el => el.props.systolic === 121)).toHaveLength(2)
+    expect(findAll(view.current, el => el.props.systolic === 177)).toHaveLength(0)
+    expect(findAll(view.current, el => el.props.systolic === 188)).toHaveLength(0)
     view.unmount()
   })
 })

@@ -14,18 +14,36 @@ describe('care timeline helpers', () => {
   test('normalizes the authored entry without inventing a reassessment date', () => {
     expect(buildCareTimelineInsert('patient-1', 'doctor_instruction', '  Measure twice  ', '  morning and evening  ', '2026-07-27T08:30:00.000Z', '', ' Caregiver@Example.com ')).toEqual({
       patient_id: 'patient-1', event_type: 'doctor_instruction', title: 'Measure twice', details: 'morning and evening', occurred_at: '2026-07-27T08:30:00.000Z', reassess_on: null, created_by: 'caregiver@example.com', medication_plan_id: null,
+      visit_kind: null, visit_department: null, visit_institution: null,
     })
   })
 
   test('normalizes pet care event types (vaccination, symptom_observation, diet_change)', () => {
     expect(buildCareTimelineInsert('patient-pet', 'vaccination', '狂犬病疫苗', '年度定期施打', '2026-08-01T10:00:00.000Z', '', 'caregiver@example.com')).toEqual({
       patient_id: 'patient-pet', event_type: 'vaccination', title: '狂犬病疫苗', details: '年度定期施打', occurred_at: '2026-08-01T10:00:00.000Z', reassess_on: null, created_by: 'caregiver@example.com', medication_plan_id: null,
+      visit_kind: null, visit_department: null, visit_institution: null,
     })
     expect(buildCareTimelineInsert('patient-pet', 'symptom_observation', '觀察嘔吐', '早上吐毛球', '2026-08-01T10:00:00.000Z', '', 'caregiver@example.com')).toEqual({
       patient_id: 'patient-pet', event_type: 'symptom_observation', title: '觀察嘔吐', details: '早上吐毛球', occurred_at: '2026-08-01T10:00:00.000Z', reassess_on: null, created_by: 'caregiver@example.com', medication_plan_id: null,
+      visit_kind: null, visit_department: null, visit_institution: null,
     })
     expect(buildCareTimelineInsert('patient-pet', 'diet_change', '更換處方糧', '更換處方飼料', '2026-08-01T10:00:00.000Z', '', 'caregiver@example.com')).toEqual({
       patient_id: 'patient-pet', event_type: 'diet_change', title: '更換處方糧', details: '更換處方飼料', occurred_at: '2026-08-01T10:00:00.000Z', reassess_on: null, created_by: 'caregiver@example.com', medication_plan_id: null,
+      visit_kind: null, visit_department: null, visit_institution: null,
+    })
+  })
+
+  test('normalizes health_visit structured fields (visit_kind, visit_department, visit_institution)', () => {
+    expect(buildCareTimelineInsert('patient-1', 'health_visit', '心臟科回診', '醫師調整血壓藥', '2026-08-05T02:00:00.000Z', '', 'caregiver@example.com', { visitKind: 'outpatient', visitDepartment: '  心臟內科  ', visitInstitution: '  台大醫院  ' })).toEqual({
+      patient_id: 'patient-1', event_type: 'health_visit', title: '心臟科回診', details: '醫師調整血壓藥', occurred_at: '2026-08-05T02:00:00.000Z', reassess_on: null, created_by: 'caregiver@example.com', medication_plan_id: null,
+      visit_kind: 'outpatient', visit_department: '心臟內科', visit_institution: '台大醫院',
+    })
+  })
+
+  test('drops visit fields for non-health_visit events even if the form still carries stale values', () => {
+    expect(buildCareTimelineInsert('patient-1', 'family_observation', '媽媽今天精神不錯', '', '2026-08-05T02:00:00.000Z', '', 'caregiver@example.com', { visitKind: 'outpatient', visitDepartment: '心臟內科', visitInstitution: '台大醫院' })).toEqual({
+      patient_id: 'patient-1', event_type: 'family_observation', title: '媽媽今天精神不錯', details: '', occurred_at: '2026-08-05T02:00:00.000Z', reassess_on: null, created_by: 'caregiver@example.com', medication_plan_id: null,
+      visit_kind: null, visit_department: null, visit_institution: null,
     })
   })
 

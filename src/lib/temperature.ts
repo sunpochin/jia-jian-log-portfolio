@@ -62,7 +62,7 @@ export function getTemperatureStatus(value: number): TemperatureStatus {
 export function temperatureStatusLabel(status: TemperatureStatus): LocalizedText {
   switch (status) {
     case 'low': return { id: 'Suhu rendah', zh: '體溫偏低', en: 'Low temperature' }
-    case 'elevated': return { id: 'Sedikit tinggi', zh: '體溫略高', en: 'Sedikit tinggi' }
+    case 'elevated': return { id: 'Sedikit tinggi', zh: '體溫略高', en: 'Slightly high' }
     case 'fever': return { id: 'Demam', zh: '發燒範圍', en: 'Fever range' }
     case 'high-fever': return { id: 'Demam tinggi', zh: '高燒範圍', en: 'High fever' }
     default: return { id: 'Normal', zh: '正常', en: 'Normal' }

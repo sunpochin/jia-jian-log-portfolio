@@ -24,7 +24,7 @@
 - 事件可以標註類型、標題、內容與發生時間；自由筆記可保留原文。
 - 事件可選擇最多 4 張照片；同一個人與寵物共用事件表單，手機可分別選「拍照」或「從相簿／檔案選取」，避免 iOS Safari 對 `capture + multiple` 的差異影響既有相片選取。瀏覽器先把原圖縮成 WebP（長邊最多 1800px、最多 600 KiB），另產生 480px 縮圖（最多 120 KiB），超標時持續縮小／降品質，仍無法達標就不上傳。二者上傳到 private `care-event-photos` bucket；資料庫 validator 會再確認每組 path 都綁定同一筆事件的 `patient_id` 與事件 `id`。`care_timeline_entries.photo_paths` 只存相對 path，不存二進位或短效 signed URL。
 - 新事件有照片時，前端先用 client UUID 固定 `patients/{patient_id}/events/{event_id}/...` path，再上傳照片並寫入事件 metadata；任一步驟失敗會盡力清理 Storage 檔案與空事件，避免 patient 切換或網路重試造成孤兒資料。
-- 時間線載入時只簽署縮圖 URL；單張 path（包含剛上傳的第一張照片）直接使用單檔 endpoint，使用者點擊才簽原圖。若多張歷史 path 讓批次簽署失敗，前端會對缺少 URL 的照片改用單檔 endpoint 補簽；縮圖 URL 過期或載入失敗時會重新簽署，必要時退回原圖作為預覽，重試次數用盡則顯示明確的照片暫時無法載入狀態。Vercel CSP 的 `img-src` 只額外允許 `https://*.supabase.co`，讓 private Storage 的 signed URL 能顯示，同時不放寬成任意外部圖片來源。Storage 的 SELECT／INSERT／DELETE policy 會在簽發與物件操作時沿著 `care_access.patient_id` 驗證授權；signed URL 簽出後在到期前仍是 bearer link，實體檔案若已被保留期限清理，前端無法恢復。
+- 時間線載入時只簽署縮圖 URL；單張 path（包含剛上傳的第一張照片）直接使用單檔 endpoint，使用者點擊才簽原圖。若多張歷史 path 讓批次簽署失敗，前端會對缺少 URL 的照片改用單檔 endpoint 補簽；縮圖 URL 過期或載入失敗時會重新簽署，必要時退回原圖作為預覽，重試次數用盡則顯示明確的照片暫時無法載入狀態。藥品目錄的 TFDA 外觀圖改由本站 `/api/tfda-appearance-image` 代理，瀏覽器不直接連官方 host；這不是隱藏公開藥圖，而是讓 TFDA 看到本站伺服器、不要直接看到照護者裝置的 IP／User-Agent，降低第三方把裝置與藥品瀏覽行為連結的能力，且本站仍可看到 proxy 請求。瀏覽器 CSP 的 `img-src` 只額外允許 `https://*.supabase.co`，不放寬成任意外部圖片來源。Storage 的 SELECT／INSERT／DELETE policy 會在簽發與物件操作時沿著 `care_access.patient_id` 驗證授權；signed URL 簽出後在到期前仍是 bearer link，實體檔案若已被保留期限清理，前端無法恢復。
 - 匯出時與血壓、藥單、服藥紀錄一起按 patient 合併，固定雙語欄位與資料類型。
 - 每日照護寫入有資料上限與更正流程，重試不能繞過每日限制。
 - 刪除／更正要保留最小必要的稽核與交接語意，不以前端隱藏取代 policy。
@@ -62,8 +62,40 @@ SET photo_retention_tier = EXCLUDED.photo_retention_tier, updated_at = now();
 
 不把事件拆成只給寵物或只給血壓兩套資料模型，因為家庭照護的交接需要同一條時間軸；依類型與物種顯示適當欄位即可。
 
+## 看診事件的結構化欄位（#659 S3，issue #685）
+
+`event_type = 'health_visit'` 的事件可額外填三個 nullable 欄位：`visit_kind`（就醫類型，`outpatient`／`emergency`／`admission`／`discharge`／`surgery` 五選一或不選）、`visit_department`（科別，自由文字，最長 40 字）、`visit_institution`（院所，自由文字，最長 80 字）。`visit_department` 刻意不做代碼表對應——NHI r1／r3／r9 對應與科別代碼表要等 #609 Stage 0 才處理，這裡只服務照護者記錄與交接時的可讀性。
+
+資料庫用一條跨欄位 CHECK（`care_timeline_entries_visit_fields_scope_check`）強制這三欄只在 `event_type = 'health_visit'` 時可以有值；表單與 `buildCareTimelineInsert` 正規化也遵守同一規則，切換到其他事件類型時會把這三欄一併清成 NULL，避免使用者先填了看診欄位又改選其他類型時殘留舊值送出而被 CHECK 拒絕。這三個欄位加在既有表上，不另開 `patient_health_visits` 表也不用 JSONB 快照——理由與規劃文件 `docs/product/clinical-care-ops.md` §6 的否決分析相同，見 migration `20260914043552_add_health_visit_structure.sql` 的註解。
+
+軌跡頁（`TrajectoryEntryForm.tsx`）只在使用者選擇「看診／健康處置」時顯示這三個輸入欄位；醫師報告的近期醫療軌跡區塊（`TrajectorySection.tsx`）會在看診事件下方加印「{科別} {就醫類型}」與院所各一行，缺值的部分不留空白或佔位符。
+
 ## 藥單異動事件
 
 `medication_change` 是保留給資料讀取與歷史顯示的 system event，不是人工表單選項。它必須帶 `medication_plan_change_log_id` 與 snapshot，且由調藥 RPC 在同一 transaction 建立；partial unique index 確保同一筆 canonical change log 不會出現兩個時間線投影。畫面不提供這類事件的修改／刪除按鈕，避免交班時間線與實際藥單脫鉤。
 
 一般人工紀錄仍可使用 `doctor_instruction`、`family_observation`、`reassessment` 等類型。每日兩筆限制只計手動事件，調藥不會因當天已寫滿手動筆記而失敗；這個例外由資料庫 trigger 依 linkage 判斷，不依賴前端提示。
+
+## 軌跡頁（D 期，issue #735）：取代事件 tab 與「變更藥物」子頁
+
+底部導覽的「事件」tab（`EventsPage`／`CareTimeline`）與服藥頁的「變更藥物」子頁（`MedicationHistory`）已合併成單一「軌跡」tab（`src/features/care-family/pages/TrajectoryPage.tsx`），對應 `docs/product/clinical-care-ops-ui-design.md` §5 的五層資訊架構。原本 458 行的 `CareTimeline.tsx` 拆成：
+
+- `hooks/useCareTrajectoryFeed.ts`：讀取三個來源（照護時間線、藥單異動歷史、到期提醒）＋血壓，只負責「讀」（AGENTS Rule C）。
+- `hooks/useTrajectoryEntryEditor.ts`：新增／編輯／刪除手動事件與照片，只負責「寫」（AGENTS Rule A／C 的讀寫分離）。
+- `components/trajectory/TrajectoryEntryForm.tsx`、`TrajectoryEventList.tsx`、`TrajectoryEventPhotos.tsx`、`TrajectoryEventReview.tsx`、`TrajectoryFilterChips.tsx`：呈現層。
+
+### 為什麼不直接沿用 S1 的 `buildMedicalTrajectory`
+
+`src/lib/medicalTrajectory.ts` 的 `buildMedicalTrajectory`（issue #684，S1）是專門給醫師報告用的讀取模型：限定報告視窗、且時間線事件只收斂成 `health_visit`／`doctor_instruction`／`incident`／`reassessment` 四種對醫師有意義的臨床類型。軌跡頁是既有事件 tab 的**直接替代**，不是報告的另一份拷貝——如果照樣套用這四種類型的窄篩選，`family_observation`（家屬觀察）、`milestone`、`vaccination`、`diet_change` 等既有類型會在改版後從主要入口消失，等於悄悄丟資料可見性。
+
+因此新增了 `buildCareTrajectoryFeed`（同檔案），沿用 `buildMedicalTrajectory` 同一套「調藥去重」（排除時間線裡 `medication_plan_change_log_id` 不為空的投影列）與「到期提醒只顯示目前仍逾期者」規則，但：
+
+- 不限定報告視窗，呼叫端自行決定要查多少筆／多久（軌跡頁沿用 `readMedicationHistory`／時間線查詢既有的上限常數模式）。
+- 不收斂時間線事件型別，`CareTimelineEntry` 原本支援的全部十種類型都會出現在軌跡頁。
+- 由新到舊排序（符合照護者滑手機回顧的習慣），跟報告的由舊到新敘事排序刻意相反。
+
+型別篩選 chip（全部／調藥／看診／醫師指示／事件／提醒）對應：`medication_change`、`health_visit`、`doctor_instruction` 各自獨立一個 chip；其餘所有 `CareTimelineEntry` 類型（`family_observation`、`milestone`、`care_note`、`reassessment`、`vaccination`、`symptom_observation`、`diet_change`）全部歸進「事件」這個 catch-all chip；`due_reminder` 對應「提醒」。這剛好等於軌跡頁能顯示的全部六種列，沒有任何既有類型被排除在篩選之外。
+
+### 血壓週摘要列
+
+`src/lib/bpWeeklySummary.ts` 把血壓依 ISO 週（週一為週首，台北時區）分組成平均值，穿插進合併後的時間軸（只在「全部」篩選下顯示，型別 chip 沒有獨立的「血壓」選項）。這跟既有的「事件前後 7 天回顧」（`TrajectoryEventReview`，逐日平均＋展開後逐筆）用途不同：週摘要是軌跡頁瀏覽時的情境背景，回顧表格是針對單一事件的因果脈絡查詢，兩者不合併成同一套邏輯。

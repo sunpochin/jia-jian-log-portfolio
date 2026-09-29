@@ -7,15 +7,18 @@ import { describe, expect, test } from 'bun:test'
 import { DAILY_CARE_MODULES, DEFAULT_DAILY_CARE_VISIBILITY, isModuleApplicableToSpecies, normalizeDailyCareVisibility, updateDailyCareVisibility, visibleDailyCareModules } from '../../src/lib/dailyCareModules'
 
 describe('daily care modules', () => {
-  test('keeps every module visible by default except dementia care and fluid balance, and repairs an all-off legacy value', () => {
-    // dementiaCare 與 fluidBalance 刻意排除在外：跟其他模組不同，它們不是「符合物種就自動出現」，
-    // 而是照護者確認病人真的有相關照護需求後才手動開啟（issue #421；術後體液平衡同理）。
-    const { dementiaCare, fluidBalance, ...defaultOnModules } = DEFAULT_DAILY_CARE_VISIBILITY
+  test('keeps every module visible by default except dementia care, fluid balance, visit questions and lab results, and repairs an all-off legacy value', () => {
+    // dementiaCare、fluidBalance、visitQuestions、labResults 刻意排除在外：跟其他模組不同，它們不是
+    // 「符合物種就自動出現」，而是照護者確認病人真的有相關照護需求後才手動開啟
+    // （issue #421；術後體液平衡、回診問題清單、檢驗值〔issue #687〕同理）。
+    const { dementiaCare, fluidBalance, visitQuestions, labResults, ...defaultOnModules } = DEFAULT_DAILY_CARE_VISIBILITY
     expect(dementiaCare).toBe(false)
     expect(fluidBalance).toBe(false)
+    expect(visitQuestions).toBe(false)
+    expect(labResults).toBe(false)
     expect(defaultOnModules.careReminders).toBe(true)
     expect(Object.values(defaultOnModules).every(Boolean)).toBe(true)
-    expect(normalizeDailyCareVisibility({ bloodPressure: false, temperature: false, medication: false, nutrition: false, weight: false, petLiquidIntake: false, petDigestion: false, petAppetite: false, petFluidTherapy: false, petEndocrine: false, dementiaCare: false, fluidBalance: false, careReminders: false }).bloodPressure).toBe(true)
+    expect(normalizeDailyCareVisibility({ bloodPressure: false, temperature: false, medication: false, nutrition: false, weight: false, petLiquidIntake: false, petDigestion: false, petAppetite: false, petFluidTherapy: false, petEndocrine: false, dementiaCare: false, fluidBalance: false, careReminders: false, visitQuestions: false, labResults: false }).bloodPressure).toBe(true)
   })
 
   test('provides compact bilingual labels for the narrow-screen tab row', () => {
@@ -36,6 +39,8 @@ describe('daily care modules', () => {
       { id: 'Demensia', zh: '失智照護' ,en: "Dementia" },
       { id: 'Cairan I/O', zh: '進出量' ,en: "Fluid I/O" },
       { id: 'Pengingat', zh: '提醒', en: 'Reminders' },
+      { id: 'Pertanyaan', zh: '問題清單', en: 'Questions' },
+      { id: 'Lab', zh: '檢驗值', en: 'Labs' },
     ])
   })
 
@@ -118,7 +123,7 @@ describe('daily care modules', () => {
   test('custom template ignores the species filter entirely', () => {
     // 自訂範本讓貓也能記錄血壓（例如高血壓貓）、狗也能用只給貓兔設計的皮下點滴模組。
     // dementiaCare 與 fluidBalance 預設關閉（見上方測試），這裡明確開啟才能驗證「自訂範本會忽略物種篩選」，而不是被預設關閉的偏好擋掉。
-    const preference = { ...DEFAULT_DAILY_CARE_VISIBILITY, dementiaCare: true, fluidBalance: true }
+    const preference = { ...DEFAULT_DAILY_CARE_VISIBILITY, dementiaCare: true, fluidBalance: true, visitQuestions: true, labResults: true }
     const modules = visibleDailyCareModules(preference, { canUseMedication: true, careRecipientType: 'cat', useCustomTemplate: true }).map(module => module.id)
     expect(modules).toContain('bloodPressure')
     expect(modules).toContain('temperature')

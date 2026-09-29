@@ -49,6 +49,5 @@ export function isIosDevice(userAgent: string, maxTouchPoints = 0): boolean {
   return /iPad|iPhone|iPod/i.test(userAgent) || (/Macintosh/i.test(userAgent) && maxTouchPoints > 1)
 }
 
-export function isStandalonePwa(displayModeMatches: boolean, navigatorStandalone = false): boolean {
-  return displayModeMatches || navigatorStandalone
-}
+// standalone 判定的單一來源在 lib/platform.ts；這裡保留 re-export，避免既有呼叫端改 import 路徑。
+export { isStandalonePwa } from './platform'

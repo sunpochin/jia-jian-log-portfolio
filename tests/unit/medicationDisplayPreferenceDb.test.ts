@@ -1,7 +1,7 @@
 /*
 檔案用途：驗證登入帳號的服藥卡顯示偏好透過 user_settings 讀寫，且沿用展開預設。
 所在層：tests/unit；以 Supabase client stub 覆蓋資料庫邊界，不連線遠端環境。
-主要關聯：對應 src/lib/medicationDisplayPreference.ts 的帳號設定轉接。
+主要關聯：對應 src/lib/preferences/medicationDisplayPreference.ts 的帳號設定轉接。
 */
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
@@ -33,7 +33,7 @@ const {
   saveMedicationSlotsExpandedPreferenceForUser,
   readMedicationNameEnglishFirstPreferenceForUser,
   saveMedicationNameEnglishFirstPreferenceForUser,
-} = await import('../../src/lib/medicationDisplayPreference')
+} = await import('../../src/lib/preferences/medicationDisplayPreference')
 
 beforeEach(() => {
   responses.length = 0

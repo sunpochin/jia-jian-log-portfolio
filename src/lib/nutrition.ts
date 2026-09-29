@@ -12,7 +12,7 @@ export const MEAL_TYPE_LABELS: Record<MealType, LocalizedText> = {
   breakfast: { id: 'Sarapan', zh: '早餐', en: 'Breakfast' },
   lunch: { id: 'Makan siang', zh: '午餐', en: 'Lunch' },
   dinner: { id: 'Makan malam', zh: '晚餐', en: 'Dinner' },
-  snack: { id: 'Camilan', zh: '點心', en: 'Camilan' },
+  snack: { id: 'Camilan', zh: '點心', en: 'Snack' },
 }
 
 export function normalizeFoodQuery(value: string): string {

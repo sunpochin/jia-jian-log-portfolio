@@ -1,10 +1,10 @@
 /*
 檔案用途：測試藥品目錄搜尋、規範化、物種適用性與 Registry 多來源檢索輔助函式。
 所在層：tests/unit 單元測試層。
-主要關聯：驗證 src/lib/medicationCatalog.ts 之邏輯正確性。
+主要關聯：驗證 src/lib/medication/medicationCatalog.ts 之邏輯正確性。
 */
 import { describe, expect, test } from 'bun:test'
-import { isDrugSuitableForSpecies, normalizeMedicationQuery, parseDosageFormFromText, parseStrengthFromDrugName, searchMedicationCatalog, searchMedicationRegistry } from '../../src/lib/medicationCatalog'
+import { isDrugSuitableForSpecies, normalizeMedicationQuery, parseDosageFormFromText, parseStrengthFromDrugName, searchMedicationCatalog, searchMedicationRegistry } from '../../src/lib/medication/medicationCatalog'
 
 const medications = [
   { id: 'exforge-5-160', drug_product_id: null, brand_name: 'Exforge 5/160', brand_name_zh: null, generic_name: 'Amlodipine + Valsartan', strength_mg: 160, dosage_form: 'tablet', specialties: ['cardiovascular'], verification_status: 'manually_verified' as const, tfda_license_number: null, nhi_drug_code: null, appearance_color: null, appearance_shape: null, appearance_photo_url: null },

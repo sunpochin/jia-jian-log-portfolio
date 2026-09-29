@@ -13,17 +13,40 @@
 */
 import { useEffect, useMemo, useState } from 'react'
 import { careDateKey } from '../../../lib/careDay'
-import { compareMedicationSlots, medicationSlotText } from '../../../lib/medicationSchedule'
-import { formatDoseAmountLocalized, readMedicationDay, type MedicationPlanView } from '../../../lib/medications'
+import { compareMedicationSlots, medicationSlotText } from '../../../lib/medication/medicationSchedule'
+import { formatDoseAmountLocalized, readMedicationDay, type MedicationPlanView } from '../../../lib/medication/medications'
 import { common, useI18n, type LocalizedText } from '../../../lib/i18n'
 import dayjs from 'dayjs'
 import { REPORT_TIMEZONE } from '../../../lib/recordReport'
 import { PrintSourceFooter } from '../../../components/system/PrintSourceFooter'
+import { resolveSwallowGuidance } from '../../../lib/medication/medicationSwallowGuidance'
+import { detectInstructionConflict, instructionCodeText, sourceLabelText } from '../../../lib/medication/medicationInstructions'
+import { INTAKE_CONFLICT_WARNING } from '../../medication/components/MedicationIntakeGuidance'
 
 // 手冊內容要讓新看護與家屬同時讀懂，因此標題等固定文案直接印出中文與印尼文兩種，
 // 不像一般畫面文字只依目前選擇的語言顯示其中一種。
 function bilingual(value: LocalizedText) {
   return `${value.zh} · ${value.id}`
+}
+
+// 交接手冊是這個功能對「換看護」價值最高的一格：印出來的服用方式不跟隨目前介面語系，
+// 一律中／印並列，讓看不懂中文的新看護跟看不懂印尼文的家屬都能核對同一張紙。
+function medicationIntakeGuidanceLines(plan: MedicationPlanView): string[] {
+  const guidance = resolveSwallowGuidance({ officialDosageFormText: plan.medication.official_dosage_form_text, dosageForm: plan.medication.dosage_form })
+  const lines = [bilingual(guidance.text)]
+  const instruction = plan.instruction
+  if (instruction) {
+    const codeLabels = instruction.instruction_codes
+      .map(code => instructionCodeText(code))
+      .filter((label): label is LocalizedText => label != null)
+      .map(bilingual)
+    const recorded = `${bilingual(sourceLabelText(instruction.source))} ${instruction.confirmed_on}${codeLabels.length ? ` — ${codeLabels.join('; ')}` : ''}`
+    lines.push(recorded)
+    if (instruction.instruction_note) lines.push(instruction.instruction_note)
+    // §2 紅線：A、B 兩層衝突時兩邊都已經照印，這裡只加警告，不篩掉任何一邊。
+    if (detectInstructionConflict(guidance.level, instruction.instruction_codes)) lines.push(bilingual(INTAKE_CONFLICT_WARNING))
+  }
+  return lines
 }
 
 export function CareHandbookPage({ patientId, patientName, onBack }: {
@@ -49,7 +72,7 @@ export function CareHandbookPage({ patientId, patientName, onBack }: {
     let cancelled = false
     readMedicationDay(patientId, careDateKey())
       .then(day => { if (!cancelled) setMedications(day.plans) })
-      .catch(() => { if (!cancelled) setError(text({ id: 'Gagal memuat daftar obat.', zh: '藥單載入失敗。' ,en: "Failed loading daftar medication." })) })
+      .catch(() => { if (!cancelled) setError(text({ id: 'Gagal memuat daftar obat.', zh: '藥單載入失敗。', en: 'Failed to load medication list.' })) })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -75,20 +98,20 @@ export function CareHandbookPage({ patientId, patientName, onBack }: {
         className="print-hidden -ml-1 flex min-h-11 items-center gap-1 rounded-lg px-1 text-sm font-bold text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600"
       >
         <span aria-hidden="true">←</span>
-        {text({ id: 'Kembali ke Pengaturan', zh: '返回設定' ,en: "Back to Settings" })}
+        {text({ id: 'Kembali ke Pengaturan', zh: '返回設定', en: 'Back to Settings' })}
       </button>
 
       <header className="mt-2">
         <p className="text-xs font-bold uppercase tracking-wider text-indigo-700">
-          {bilingual({ id: 'Buku Panduan Serah Terima Perawatan', zh: '換看護交接照護手冊' ,en: "Buku Panduan Serah Terima Care" })}
+          {bilingual({ id: 'Buku Panduan Serah Terima Perawatan', zh: '換看護交接照護手冊', en: 'Caregiver Handover Guide' })}
         </p>
         <h1 className="mt-1 text-2xl font-bold text-gray-900">{patientName}</h1>
         <p className="mt-1 text-sm text-gray-500 print-hidden">
-          {text({ id: 'Isi kolom di bawah lalu cetak. Isian tidak disimpan ke server.', zh: '請在下方欄位填寫後直接列印；輸入內容不會存到伺服器。' ,en: "Isi kolom in bawah lalu cetak. Isian not disimpan to server." })}
+          {text({ id: 'Isi kolom di bawah lalu cetak. Isian tidak disimpan ke server.', zh: '請在下方欄位填寫後直接列印；輸入內容不會存到伺服器。', en: 'Fill in the fields below and print directly. Input is not saved to the server.' })}
         </p>
         {/* 只在列印時顯示產生時間，畫面上不需要；跟血壓報告的做法一致。 */}
         <p className="hidden care-handbook-print-only text-xs text-slate-500">
-          {bilingual({ id: 'Dibuat:', zh: '產生時間：' ,en: "Dibuat:" })} {generatedAt}
+          {bilingual({ id: 'Dibuat:', zh: '產生時間：', en: 'Generated:' })} {generatedAt}
         </p>
       </header>
 
@@ -99,19 +122,19 @@ export function CareHandbookPage({ patientId, patientName, onBack }: {
           className="min-h-11 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-800 shadow-sm"
         >
           <span aria-hidden="true" className="mr-1">▧</span>
-          {text({ id: 'Cetak / Simpan PDF', zh: '列印 / 存為 PDF' ,en: "Cetak / Save PDF" })}
+          {text({ id: 'Cetak / Simpan PDF', zh: '列印 / 存為 PDF', en: 'Print / Save PDF' })}
         </button>
       </div>
 
       {/* 服藥時間：資料齊全，直接從今日藥單自動帶入，避免家屬手動抄錄藥名與劑量出錯。 */}
       <section className="care-handbook-section mt-4 rounded-2xl border border-slate-200 bg-white p-4" aria-labelledby="handbook-medications-title">
         <h2 id="handbook-medications-title" className="text-sm font-extrabold text-slate-950">
-          {bilingual({ id: 'Jadwal Minum Obat', zh: '服藥時間' ,en: "Schedule Take Medication" })}
+          {bilingual({ id: 'Jadwal Minum Obat', zh: '服藥時間', en: 'Medication Schedule' })}
         </h2>
         {loading && <p role="status" className="mt-2 text-xs text-slate-500">{text(common.loading)}</p>}
         {error && <p role="alert" className="mt-2 text-xs text-red-700">{error}</p>}
         {!loading && !error && medications.length === 0 && (
-          <p className="mt-2 text-xs text-slate-500">{bilingual({ id: 'Tidak ada obat aktif.', zh: '目前沒有使用中的藥物。' ,en: "No medication active." })}</p>
+          <p className="mt-2 text-xs text-slate-500">{bilingual({ id: 'Tidak ada obat aktif.', zh: '目前沒有使用中的藥物。', en: 'No active medications.' })}</p>
         )}
         {!loading && !error && medications.length > 0 && (
           <div className="mt-2 space-y-2">
@@ -128,6 +151,9 @@ export function CareHandbookPage({ patientId, patientName, onBack }: {
                       {' / '}
                       {formatDoseAmountLocalized(plan.dose_amount, plan.medication.dosage_form, 'id')}
                       {plan.dose_count > 1 ? ` × ${plan.dose_count}` : ''}
+                      {medicationIntakeGuidanceLines(plan).map((line, index) => (
+                        <span key={index} className="block pl-3 text-slate-600">· {line}</span>
+                      ))}
                     </li>
                   ))}
                 </ul>
@@ -135,7 +161,7 @@ export function CareHandbookPage({ patientId, patientName, onBack }: {
             ))}
             {asNeededMedications.length > 0 && (
               <div>
-                <p className="text-xs font-bold text-slate-500">{bilingual({ id: 'Bila perlu', zh: '需要時服用' ,en: "Bila perlu" })}</p>
+                <p className="text-xs font-bold text-slate-500">{bilingual({ id: 'Bila perlu', zh: '需要時服用', en: 'As needed (PRN)' })}</p>
                 <ul className="mt-1 space-y-0.5">
                   {asNeededMedications.map(plan => (
                     <li key={plan.id} className="text-xs text-slate-800">
@@ -145,6 +171,10 @@ export function CareHandbookPage({ patientId, patientName, onBack }: {
                       {formatDoseAmountLocalized(plan.dose_amount, plan.medication.dosage_form, 'zh')}
                       {' / '}
                       {formatDoseAmountLocalized(plan.dose_amount, plan.medication.dosage_form, 'id')}
+                      {plan.dose_count > 1 ? ` × ${plan.dose_count}` : ''}
+                      {medicationIntakeGuidanceLines(plan).map((line, index) => (
+                        <span key={index} className="block pl-3 text-slate-600">· {line}</span>
+                      ))}
                     </li>
                   ))}
                 </ul>
@@ -156,28 +186,28 @@ export function CareHandbookPage({ patientId, patientName, onBack }: {
 
       <ManualNoteSection
         id="handbook-allergies"
-        title={{ id: 'Alergi & Pantangan', zh: '禁忌與過敏' ,en: "Alergi & Pantangan" }}
-        placeholder={{ id: 'Contoh: alergi kacang, hindari makanan pedas', zh: '例如：對花生過敏、避免辛辣食物' ,en: "Example: alergi kacang, hinfrom food pedas" }}
+        title={{ id: 'Alergi & Pantangan', zh: '禁忌與過敏', en: 'Allergies & Dietary Restrictions' }}
+        placeholder={{ id: 'Contoh: alergi kacang, hindari makanan pedas', zh: '例如：對花生過敏、避免辛辣食物', en: 'e.g., peanut allergy, avoid spicy food' }}
         value={allergiesNote}
         onChange={setAllergiesNote}
       />
       <ManualNoteSection
         id="handbook-routine"
-        title={{ id: 'Rutinitas Harian', zh: '慣用作息' ,en: "Rutthistas Harian" }}
-        placeholder={{ id: 'Contoh: bangun 06:30, tidur siang 13:00–14:30', zh: '例如：06:30 起床、午休 13:00–14:30' ,en: "Example: bangun 06:30, tidur afternoon 13:00–14:30" }}
+        title={{ id: 'Rutinitas Harian', zh: '慣用作息', en: 'Daily Routine' }}
+        placeholder={{ id: 'Contoh: bangun 06:30, tidur siang 13:00–14:30', zh: '例如：06:30 起床、午休 13:00–14:30', en: 'e.g., wake up 06:30, nap 13:00–14:30' }}
         value={routineNote}
         onChange={setRoutineNote}
       />
       <ManualNoteSection
         id="handbook-contacts"
-        title={{ id: 'Kontak Darurat', zh: '緊急聯絡人' ,en: "Kontak Darurat" }}
-        placeholder={{ id: 'Nama dan nomor telepon, satu baris per orang', zh: '姓名與電話，每行一位' ,en: "Name and nomor telepon, satu baris per people" }}
+        title={{ id: 'Kontak Darurat', zh: '緊急聯絡人', en: 'Emergency Contacts' }}
+        placeholder={{ id: 'Nama dan nomor telepon, satu baris per orang', zh: '姓名與電話，每行一位', en: 'Name and phone number, one per line' }}
         value={contactsNote}
         onChange={setContactsNote}
       />
 
       <p className="mt-4 text-xs text-slate-400 print-hidden">
-        {text({ id: `Buku panduan ini hanya berisi data ${patientName}.`, zh: `此手冊僅包含「${patientName}」一人的資料。` ,en: `Buku panduan this only berisi data ${patientName}.` })}
+        {text({ id: `Buku panduan ini hanya berisi data ${patientName}.`, zh: `此手冊僅包含「${patientName}」一人的資料。`, en: `This handbook contains data for ${patientName} only.` })}
       </p>
       <PrintSourceFooter />
     </section>

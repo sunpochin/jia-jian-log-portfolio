@@ -1,10 +1,10 @@
 /*
 檔案用途：測試每日照護「最後選擇頁籤」的本機讀寫函數。
 所在層：tests/unit 單元測試層。
-主要關聯：驗證 src/lib/dailyCareSectionPreference.ts 邏輯。
+主要關聯：驗證 src/lib/preferences/dailyCareSectionPreference.ts 邏輯。
 */
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { readLastDailyCareSection, saveLastDailyCareSection } from '../../src/lib/dailyCareSectionPreference'
+import { readLastDailyCareSection, saveLastDailyCareSection } from '../../src/lib/preferences/dailyCareSectionPreference'
 
 const originalLocalStorage = globalThis.localStorage
 const values = new Map<string, string>()

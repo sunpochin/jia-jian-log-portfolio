@@ -82,7 +82,7 @@ function GuideCta() {
         href="/demo"
         className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl bg-indigo-700 px-6 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
       >
-        {text({ id: 'Coba Mode Demo Gratis di JiaJian Log', zh: '用家健錄記錄（免費展示模式）' ,en: 'Try the free JiaJian Log demo' })}
+        {text({ id: 'Coba Mode Demo Gratis di Family Health Note', zh: '用家健錄記錄（免費展示模式）' ,en: 'Try the free Family Health Note demo' })}
       </a>
     </div>
   )

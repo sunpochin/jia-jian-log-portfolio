@@ -66,7 +66,8 @@ export function PetAppetitePage({ patientId, userEmail }: {
     if (!userEmail) return
 
     if (eatingPercentage === '') {
-      setMessage(text({ id: 'Masukkan persentase makan.', zh: '請輸入進食比例。' ,en: "Masukkan persentase makan." }))
+      // 輸入驗證提示英文修正
+      setMessage(text({ id: 'Masukkan persentase makan.', zh: '請輸入進食比例。' ,en: "Please enter the food intake percentage." }))
       return
     }
 
@@ -91,7 +92,7 @@ export function PetAppetitePage({ patientId, userEmail }: {
     })
     if (error) {
       console.error('[pet appetite save error]', error)
-      setMessage(text({ id: 'Tidak dapat menyimpan. Coba lagi.', zh: '暫時無法儲存，請再試一次。' ,en: "Could not saving. Try again." }))
+      setMessage(text({ id: 'Tidak dapat menyimpan. Coba lagi.', zh: '暫時無法儲存，請再試一次。' ,en: "Could not save. Please try again." }))
       setStatus('err')
       return
     }
@@ -107,7 +108,8 @@ export function PetAppetitePage({ patientId, userEmail }: {
       <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl bg-white p-5 shadow-sm">
         <div>
           <label className="block text-sm font-semibold text-gray-800">
-            {text({ id: 'Waktu makan', zh: '餐次' ,en: "Time makan" })}
+            {/* 餐次與進食比例英文標籤修正 */}
+            {text({ id: 'Waktu makan', zh: '餐次' ,en: "Meal" })}
           </label>
           <div className="mt-2 grid grid-cols-4 gap-2">
             {MEAL_TYPES.map(type => (
@@ -126,10 +128,10 @@ export function PetAppetitePage({ patientId, userEmail }: {
 
         <div>
           <label className="block text-sm font-semibold text-gray-800">
-            {text({ id: 'Persentase nafsu makan (%)', zh: '進食比例 (%)' ,en: "Persentase nafsu makan (%)" })}
+            {text({ id: 'Persentase nafsu makan (%)', zh: '進食比例 (%)' ,en: "Food intake percentage (%)" })}
           </label>
           <p className="mt-1 text-xs text-gray-500">
-            {text({ id: '0% = tidak makan, 100% = habis semua', zh: '0% = 未進食, 100% = 全部進食' ,en: "0% = not makan, 100% = habis all" })}
+            {text({ id: '0% = tidak makan, 100% = habis semua', zh: '0% = 未進食, 100% = 全部進食' ,en: "0% = no food eaten, 100% = all eaten" })}
           </p>
           <div className="mt-2 flex items-center gap-3">
             <input
@@ -172,11 +174,12 @@ export function PetAppetitePage({ patientId, userEmail }: {
       </form>
 
       <div className="rounded-2xl bg-white p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-gray-800">{text({ id: 'Catatan hari ini', zh: '今天的紀錄' ,en: "Notes days this" })}</h3>
+        {/* 今日紀錄標題與空狀態英文翻譯修正 */}
+        <h3 className="text-sm font-bold text-gray-800">{text({ id: 'Catatan hari ini', zh: '今天的紀錄' ,en: "Today's records" })}</h3>
         {loading ? (
           <p className="mt-2 text-sm text-gray-500">{text({ id: 'Memuat…', zh: '讀取中…' ,en: "Loading…" })}</p>
         ) : todayRecords.length === 0 ? (
-          <p className="mt-2 text-sm text-gray-500">{text({ id: 'Belum ada catatan hari ini.', zh: '今天還沒有紀錄。' ,en: "No recordan days this." })}</p>
+          <p className="mt-2 text-sm text-gray-500">{text({ id: 'Belum ada catatan hari ini.', zh: '今天還沒有紀錄。' ,en: "No records for today yet." })}</p>
         ) : (
           <ul className="mt-2 space-y-2">
             {todayRecords.map(record => (

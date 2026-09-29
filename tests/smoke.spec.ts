@@ -11,7 +11,7 @@ import { test, expect } from '@playwright/test'
 test('login screen renders the Google sign-in entry and hides guest access button', async ({ page }) => {
   await page.goto('/')
 
-  await expect(page.getByRole('heading', { name: /家健錄 JiaJian Log|JiaJian Log/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /家健錄 Family Health Note|Family Health Note/ })).toBeVisible()
   await expect(page.getByTestId('google-sign-in-entry')).toBeVisible()
   // GIS 官方按鈕由 Google iframe 產生；本站不再以自訂按鈕啟動 OAuth redirect。
   await expect(page.getByRole('button', { name: /Masuk dengan Google/ })).toHaveCount(0)

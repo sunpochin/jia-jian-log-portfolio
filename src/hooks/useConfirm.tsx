@@ -2,6 +2,7 @@
 檔案用途：以畫面內對話框取代 window.confirm，回傳 Promise<boolean> 供既有的
   `if (!confirm(...)) return` 寫法直接改成 `if (!(await confirm(...))) return`。
 所在層：src/hooks；提供給任何需要「危險操作前二次確認」的元件。
+2026-09-25（PR #922）：面板改為最高與視窗同高、只有訊息區捲動，長同意文字在短螢幕也按得到按鈕。
 主要關聯：取代先前散落在 AdminPage／CareTimeline／CareRecipientManagement／
   HouseholdMemberManagement／MedicationTodayCard／MedicationAdminSection／
   TemperaturePage／DailyBloodPressureRecords 各處的 window.confirm 呼叫——
@@ -94,10 +95,13 @@ export function useConfirm() {
       aria-modal="true"
       aria-describedby="confirm-dialog-message"
     >
-      <div className="w-full max-w-sm rounded-3xl border border-gray-100 bg-white p-5 text-gray-900 shadow-xl">
+      {/* 為什麼限制高度並讓訊息區捲動：外層是 fixed＋垂直置中，面板若比視窗高，上下兩端（含按鈕）都會被裁掉，
+          使用者連「取消」都按不到。唯讀分享的同意文字（印尼文約 900 字）在短螢幕手機或橫向時就會超出（PR #922 Codex P1）。
+          面板最高等於視窗扣掉外層 padding，只有訊息區捲動，按鈕列 shrink-0 永遠留在畫面內。 */}
+      <div className="flex max-h-full w-full max-w-sm flex-col rounded-3xl border border-gray-100 bg-white p-5 text-gray-900 shadow-xl">
         {/* 保留原生 confirm() 對多行文字（\n）的排版方式，避免醫囑摘要擠成一行看不清楚。 */}
-        <p id="confirm-dialog-message" className="whitespace-pre-line text-sm leading-relaxed">{request.message}</p>
-        <div className="mt-4 flex gap-2">
+        <p id="confirm-dialog-message" className="min-h-0 overflow-y-auto overscroll-contain whitespace-pre-line text-sm leading-relaxed">{request.message}</p>
+        <div className="mt-4 flex shrink-0 gap-2">
           <button
             ref={cancelButtonRef}
             type="button"

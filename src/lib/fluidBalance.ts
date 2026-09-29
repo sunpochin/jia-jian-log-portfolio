@@ -13,11 +13,12 @@ export const FLUID_BALANCE_RECORD_TYPES: readonly FluidBalanceRecordType[] = [
   'bowel_movement',
 ] as const
 
+// 體液平衡各類別英文標籤修正
 export const FLUID_BALANCE_TYPE_LABELS: Record<FluidBalanceRecordType, LocalizedText> = {
-  meal_intake: { id: 'Asupan makanan (gram)', zh: '便當攝取量（公克）' ,en: "Asupan food (gram)" },
-  water_intake: { id: 'Minum air (ml)', zh: '喝水量（毫升）' ,en: "Take water (ml)" },
-  urination: { id: 'Buang air kecil (ml)', zh: '尿量（毫升）' ,en: "Buang water tocil (ml)" },
-  bowel_movement: { id: 'Buang air besar', zh: '大便' ,en: "Buang water besar" },
+  meal_intake: { id: 'Asupan makanan (gram)', zh: '便當攝取量（公克）' ,en: "Meal intake (g)" },
+  water_intake: { id: 'Minum air (ml)', zh: '喝水量（毫升）' ,en: "Water intake (ml)" },
+  urination: { id: 'Buang air kecil (ml)', zh: '尿量（毫升）' ,en: "Urine output (ml)" },
+  bowel_movement: { id: 'Buang air besar', zh: '大便' ,en: "Bowel movement" },
 }
 
 // 每種型態能存的合理上限：便當公克數用來擋秤重誤觸整台磅秤重量，尿壺與量杯上限則對齊常見容量。

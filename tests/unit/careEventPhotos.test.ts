@@ -4,7 +4,7 @@
 主要關聯：src/lib/careEventPhotos.ts、CareTimeline 與照片 migration。
 */
 import { describe, expect, test } from 'bun:test'
-import { buildCareEventPhotoPaths, createCareTimelineEntryId, normalizeCareEventPhotoPaths, prepareCareEventPhoto, serializeCareEventPhotoPaths } from '../../src/lib/careEventPhotos'
+import { buildCareEventPhotoPaths, createCareTimelineEntryId, normalizeCareEventPhotoPaths, prepareCareEventPhoto, prepareSingleCompressedImage, serializeCareEventPhotoPaths } from '../../src/lib/careEventPhotos'
 
 describe('care event photo metadata', () => {
   test('builds patient-scoped original and thumbnail paths', () => {
@@ -116,6 +116,10 @@ describe('care event photo metadata', () => {
       expect(prepared.contentType).toBe('image/jpeg')
       expect(prepared.original.type).toBe('image/jpeg')
       expect(prepared.thumbnail.type).toBe('image/jpeg')
+      // 單張壓縮共用同一個 decode／canvas 生命週期；這條測試鎖住藥袋 OCR 不產生縮圖時仍會清理資源。
+      const single = await prepareSingleCompressedImage(new File(['photo'], 'photo.jpg', { type: 'image/jpeg' }), 900, 64 * 1024)
+      expect(single.contentType).toBe('image/jpeg')
+      expect(single.blob.type).toBe('image/jpeg')
       expect(buildCareEventPhotoPaths('patient-1', 'event-1', 'photo-1', prepared.extension)).toEqual({
         path: 'patients/patient-1/events/event-1/photo-1.jpg',
         thumbnail_path: 'patients/patient-1/events/event-1/photo-1-thumb.jpg',

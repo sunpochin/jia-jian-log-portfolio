@@ -50,17 +50,34 @@ const mockSupabase = {
       }
     }
     if (table === 'blood_pressure_records') {
-      return {
+      const chain: any = {
         insert() {
           return Promise.resolve(insertRecordResponse)
         },
+        select() { return chain },
+        gte() { return chain },
+        order() { return chain },
+        eq() { return chain },
+        then(resolve: any, reject: any) {
+          return Promise.resolve({ data: [], error: null }).then(resolve, reject)
+        },
       }
+      return chain
     }
-    return {
-      select() {
-        return Promise.resolve({ data: null, error: null })
+    const defaultChain: any = {
+      select() { return defaultChain },
+      insert() { return Promise.resolve({ data: null, error: null }) },
+      update() { return defaultChain },
+      delete() { return defaultChain },
+      eq() { return defaultChain },
+      gte() { return defaultChain },
+      order() { return defaultChain },
+      limit() { return defaultChain },
+      then(resolve: any, reject: any) {
+        return Promise.resolve({ data: [], error: null }).then(resolve, reject)
       },
     }
+    return defaultChain
   },
   auth: {
     getUser() {
@@ -83,12 +100,14 @@ const {
   addHouseholdPatient,
   createHouseholdPatientInvitation,
   createHouseholdPatientInvitationWithEmail,
+  createHouseholdPatientInvitationWithShare,
   archiveHouseholdPet,
   beginHouseholdOnboarding,
   declinePatientCareInvitation,
   fetchCurrentHouseholdRole,
   fetchPendingPatientCareInvitations,
   fetchHouseholdArchivedPets,
+  fetchHouseholdPatientInvitations,
   fetchHouseholdMembers,
   fetchHouseholdPatientAccess,
   fetchHouseholdPets,
@@ -96,6 +115,7 @@ const {
   fetchTenantContext,
   isCareRecipientType,
   removeHouseholdMember,
+  revokeHouseholdPatientInvitation,
   saveTenantBpRecord,
   setHouseholdPatientAccess,
   validateHouseholdOnboarding,
@@ -227,6 +247,20 @@ describe('tenant and household validation & care ops', () => {
     })
   })
 
+  test('creates and manages the share-based patient invitation contract', async () => {
+    await expect(createHouseholdPatientInvitationWithShare('', 'owner@example.com', 'daughter')).rejects.toThrow()
+    await expect(createHouseholdPatientInvitationWithShare('Mother', 'not-an-email', 'daughter')).rejects.toThrow()
+    await expect(createHouseholdPatientInvitationWithShare('Mother', 'owner@example.com', '')).rejects.toThrow()
+
+    rpcMockHandler = name => name === 'create_household_patient_invitation'
+      ? { data: { invitation_id: 'share-1', patient_id: 'patient-1', share_token: 's'.repeat(64), expires_at: '2026-09-20T00:00:00Z' }, error: null }
+      : { data: null, error: null }
+    await expect(createHouseholdPatientInvitationWithShare(' Mother ', 'owner@example.com', ' daughter ')).resolves.toEqual({ invitationId: 'share-1', patientId: 'patient-1', token: 's'.repeat(64), expiresAt: '2026-09-20T00:00:00Z' })
+
+    rpcMockHandler = () => ({ data: null, error: null })
+    await expect(createHouseholdPatientInvitationWithShare('Mother', 'owner@example.com', 'daughter')).rejects.toThrow()
+  })
+
   test('fetchPendingPatientCareInvitations keeps the authenticated inviter identity', async () => {
     // 同意畫面必須收到資料庫驗證的邀請者 email，不能只剩可自由填寫的授權說明。
     rpcMockHandler = (name) => name === 'fetch_pending_patient_care_invitations'
@@ -317,5 +351,17 @@ describe('tenant and household validation & care ops', () => {
     await archiveHouseholdPet('pet1')
     await setHouseholdPatientAccess('caregiver@example.com', 'p1', true, true)
     expect(true).toBe(true)
+  })
+
+  test('lists and revokes household patient invitations, forwarding failures', async () => {
+    rpcMockHandler = name => name === 'fetch_household_patient_invitations'
+      ? { data: [{ invitation_id: 'i1', patient_id: 'p1', display_name: 'Mother', invited_email: 'owner@example.com', status: 'pending', created_at: 'created', expires_at: 'expires', revoked_at: null }], error: null }
+      : { data: null, error: null }
+    await expect(fetchHouseholdPatientInvitations()).resolves.toHaveLength(1)
+    await expect(revokeHouseholdPatientInvitation('i1')).resolves.toBeUndefined()
+
+    rpcMockHandler = () => ({ data: null, error: new Error('rpc failed') })
+    await expect(fetchHouseholdPatientInvitations()).rejects.toThrow('rpc failed')
+    await expect(revokeHouseholdPatientInvitation('i1')).rejects.toThrow('rpc failed')
   })
 })

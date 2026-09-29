@@ -5,6 +5,7 @@
 */
 import { describe, expect, test } from 'bun:test'
 import { alertMarkerColor, sessionFromMeasuredAt, SESSION_LABELS, summarizeBpRecords, summarizeTodayCare } from '../../src/lib/dashboardStats'
+import { GENERAL_ADULT_RESOLVER } from '../../src/lib/bpStandards'
 import type { BpRecord } from '../../src/types/database'
 
 function record(overrides: Partial<BpRecord>): BpRecord {
@@ -40,7 +41,7 @@ describe('summarizeBpRecords', () => {
       record({ systolic: 85, diastolic: 48, measured_at: '2026-07-03T10:05:00.000Z' }),
       record({ systolic: 150, diastolic: 82, measured_at: '2026-07-03T01:05:00.000Z' }),
       record({ systolic: 118, diastolic: 68, pulse: null, measured_at: '2026-07-03T04:05:00.000Z' }),
-    ])
+    ], GENERAL_ADULT_RESOLVER)
 
     expect(summary.recordCount).toBe(3)
     expect(summary.avgSystolic).toBe(118)
@@ -55,7 +56,7 @@ describe('summarizeBpRecords', () => {
   test('counts pulse warnings separately from high blood-pressure records', () => {
     const summary = summarizeBpRecords([
       record({ systolic: 110, diastolic: 70, pulse: 121 }),
-    ])
+    ], GENERAL_ADULT_RESOLVER)
 
     // 醫師摘要若把心跳提示算進偏高血壓，會把兩種不同的觀察混成同一個結論。
     expect(summary.alertCounts.normal).toBe(1)

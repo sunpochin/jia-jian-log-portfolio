@@ -1,7 +1,7 @@
 /*
 檔案用途：驗證用藥管理資料層在 /demo 展示模式下改走 localStorage adapter，而非誤呼叫正式 Supabase。
 所在層：tests/unit；使用真正的 demoStorage 實作（比照 demoStorage.test.ts 的模式），只 mock Supabase 讓它在被呼叫時直接失敗，藉此證明 demo 分支從未觸及正式資料庫。
-主要關聯：src/lib/medicationAdmin.ts 與 src/lib/demoStorage.ts。
+主要關聯：src/lib/medication/medicationAdmin.ts 與 src/lib/demoStorage/（medication.ts）。
 */
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 import { DEMO_MEILING_PATIENT_ID } from '../../src/lib/demoData'
@@ -10,7 +10,8 @@ mock.module('../../src/lib/supabase', () => ({
   supabase: { from: () => { throw new Error('demo mode must not call Supabase') } },
 }))
 
-const { addExistingMedicationPlan, createMedicationPlan, readMedicationAdminData, setMedicationPlanActive } = await import('../../src/lib/medicationAdmin')
+const { addExistingMedicationPlan, createMedicationPlan, readMedicationAdminData, setMedicationPlanActive } = await import('../../src/lib/medication/medicationAdmin')
+const { clearPatientMedicationInstruction, readPatientMedicationInstructions, savePatientMedicationInstruction } = await import('../../src/lib/medication/medicationInstructions')
 
 const originalWindow = globalThis.window
 const values = new Map<string, string>()
@@ -89,5 +90,38 @@ describe('medication admin demo routing', () => {
     expect(corrected?.dosage_form).toBe('powder')
     expect(corrected?.appearance_shape).toBe('sachet')
     expect(corrected?.appearance_color).toBeNull()
+  })
+})
+
+describe('patient medication instructions demo routing', () => {
+  test('saves, reads and clears a demo patient medication instruction without touching Supabase', async () => {
+    const admin = await readMedicationAdminData(DEMO_MEILING_PATIENT_ID)
+    const medicationId = admin.plans[0]?.medication_id
+    expect(medicationId).toBeDefined()
+
+    const saved = await savePatientMedicationInstruction({
+      patientId: DEMO_MEILING_PATIENT_ID, medicationId: medicationId as string, instructionCodes: ['crush_ok', 'mix_with_water'],
+      instructionNote: '藥師交代磨粉配水', source: 'pharmacist', confirmedOn: '2026-09-01',
+    })
+    expect(saved.instruction_codes).toEqual(['crush_ok', 'mix_with_water'])
+    expect(saved.source).toBe('pharmacist')
+
+    const afterSave = await readPatientMedicationInstructions(DEMO_MEILING_PATIENT_ID)
+    expect(afterSave.filter(item => item.medication_id === medicationId).length).toBe(1)
+
+    // 同一顆藥再存一次要覆寫，不是疊加成第二筆——正式表主鍵就是 (patient_id, medication_id)。
+    await savePatientMedicationInstruction({
+      patientId: DEMO_MEILING_PATIENT_ID, medicationId: medicationId as string, instructionCodes: ['swallow_whole'],
+      instructionNote: '', source: 'doctor', confirmedOn: '2026-09-02',
+    })
+    const afterOverwrite = await readPatientMedicationInstructions(DEMO_MEILING_PATIENT_ID)
+    const overwritten = afterOverwrite.filter(item => item.medication_id === medicationId)
+    expect(overwritten.length).toBe(1)
+    expect(overwritten[0].instruction_codes).toEqual(['swallow_whole'])
+    expect(overwritten[0].instruction_note).toBeNull()
+
+    await clearPatientMedicationInstruction(DEMO_MEILING_PATIENT_ID, medicationId as string)
+    const afterClear = await readPatientMedicationInstructions(DEMO_MEILING_PATIENT_ID)
+    expect(afterClear.some(item => item.medication_id === medicationId)).toBe(false)
   })
 })

@@ -1,16 +1,19 @@
 /*
 檔案用途：點擊「本週藥單」單一藥品時彈出的詳情視窗，集中呈現目前系統已確認的藥品資料（外觀、劑量、主要功能、官方許可證字號）。
 所在層：src/features/medication/components；由 MedicationPage 的每週藥單分頁呼叫。
-主要關聯：讀取 MedicationPlanView（lib/medications），外觀呈現沿用 MedicationAppearance，避免另外重寫色塊／照片邏輯。
+主要關聯：讀取 MedicationPlanView（lib/medication/medications），外觀呈現沿用 MedicationAppearance，避免另外重寫色塊／照片邏輯。
 */
 import { useEffect, useRef } from 'react'
-import type { MedicationPlanView } from '../../../lib/medications'
-import { formatDoseAmountLocalized, formatMedicationLabel } from '../../../lib/medications'
-import { medicationSlotText } from '../../../lib/medicationSchedule'
+import type { MedicationPlanView } from '../../../lib/medication/medications'
+import { formatDoseAmountLocalized, formatMedicationLabel } from '../../../lib/medication/medications'
+import { medicationSlotText } from '../../../lib/medication/medicationSchedule'
 import type { Locale } from '../../../lib/i18n'
 import { useI18n } from '../../../lib/i18n'
 import { MedicationAppearance } from './MedicationAppearance'
 import { MedicationNameHeading } from './MedicationNameHeading'
+import { MedicationIntakeGuidance } from './MedicationIntakeGuidance'
+import { resolveSwallowGuidance } from '../../../lib/medication/medicationSwallowGuidance'
+import { detectInstructionConflict } from '../../../lib/medication/medicationInstructions'
 
 // 官方查詢系統只是一般搜尋入口，不支援用許可證字號直接帶出單一藥品頁，因此把字號印出來讓照護者自己貼上查詢，
 // 不假裝這是能直接連到那顆藥仿單的深連結。
@@ -46,10 +49,15 @@ export function MedicationDetailDialog({ plan, locale, nameEnglishFirst, onClose
   // 適應症／副作用／衛教屬於未來才會逐步人工補齊的欄位；資料庫尚未有這些欄位前一律不顯示，
   // 避免用還沒做的功能誤導照護者以為系統已經有藥師核對過的內容。
   const verification = medication?.verification_status === 'official'
-    ? text({ id: 'Data resmi terverifikasi', zh: '官方已驗證資料' ,en: "Data official terverifikasi" })
+    ? text({ id: 'Data resmi terverifikasi', zh: '官方已驗證資料' ,en: "Official verified data" })
     : medication?.verification_status === 'manually_verified'
-      ? text({ id: 'Sudah diperiksa manual', zh: '已人工核對' ,en: "Already diperiksa manual" })
-      : text({ id: '⚠ Belum diverifikasi', zh: '⚠ 未驗證' ,en: "⚠ Not yet diverifikasi" })
+      ? text({ id: 'Sudah diperiksa manual', zh: '已人工核對' ,en: "Manually verified" })
+      : text({ id: '⚠ Belum diverifikasi', zh: '⚠ 未驗證' ,en: "⚠ Unverified" })
+
+  // 服用方式：A 層只吃得到官方劑型原文與收斂後四值劑型，B 層是這顆藥在這位病人身上的實際交代紀錄。
+  const swallowGuidance = medication ? resolveSwallowGuidance({ officialDosageFormText: medication.official_dosage_form_text, dosageForm: medication.dosage_form }) : null
+  const instructionCodes = plan?.instruction?.instruction_codes ?? []
+  const hasInstructionConflict = swallowGuidance ? detectInstructionConflict(swallowGuidance.level, instructionCodes) : false
 
   return (
     <dialog
@@ -67,7 +75,7 @@ export function MedicationDetailDialog({ plan, locale, nameEnglishFirst, onClose
     >
       {plan && medication && <div className="max-h-[85vh] overflow-y-auto p-6">
         <div className="flex items-start justify-between gap-3">
-          <h2 id="medication-detail-title" className="sr-only">{text({ id: 'Detail obat', zh: '藥品詳情' ,en: "Detail medication" })}</h2>
+          <h2 id="medication-detail-title" className="sr-only">{text({ id: 'Detail obat', zh: '藥品詳情' ,en: "Medication details" })}</h2>
           <MedicationNameHeading medication={medication} locale={locale} englishFirst={nameEnglishFirst} size="lg" />
           <button
             ref={closeButtonRef}
@@ -86,45 +94,51 @@ export function MedicationDetailDialog({ plan, locale, nameEnglishFirst, onClose
 
         <dl className="mt-4 space-y-3 text-sm">
           <div className="flex items-start justify-between gap-3">
-            <dt className="font-bold text-slate-500">{text({ id: 'Dosis & waktu', zh: '劑量與時段' ,en: "Dose & time" })}</dt>
+            <dt className="font-bold text-slate-500">{text({ id: 'Dosis & waktu', zh: '劑量與時段' ,en: "Dose & schedule" })}</dt>
             <dd className="text-right font-semibold text-slate-800">
               {formatMedicationLabel(medication.brand_name, medication.strength_mg, medication.strength_label)}
               <br />
               {formatDoseAmountLocalized(plan.dose_amount, medication.dosage_form, locale)}
-              {plan.dose_count > 1 ? ` · ${text({ id: `${plan.dose_count} pil setiap kali`, zh: `每次 ${plan.dose_count} 顆` ,en: `${plan.dose_count} pil each kali` })}` : ''}
+              {plan.dose_count > 1 ? ` · ${text({ id: `${plan.dose_count} pil setiap kali`, zh: `每次 ${plan.dose_count} 顆` ,en: `${plan.dose_count} pills each time` })}` : ''}
               {' · '}
-              {plan.as_needed ? text({ id: 'Bila perlu (PRN)', zh: '需要時服用（PRN）' ,en: "Bila perlu (PRN)" }) : text(medicationSlotText(plan.schedule_slot))}
+              {plan.as_needed ? text({ id: 'Bila perlu (PRN)', zh: '需要時服用（PRN）' ,en: "As needed (PRN)" }) : text(medicationSlotText(plan.schedule_slot))}
             </dd>
           </div>
           <div className="flex items-start justify-between gap-3">
-            <dt className="font-bold text-slate-500">{text({ id: 'Nama generik', zh: '學名成分' ,en: "Name generik" })}</dt>
+            <dt className="font-bold text-slate-500">{text({ id: 'Nama generik', zh: '學名成分' ,en: "Generic name" })}</dt>
             <dd className="text-right font-semibold text-slate-800">{medication.generic_name}</dd>
           </div>
           <div className="flex items-start justify-between gap-3">
-            <dt className="font-bold text-slate-500">{text({ id: 'Status data', zh: '資料狀態' ,en: "Status data" })}</dt>
+            <dt className="font-bold text-slate-500">{text({ id: 'Status data', zh: '資料狀態' ,en: "Data status" })}</dt>
             <dd className={`text-right font-semibold ${medication.verification_status === 'unverified' ? 'text-amber-700' : 'text-emerald-700'}`}>{verification}</dd>
           </div>
           {medication.tfda_license_number && <div className="flex items-start justify-between gap-3">
-            <dt className="font-bold text-slate-500">{text({ id: 'No. izin edar TFDA', zh: 'TFDA 許可證字號' ,en: "No. izin edar TFDA" })}</dt>
+            <dt className="font-bold text-slate-500">{text({ id: 'No. izin edar TFDA', zh: 'TFDA 許可證字號' ,en: "TFDA license number" })}</dt>
             <dd className="text-right font-semibold tabular-nums text-slate-800 select-all">{medication.tfda_license_number}</dd>
           </div>}
         </dl>
+
+        {/* 服用方式放在「用途／副作用尚未提供」面板之前：這是照護者換手時最先要核對的安全資訊，
+            比「藥效是什麼」更急迫（issue #622／#627）。 */}
+        {swallowGuidance && <div className="mt-4 rounded-2xl border border-slate-200 p-4">
+          <MedicationIntakeGuidance guidance={swallowGuidance} instruction={plan.instruction} hasConflict={hasInstructionConflict} />
+        </div>}
 
         {/* 用途、副作用、相關衛教是照護者最常在藥袋／出院衛教單上看到的內容；TFDA 公開資料集（藥證主檔、外觀、ATC 分類）
             都不包含這類完整衛教文字，貿然用 AI 生成或網路爬來的內容顯示，等於把沒藥師核對過的用藥資訊當成事實呈現給照護者，
             風險比「暫時沒有這項資訊」更高。這裡明講目前沒有，並提供官方查詢入口讓照護者自己核對仿單，而不是編造內容。 */}
         <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-          <p className="text-sm font-bold text-amber-900">{text({ id: 'Kegunaan, efek samping, dan edukasi pasien', zh: '用途、副作用與相關衛教' ,en: "Kegunaan, efek samping, and edukasi pasien" })}</p>
+          <p className="text-sm font-bold text-amber-900">{text({ id: 'Kegunaan, efek samping, dan edukasi pasien', zh: '用途、副作用與相關衛教' ,en: "Indications, side effects, and patient education" })}</p>
           <p className="mt-1.5 text-sm font-medium leading-6 text-amber-900">
             {text({
               id: 'Sistem ini belum memiliki informasi tersebut yang sudah diperiksa apoteker. Data resmi TFDA saat ini hanya mencakup nama, kekuatan, bentuk, dan penampilan obat — bukan teks edukasi lengkap.',
-              zh: '目前系統還沒有經藥師核對過的用途／副作用／衛教說明。TFDA 公開資料只涵蓋藥名、劑量、劑型與外觀，並不包含完整衛教文字，因此這裡不顯示未經核對的內容，避免誤導。', en: "Sistem this not yet memiliki informasi tersebut that already diperiksa apotetor. Data official TFDA when this only mencakup name, tokuatan, shape, and penampilan medication — bukan teks edukasi lengkap.",
+              zh: '目前系統還沒有經藥師核對過的用途／副作用／衛教說明。TFDA 公開資料只涵蓋藥名、劑量、劑型與外觀，並不包含完整衛教文字，因此這裡不顯示未經核對的內容，避免誤導。', en: "This system does not yet have pharmacist-verified indications, side effects, or patient education. Official TFDA open data currently only covers brand names, dosage, forms, and appearances — not complete educational text. Unverified information is withheld to prevent misunderstanding.",
             })}
           </p>
           <p className="mt-2 text-sm font-medium leading-6 text-amber-900">
             {text({
               id: 'Untuk info lengkap, periksa selebaran obat dari apotek, tanya apoteker, atau cari nomor izin edar di sistem resmi TFDA di bawah.',
-              zh: '如需完整資訊，請直接查看藥袋附的仿單、詢問藥師，或用上方許可證字號到下方官方系統查詢。', en: "Untuk info lengkap, periksa selebaran medication from apotek, tanya apotetor, or cari nomor izin edar in sistem official TFDA in bawah.",
+              zh: '如需完整資訊，請直接查看藥袋附的仿單、詢問藥師，或用上方許可證字號到下方官方系統查詢。', en: "For complete information, please check the package insert provided by the pharmacy, ask a pharmacist, or look up the license number in the official TFDA database below.",
             })}
           </p>
           <div className="mt-3 flex flex-col items-start gap-2">
@@ -134,7 +148,7 @@ export function MedicationDetailDialog({ plan, locale, nameEnglishFirst, onClose
               rel="noreferrer"
               className="text-sm font-black text-amber-900 underline underline-offset-2"
             >
-              {text({ id: 'Buka sistem pencarian izin edar TFDA ↗', zh: '前往 TFDA 許可證查詢系統 ↗' ,en: "Open sistem pencarian izin edar TFDA ↗" })}
+              {text({ id: 'Buka sistem pencarian izin edar TFDA ↗', zh: '前往 TFDA 許可證查詢系統 ↗' ,en: "Open TFDA license lookup system ↗" })}
             </a>}
             {/* Google 搜尋不是官方資料來源，搜尋結果品質不受我們控制，只當作「還有其他管道可以查」的備援連結。 */}
             <a
@@ -143,7 +157,7 @@ export function MedicationDetailDialog({ plan, locale, nameEnglishFirst, onClose
               rel="noreferrer"
               className="text-sm font-black text-amber-900 underline underline-offset-2"
             >
-              {text({ id: `Cari "${medication.brand_name} 仿單" di Google ↗`, zh: `用 Google 搜尋「${medication.brand_name} 仿單」↗` ,en: `Cari "${medication.brand_name} 仿單" in Google ↗` })}
+              {text({ id: `Cari "${medication.brand_name} 仿單" di Google ↗`, zh: `用 Google 搜尋「${medication.brand_name} 仿單」↗` ,en: `Search for "${medication.brand_name} package insert" on Google ↗` })}
             </a>
           </div>
         </div>

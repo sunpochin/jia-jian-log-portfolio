@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useI18n, type LocalizedText } from '../../lib/i18n'
 import { isWebView } from '../../lib/auth'
+import { isNativeApp } from '../../lib/platform'
 import { usePwaUpdateGuard } from '../../lib/pwaUpdateGuard'
 import {
   clearPwaInstallDismissedAt,
@@ -18,8 +19,8 @@ import {
   type BeforeInstallPromptEvent,
 } from '../../lib/pwaInstall'
 
-const INSTALL_PROMPT_TITLE = { id: 'Pasang JiaJian Log', zh: '把家健錄放到主畫面', en: 'Add JiaJian Log to your home screen' } satisfies LocalizedText
-const INSTALL_PROMPT_DESCRIPTION = { id: 'Akses pencatatan yang sudah ada dengan cepat dari layar utama. Tidak ada fitur baru yang dijanjikan.', zh: '把現有的家健錄放在主畫面，之後更容易打開；安裝不會新增目前沒有的功能。', en: 'Keep the existing JiaJian Log web app one tap away. Installing does not add features that are not already available.' } satisfies LocalizedText
+const INSTALL_PROMPT_TITLE = { id: 'Pasang Family Health Note', zh: '把家健錄放到主畫面', en: 'Add Family Health Note to your home screen' } satisfies LocalizedText
+const INSTALL_PROMPT_DESCRIPTION = { id: 'Akses pencatatan yang sudah ada dengan cepat dari layar utama. Tidak ada fitur baru yang dijanjikan.', zh: '把現有的家健錄放在主畫面，之後更容易打開；安裝不會新增目前沒有的功能。', en: 'Keep the existing Family Health Note web app one tap away. Installing does not add features that are not already available.' } satisfies LocalizedText
 const INSTALL_BUTTON = { id: 'Pasang di layar utama', zh: '安裝到主畫面', en: 'Add to home screen' } satisfies LocalizedText
 const NOT_NOW_BUTTON = { id: 'Nanti', zh: '稍後', en: 'Not now' } satisfies LocalizedText
 const IOS_STEP_ONE = { id: 'Buka menu Bagikan di Safari.', zh: '在 Safari 點擊「分享」。', en: 'Open Safari’s Share menu.' } satisfies LocalizedText
@@ -39,6 +40,12 @@ function StepIcon({ step }: { step: 1 | 2 | 3 }) {
 }
 
 export function PwaInstallPrompt() {
+  // 原生殼是 build 時打包的快照，沒有 Safari「加入主畫面」可以引導；不渲染避免對照護者顯示混亂訊息（issue #812）。
+  if (isNativeApp()) return null
+  return <PwaInstallPromptWeb />
+}
+
+function PwaInstallPromptWeb() {
   const { text } = useI18n()
   const { hasActiveGlobalOverlay } = usePwaUpdateGuard()
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)

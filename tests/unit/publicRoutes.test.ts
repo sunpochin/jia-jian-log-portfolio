@@ -1,14 +1,19 @@
 /*
 檔案用途：驗證公開路由清單、sitemap.xml 產生、首頁 JSON-LD 與 applyRouteMetaToHtml 的 head 置換邏輯。
 所在層：tests/unit；針對 src/lib/publicRoutes.ts 與 vite.config.ts 的 publicRoutePrerenderPlugin／sitemapPlugin 共用的純函式。
-主要關聯：src/lib/publicRoutes.ts、src/lib/shareMeta.ts、vite.config.ts、issue #441。
+主要關聯：src/lib/publicRoutes.ts、src/lib/shareMeta.ts、vite.config.ts、issue #441、issue #806（公開深連結首次造訪 404）。
 */
 import { describe, expect, test } from 'bun:test'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { join } from 'node:path'
 import {
   PUBLIC_ROUTE_META,
+  TOKEN_ENTRY_ROUTE_PATHS,
   applyRouteMetaToHtml,
+  prerenderedSubRouteFilenames,
   buildHomeJsonLd,
   buildSitemapXml,
+  injectHomeJsonLd,
   publicRouteUrl,
 } from '../../src/lib/publicRoutes'
 
@@ -16,7 +21,7 @@ const FAKE_BUILT_INDEX_HTML = `<!doctype html>
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8" />
-    <title>JiaJian Log</title>
+    <title>Family Health Note</title>
     <meta name="description" content="original description" />
     <link rel="canonical" href="https://demo.careapp.local/" />
     <link rel="alternate" hreflang="zh-Hant" href="https://demo.careapp.local/" />
@@ -36,14 +41,92 @@ const FAKE_BUILT_INDEX_HTML = `<!doctype html>
 </html>
 `
 
-describe('PUBLIC_ROUTE_META', () => {
-  test('lists exactly the 5 public routes from issue #441 as sitemap-eligible, and keeps /admin out', () => {
-    const sitemapPaths = PUBLIC_ROUTE_META.filter(r => r.includeInSitemap).map(r => r.path).sort()
-    expect(sitemapPaths).toEqual(['/', '/demo', '/privacy', '/releases', '/terms'])
+const SRC_DIR = join(import.meta.dir, '../../src')
 
-    const admin = PUBLIC_ROUTE_META.find(r => r.path === '/admin')
-    expect(admin?.includeInSitemap).toBe(false)
-    expect(admin?.noindex).toBe(true)
+function listSourceFiles(dir: string): string[] {
+  return readdirSync(dir).flatMap(name => {
+    const fullPath = join(dir, name)
+    if (statSync(fullPath).isDirectory()) return listSourceFiles(fullPath)
+    return /\.(ts|tsx)$/.test(name) ? [fullPath] : []
+  })
+}
+
+/** 掃出 src/ 內所有 `currentPath === '/x'` 或 `pathname === '/x'` 形式的 SPA 入口判斷。 */
+function spaEntryPathsInSource(): string[] {
+  const paths = new Set<string>()
+  for (const file of listSourceFiles(SRC_DIR)) {
+    const source = readFileSync(file, 'utf-8')
+    for (const match of source.matchAll(/\b(?:currentPath|pathname) === '(\/[^']*)'/g)) paths.add(match[1])
+  }
+  return [...paths].sort()
+}
+
+describe('PUBLIC_ROUTE_META', () => {
+  test('lists the indexable public routes as sitemap-eligible, and keeps admin and token entry routes out', () => {
+    const sitemapPaths = PUBLIC_ROUTE_META.filter(r => r.includeInSitemap).map(r => r.path).sort()
+    expect(sitemapPaths).toEqual([
+      '/',
+      '/demo',
+      '/guides',
+      '/guides/blood-pressure-722',
+      '/guides/caregiver-handover',
+      '/guides/family-invitations',
+      '/guides/medication-schedule',
+      '/guides/pet-chronic-disease',
+      '/health-data-notice',
+      '/privacy',
+      '/releases',
+      '/terms',
+    ])
+
+    // 後台與帶一次性 token 的收件入口必須能直接開啟，但絕不能被索引或出現在 sitemap。
+    for (const path of ['/admin', '/share', '/join', '/patient-invite']) {
+      const route = PUBLIC_ROUTE_META.find(r => r.path === path)
+      expect(route?.includeInSitemap).toBe(false)
+      expect(route?.noindex).toBe(true)
+    }
+
+    // 新增任何 noindex 路由時都要決定它是不是 token 入口（要不要 X-Robots-Tag header）；
+    // 這裡鎖成「noindex 路由 = /admin + token 入口」，漏掉決定就失敗，header 規則才不會默默跟不上。
+    const noindexPaths = PUBLIC_ROUTE_META.filter(r => r.noindex).map(r => r.path).sort()
+    expect(noindexPaths).toEqual(['/admin', ...TOKEN_ENTRY_ROUTE_PATHS].sort())
+  })
+
+  test('routes added for issue #806 carry id / zh / en in both title and description (trilingual UI rule)', () => {
+    // 這些頁的靜態 <title> 會留在分頁上，也是不跑 JS 的搜尋引擎／預覽器唯一看得到的文字（AGENTS.md § 3.6）。
+    // 格式固定為「印尼文 / 中文 / 英文」，最後一段必須是純 ASCII 的英文，不能只靠品牌名稱裡的拉丁字母過關。
+    const trilingualPaths = [
+      '/health-data-notice', '/guides', '/guides/blood-pressure-722', '/guides/medication-schedule',
+      '/guides/caregiver-handover', '/guides/pet-chronic-disease', '/guides/family-invitations',
+      '/share', '/join', '/patient-invite',
+    ]
+    for (const path of trilingualPaths) {
+      const route = PUBLIC_ROUTE_META.find(r => r.path === path)!
+      const titleParts = route.title.split(' — ')[1].split(' / ')
+      const descriptionParts = route.description.split(' ／ ')
+      expect({ path, titleParts: titleParts.length, descriptionParts: descriptionParts.length }).toEqual({ path, titleParts: 3, descriptionParts: 3 })
+      expect(titleParts[2]).toMatch(/^[\x20-\x7E]+$/)
+      expect(descriptionParts[2]).toMatch(/^[\x20-\x7E]+$/)
+    }
+  })
+
+  test('prerenders every path the SPA recognises, so a fresh browser never gets a Vercel 404 (issue #806)', () => {
+    // vercel.json 沒有萬用 SPA rewrite，伺服器只認得 dist/ 裡真的存在的 HTML；
+    // App.tsx／PublicRouteSwitch.tsx 多判斷一條路徑卻忘了加進 PUBLIC_ROUTE_META，就會重演 #806：
+    // 已被 service worker 接管的舊使用者看起來正常，第一次點分享網址的人卻拿到 404。
+    const spaPaths = spaEntryPathsInSource()
+    // 防止 regex 因程式碼改寫而悄悄掃不到任何東西，讓本測試變成永遠通過的空測試。
+    expect(spaPaths).toEqual(expect.arrayContaining(['/', '/admin', '/guides', '/join', '/share']))
+    const prerenderedPaths = new Set(PUBLIC_ROUTE_META.map(r => r.path))
+    expect(spaPaths.filter(path => !prerenderedPaths.has(path))).toEqual([])
+  })
+
+  test('writes nested guide pages under their own directory so Vercel serves them without a rewrite', () => {
+    const filenames = prerenderedSubRouteFilenames()
+    expect(filenames).toContain('guides/index.html')
+    expect(filenames).toContain('guides/family-invitations/index.html')
+    expect(filenames).toContain('share/index.html')
+    expect(filenames).not.toContain('index.html')
   })
 
   test('every route title and description carries both Indonesian and Traditional Chinese text (bilingual UI rule)', () => {
@@ -123,7 +206,13 @@ describe('applyRouteMetaToHtml', () => {
   })
 
   test('throws instead of silently keeping the old title/description when an expected tag is missing', () => {
-    const brokenHtml = FAKE_BUILT_INDEX_HTML.replace('<title>JiaJian Log</title>', '')
+    const brokenHtml = FAKE_BUILT_INDEX_HTML.replace('<title>Family Health Note</title>', '')
     expect(() => applyRouteMetaToHtml(brokenHtml, privacyRoute)).toThrow()
+  })
+
+  test('injects the home JSON-LD immediately before the closing head tag', () => {
+    const html = injectHomeJsonLd('<html><head></head><body></body></html>')
+    expect(html).toContain('<script type="application/ld+json">')
+    expect(html).toContain('</script>\n  </head>')
   })
 })

@@ -74,7 +74,8 @@ export function NutritionTrendPanel({ patientId, days }: { patientId: string; da
     return () => { cancelled = true }
   }, [days, patientId])
 
-  if (failed) return <p role="alert" className="text-sm font-semibold text-red-700">{text({ id: 'Tren kalori tidak dapat dimuat.', zh: '目前無法讀取熱量趨勢。' ,en: 'Tren kalori not can dimuat.' })}</p>
+  // 載入失敗、空狀態與趨勢說明英文翻譯修正
+  if (failed) return <p role="alert" className="text-sm font-semibold text-red-700">{text({ id: 'Tren kalori tidak dapat dimuat.', zh: '目前無法讀取熱量趨勢。' ,en: 'Unable to load calorie trends.' })}</p>
   if (!points) return <p role="status" className="text-sm text-slate-500">{text(common.loading)}</p>
 
   return <>
@@ -83,12 +84,12 @@ export function NutritionTrendPanel({ patientId, days }: { patientId: string; da
       color="#047857"
       unit={{ id: 'kcal', zh: 'kcal' ,en: "kcal" }}
       seriesLabel={{ id: 'Total kalori harian', zh: '每日熱量合計' ,en: 'Total Daily Calories' }}
-      emptyLabel={{ id: 'Belum ada catatan makan pada rentang ini.', zh: '這個區間還沒有飲食紀錄。' ,en: 'Not yet ada record meal on rentang this.' }}
+      emptyLabel={{ id: 'Belum ada catatan makan pada rentang ini.', zh: '這個區間還沒有飲食紀錄。' ,en: 'No diet records in this date range.' }}
       valueFormatter={value => value.toFixed(0)}
     />
     {/* 空白與 0 必須可分辨，否則「那天沒記錄」會被誤讀成「那天沒吃」。 */}
     <p className="mt-2 text-xs text-slate-500">
-      {text({ id: 'Hari tanpa catatan dibiarkan kosong, bukan dihitung nol.', zh: '沒有紀錄的日子留白，不會當成 0 大卡。' ,en: 'Leave blank for unrecorded days, not 0 cards.' })}
+      {text({ id: 'Hari tanpa catatan dibiarkan kosong, bukan dihitung nol.', zh: '沒有紀錄的日子留白，不會當成 0 大卡。' ,en: 'Days without records are left blank, not counted as 0 kcal.' })}
     </p>
   </>
 }

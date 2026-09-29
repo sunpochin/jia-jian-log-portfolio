@@ -1,0 +1,184 @@
+{
+  "danger_high": {
+    "labels": {
+      "zh": "🔴 極高危險，需立即複測",
+      "id": "🔴 Bahaya Sangat Tinggi, ukur ulang segera",
+      "en": "🔴 Extremely high — measure again immediately"
+    },
+    "recommendations": {
+      "zh": "休息 1–5 分鐘重測；若持續，請立刻就醫或聯絡醫師。",
+      "id": "Istirahat 1–5 menit lalu ukur ulang; jika tetap tinggi, segera ke dokter atau hubungi dokter.",
+      "en": "Rest for 1–5 minutes and measure again; if it remains high, seek care or contact your doctor immediately."
+    },
+    "webAlertLevel": "danger"
+  },
+  "cukup_tinggi": {
+    "labels": {
+      "zh": "🔴 明顯偏高",
+      "id": "🔴 Cukup Tinggi",
+      "en": "🔴 Significantly high"
+    },
+    "recommendations": {
+      "zh": "10 分鐘內重測；確認是否漏藥；今日內回報醫師。",
+      "id": "Ukur ulang dalam 10 menit; periksa apakah lupa minum obat; laporkan ke dokter hari ini.",
+      "en": "Measure again within 10 minutes, check for a missed dose, and report it to your doctor today."
+    },
+    "webAlertLevel": "danger"
+  },
+  "tinggi": {
+    "labels": {
+      "zh": "⚠️ 偏高",
+      "id": "⚠️ Tinggi",
+      "en": "⚠️ High"
+    },
+    "recommendations": {
+      "zh": "",
+      "id": "",
+      "en": ""
+    },
+    "webAlertLevel": "warning"
+  },
+  "observasi": {
+    "labels": {
+      "zh": "🟡 偏高觀察",
+      "id": "🟡 Observasi (Agak tinggi)",
+      "en": "🟡 Observe — slightly high"
+    },
+    "recommendations": {
+      "zh": "記錄即可，無須警報。",
+      "id": "Cukup catat saja, tidak perlu alarm.",
+      "en": "Record it; no alert is needed."
+    },
+    "webAlertLevel": "warning"
+  },
+  "danger_low": {
+    "labels": {
+      "zh": "🔴 明顯偏低",
+      "id": "🔴 Sangat Rendah",
+      "en": "🔴 Significantly low"
+    },
+    "recommendations": {
+      "zh": "跌倒高風險區。立刻重測；若有頭暈、混亂、快昏倒等症狀，聯絡醫師。",
+      "id": "Zona risiko tinggi jatuh. Segera ukur ulang; jika pusing, linglung, atau lemas mau pingsan, segera hubungi dokter.",
+      "en": "This is a high fall-risk range. Measure again immediately; contact your doctor if you feel dizzy, confused, or close to fainting."
+    },
+    "webAlertLevel": "danger-low"
+  },
+  "warning_low": {
+    "labels": {
+      "zh": "⚠️ 偏低",
+      "id": "⚠️ Rendah",
+      "en": "⚠️ Low"
+    },
+    "recommendations": {
+      "zh": "需坐下或躺下休息，5-10 分鐘後重測，並詢問是否有頭暈、冒冷汗。",
+      "id": "Istirahat duduk or berbaring, ukur ulang setelah 5-10 menit, dan tanyakan apakah pusing atau keringat dingin.",
+      "en": "Sit or lie down to rest, measure again after 5–10 minutes, and check for dizziness or cold sweats."
+    },
+    "webAlertLevel": "warning-low"
+  },
+  "diastolic_low": {
+    "labels": {
+      "zh": "✅ 正常 (舒張壓偏低點)",
+      "id": "✅ Normal (Diastolik agak rendah)",
+      "en": "✅ Normal (slightly low diastolic pressure)"
+    },
+    "recommendations": {
+      "zh": "舒張壓稍低但無礙，此區間不拉警報 🚦，避免狼來了效應。",
+      "id": "Diastolik agak rendah tapi aman, area ini tidak memicu alarm 🚦 untuk menghindari alarm fatigue.",
+      "en": "Diastolic pressure is slightly low but safe; this range does not trigger an alert 🚦 to avoid alarm fatigue."
+    },
+    "webAlertLevel": "normal"
+  },
+  "normal_low": {
+    "labels": {
+      "zh": "✅ 正常 (偏低點)",
+      "id": "✅ Normal (Agak rendah)",
+      "en": "✅ Normal (slightly low)"
+    },
+    "recommendations": {
+      "zh": "偏低但仍屬安全範圍。",
+      "id": "Agak rendah tapi masih dalam batas aman.",
+      "en": "Slightly low but still within a safe range."
+    },
+    "webAlertLevel": "normal"
+  },
+  "normal": {
+    "labels": {
+      "zh": "✅ 正常",
+      "id": "✅ Normal",
+      "en": "✅ Normal"
+    },
+    "recommendations": {
+      "zh": "理想穩定血壓甜區。",
+      "id": "Rentang tekanan darah ideal yang stabil.",
+      "en": "An ideal, stable blood pressure range."
+    },
+    "webAlertLevel": "normal"
+  },
+  "normal_default": {
+    "labels": {
+      "zh": "✅ 正常",
+      "id": "✅ Normal",
+      "en": "✅ Normal"
+    },
+    "recommendations": {
+      "zh": "理想穩定血壓甜區。",
+      "id": "Rentang tekanan darah ideal yang stabil.",
+      "en": "An ideal, stable blood pressure range."
+    },
+    "webAlertLevel": "normal"
+  },
+  "on_target": {
+    "labels": {
+      "zh": "🎯 在目標內",
+      "id": "🎯 Dalam target",
+      "en": "🎯 On target"
+    },
+    "recommendations": {
+      "zh": "落在醫師設定的目標區間內，維持目前作息與用藥即可。",
+      "id": "Berada dalam rentang target yang ditetapkan dokter; lanjutkan rutinitas dan obat seperti biasa.",
+      "en": "Within the target range set by the doctor; keep the current routine and medication."
+    },
+    "webAlertLevel": "normal"
+  },
+  "off_target": {
+    "labels": {
+      "zh": "🔺 超出目標",
+      "id": "🔺 Di atas target",
+      "en": "🔺 Above target"
+    },
+    "recommendations": {
+      "zh": "高於醫師設定的目標區間。記錄下來，回診或聯絡醫師時一併回報。",
+      "id": "Di atas rentang target dokter. Catat dan laporkan saat kontrol atau saat menghubungi dokter.",
+      "en": "Above the doctor's target range. Record it and report it at the next visit or when contacting the doctor."
+    },
+    "webAlertLevel": "off-target"
+  },
+  "below_target": {
+    "labels": {
+      "zh": "🔻 低於目標",
+      "id": "🔻 Di bawah target",
+      "en": "🔻 Below target"
+    },
+    "recommendations": {
+      "zh": "低於醫師設定的目標區間。起身放慢、留意頭暈與跌倒，回診時一併回報。",
+      "id": "Di bawah rentang target dokter. Bangun perlahan, waspadai pusing dan risiko jatuh, dan laporkan saat kontrol.",
+      "en": "Below the doctor's target range. Stand up slowly, watch for dizziness and falls, and report it at the next visit."
+    },
+    "webAlertLevel": "below-target"
+  },
+  "diastolic_below_ref": {
+    "labels": {
+      "zh": "🔻 舒張壓低於參考值",
+      "id": "🔻 Diastolik di bawah nilai rujukan",
+      "en": "🔻 Diastolic below reference"
+    },
+    "recommendations": {
+      "zh": "舒張壓低於一般參考下限 60。記錄下來、回診時帶給醫師看；若同時頭暈或站起來發黑，請先坐下休息。",
+      "id": "Diastolik di bawah batas rujukan umum 60. Catat dan tunjukkan ke dokter saat kontrol; jika disertai pusing atau pandangan gelap saat berdiri, duduklah dulu.",
+      "en": "Diastolic pressure is below the usual reference floor of 60. Record it and show it to the doctor at the next visit; sit down first if it comes with dizziness or greying out on standing."
+    },
+    "webAlertLevel": "below-target"
+  }
+}

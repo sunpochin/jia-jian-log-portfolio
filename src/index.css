@@ -5,6 +5,82 @@
 */
 @import "tailwindcss";
 
+/*
+ * 「家庭記憶」暖色 token：只用在照護時間軸的家屬觀察事件（CareTimelineEventType 的 'family_observation'）與未來的家庭照片內容，
+ * 刻意不用在血壓、藥物、警示等需要精確識別的內容——那些維持既有色系不變。
+ * 命名沿用既有 bg-50／border-300／text-800 的搭配慣例（見同一份 timeline 元件的 indigo 用法）；
+ * family-800 對白底／family-50 對比約 6:1，達 WCAG AA。
+ * 完整診斷與提案見 docs/product/clinical-care-ops-ui-design.md §4.2（issue #715、#719）。
+ */
+@theme {
+  --color-family-50: #fcf3ec;
+  --color-family-300: #e9c4a8;
+  --color-family-800: #7c2d12;
+}
+
+/*
+ * A 期結構性 design tokens（docs/product/clinical-care-ops-ui-design.md §4.1、issue #715、#732）。
+ * 品牌色維持既有 emerald，刻意不用工具建議的 sky 藍（`#0369A1`）——會跟 AGENTS.md 規定的
+ * 舒張壓識別色 `#2563EB` 撞色，「同一個顏色兩種意思」在照護情境下是辨識風險，不是美觀問題。
+ * 血壓識別色（收縮/舒張/心跳，見上方 .vital-* 規則）與 danger/warn/info 三個語意色完全不動，
+ * 這些顏色的價值就是「永遠代表同一件事」；本次只收斂品牌色與中性色，不新增第七種主色。
+ * 這一批 token 先宣告供逐步套用，本期只套用到底部導覽與每日照護模組 chip（見下方 A 期 scope）。
+ */
+@theme {
+  --color-brand-50: #ecfdf5;
+  --color-brand-200: #a7f3d0;
+  --color-brand-700: #047857;
+
+  --color-ink: #0f172a;
+  --color-ink-muted: #475569;
+
+  --color-surface: #f8fafc;
+  --color-line: #e2e8f0;
+
+  --color-danger-50: #fef2f2;
+  --color-danger-700: #b91c1c;
+
+  --color-warn-50: #fffbeb;
+  --color-warn-700: #b45309;
+
+  --color-info-50: #f0f9ff;
+  --color-info-700: #0369a1;
+}
+
+/*
+ * 字級角色（docs 同上 §4.3）：用 rem 而非 px，理由與上方閱讀字級章節一致——
+ * 這些角色要跟著使用者的閱讀字級設定一起放大，不能寫死視覺大小。
+ * 用 @utility 宣告而非塞進 @theme 的 --text-* token，是因為角色同時綁字重（Tailwind v4
+ * 的 --text-* token 只能帶 line-height，不能帶 font-weight），拆兩個 utility 反而更難維持
+ * 「同一個角色＝固定大小＋固定字重」這個不變量。
+ */
+@utility text-role-page {
+  font-size: 1.5rem;
+  font-weight: 900;
+}
+
+@utility text-role-section {
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+
+@utility text-role-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+@utility text-role-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-ink-muted);
+}
+
+@utility text-role-number {
+  font-size: 1.875rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
 @utility scrollbar-none {
   -ms-overflow-style: none;
   scrollbar-width: none;

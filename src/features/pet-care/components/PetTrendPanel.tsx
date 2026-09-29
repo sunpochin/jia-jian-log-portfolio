@@ -57,25 +57,27 @@ type FluidTrendRow = { administered_at: string; fluid_volume_ml: TrendValue }
 type InsulinTrendRow = { administered_at: string; insulin_units: TrendValue }
 type GlucoseTrendRow = { measured_at: string; glucose_mg_dl: TrendValue }
 
+// 寵物趨勢空狀態與各維度文字英文翻譯修正
 const EMPTY_SERIES_LABEL: LocalizedText = {
   id: 'Belum ada catatan untuk indikator ini dalam rentang yang dipilih.',
-  zh: '這個區間還沒有這個指標的紀錄。', en: "No recordan for indikator this in rentang selected.",
+  zh: '這個區間還沒有這個指標的紀錄。',
+  en: "No records for this indicator in the selected date range.",
 }
 
 const TREND_EMPTY_LABEL: Record<PetTrendKind, LocalizedText> = {
-  liquid: { id: 'Belum ada catatan asupan cairan dalam rentang ini.', zh: '這個區間還沒有液體管理紀錄。' ,en: "No recordan fluid intake in rentang this." },
-  digestion: { id: 'Belum ada catatan pencernaan dalam rentang ini.', zh: '這個區間還沒有消化健康紀錄。' ,en: "No recordan pencernaan in rentang this." },
-  appetite: { id: 'Belum ada catatan nafsu makan dalam rentang ini.', zh: '這個區間還沒有食慾紀錄。' ,en: "No recordan nafsu makan in rentang this." },
-  fluid: { id: 'Belum ada catatan terapi cairan dalam rentang ini.', zh: '這個區間還沒有皮下點滴紀錄。' ,en: "No recordan terapi fluid in rentang this." },
-  endocrine: { id: 'Belum ada catatan endokrin dalam rentang ini.', zh: '這個區間還沒有內分泌紀錄。' ,en: "No recordan endokrin in rentang this." },
+  liquid: { id: 'Belum ada catatan asupan cairan dalam rentang ini.', zh: '這個區間還沒有液體管理紀錄。' ,en: "No fluid intake records in this date range." },
+  digestion: { id: 'Belum ada catatan pencernaan dalam rentang ini.', zh: '這個區間還沒有消化健康紀錄。' ,en: "No digestive health records in this date range." },
+  appetite: { id: 'Belum ada catatan nafsu makan dalam rentang ini.', zh: '這個區間還沒有食慾紀錄。' ,en: "No appetite records in this date range." },
+  fluid: { id: 'Belum ada catatan terapi cairan dalam rentang ini.', zh: '這個區間還沒有皮下點滴紀錄。' ,en: "No subcutaneous fluid therapy records in this date range." },
+  endocrine: { id: 'Belum ada catatan endokrin dalam rentang ini.', zh: '這個區間還沒有內分泌紀錄。' ,en: "No endocrine records in this date range." },
 }
 
 const TREND_SUMMARY: Record<PetTrendKind, LocalizedText> = {
-  liquid: { id: 'Hari tanpa catatan dibiarkan kosong, bukan dihitung nol.', zh: '沒有紀錄的日子留白，不會當成 0。' ,en: "Day without recordan dibiarkan empty, bukan dihthatng nol." },
-  digestion: { id: 'Hari tanpa catatan dibiarkan kosong, bukan dihitung nol.', zh: '沒有紀錄的日子留白，不會當成 0。' ,en: "Day without recordan dibiarkan empty, bukan dihthatng nol." },
-  appetite: { id: 'Persentase adalah rata-rata catatan makan pada hari itu; hari tanpa catatan dibiarkan kosong.', zh: '進食比例是當日已記錄餐次的平均；沒有紀錄的日子留白。' ,en: "Persentase adalah rata-rata recordan makan on days that; days without recordan dibiarkan empty." },
-  fluid: { id: 'Volume adalah total cairan subkutan yang tercatat pada hari itu; hari tanpa catatan dibiarkan kosong.', zh: '液體體積是當日已記錄的皮下點滴總量；沒有紀錄的日子留白。' ,en: "Volume adalah total fluid subkutan that recorded on days that; days without recordan dibiarkan empty." },
-  endocrine: { id: 'Insulin adalah total harian; gula darah adalah rata-rata harian. Hari tanpa catatan dibiarkan kosong.', zh: '胰島素是每日總量；血糖是每日平均。沒有紀錄的日子留白。' ,en: "Insulin adalah total daily; gula blood adalah rata-rata daily. Day without recordan dibiarkan empty." },
+  liquid: { id: 'Hari tanpa catatan dibiarkan kosong, bukan dihitung nol.', zh: '沒有紀錄的日子留白，不會當成 0。' ,en: "Days without records are left blank, not counted as zero." },
+  digestion: { id: 'Hari tanpa catatan dibiarkan kosong, bukan dihitung nol.', zh: '沒有紀錄的日子留白，不會當成 0。' ,en: "Days without records are left blank, not counted as zero." },
+  appetite: { id: 'Persentase adalah rata-rata catatan makan pada hari itu; hari tanpa catatan dibiarkan kosong.', zh: '進食比例是當日已記錄餐次的平均；沒有紀錄的日子留白。' ,en: "Percentage is the daily average of recorded meals; days without records are left blank." },
+  fluid: { id: 'Volume adalah total cairan subkutan yang tercatat pada hari itu; hari tanpa catatan dibiarkan kosong.', zh: '液體體積是當日已記錄的皮下點滴總量；沒有紀錄的日子留白。' ,en: "Volume is the daily total of recorded subcutaneous fluids; days without records are left blank." },
+  endocrine: { id: 'Insulin adalah total harian; gula darah adalah rata-rata harian. Hari tanpa catatan dibiarkan kosong.', zh: '胰島素是每日總量；血糖是每日平均。沒有紀錄的日子留白。' ,en: "Insulin is the daily total; blood glucose is the daily average. Days without records are left blank." },
 }
 
 function trendBounds(days: number): TrendBounds {
@@ -96,10 +98,10 @@ function trendBounds(days: number): TrendBounds {
 const UNIT_ML: LocalizedText = { id: 'ml', zh: 'ml' ,en: "ml" }
 const UNIT_PERCENT: LocalizedText = { id: '%', zh: '%' ,en: "%" }
 const UNIT_MG_DL: LocalizedText = { id: 'mg/dL', zh: 'mg/dL' ,en: "mg/dL" }
-const UNIT_TIMES: LocalizedText = { id: 'kali', zh: '次' ,en: "kali" }
-const UNIT_CLUMPS: LocalizedText = { id: 'gumpalan', zh: '顆' ,en: "gumpalan" }
-const UNIT_SCORE: LocalizedText = { id: 'skor', zh: '分' ,en: "skor" }
-const UNIT_INSULIN: LocalizedText = { id: 'unit', zh: '單位' ,en: "unit" }
+const UNIT_TIMES: LocalizedText = { id: 'kali', zh: '次' ,en: "times" }
+const UNIT_CLUMPS: LocalizedText = { id: 'gumpalan', zh: '顆' ,en: "clumps" }
+const UNIT_SCORE: LocalizedText = { id: 'skor', zh: '分' ,en: "score" }
+const UNIT_INSULIN: LocalizedText = { id: 'unit', zh: '單位' ,en: "units" }
 
 function wholeNumber(value: number): string {
   return String(Math.round(value))
@@ -120,32 +122,32 @@ function timedSeries(id: string, label: LocalizedText, records: { at: string; va
 
 function buildLiquidSeries(records: LiquidTrendRow[], days: number, now: dayjs.Dayjs): PetTrendSeries[] {
   return [
-    dateSeries('water', { id: 'Asupan air harian', zh: '每日飲水量' ,en: "Asupan water daily" }, dailyPetDateValues(records.map(record => ({ date: record.recorded_date, value: record.water_intake_ml })), days, now), UNIT_ML, '#2563EB'),
-    dateSeries('urination', { id: 'Buang air kecil per hari', zh: '每日排尿次數' ,en: "Buang water tocil per days" }, dailyPetDateValues(records.map(record => ({ date: record.recorded_date, value: record.urination_count })), days, now), UNIT_TIMES, '#0F766E'),
-    dateSeries('urine-clumps', { id: 'Gumpalan urin per hari', zh: '每日尿塊數' ,en: "Gumpalan urin per days" }, dailyPetDateValues(records.map(record => ({ date: record.recorded_date, value: record.litter_box_urine_clumps })), days, now), UNIT_CLUMPS, '#7C3AED'),
+    dateSeries('water', { id: 'Asupan air harian', zh: '每日飲水量' ,en: "Daily water intake" }, dailyPetDateValues(records.map(record => ({ date: record.recorded_date, value: record.water_intake_ml })), days, now), UNIT_ML, '#2563EB'),
+    dateSeries('urination', { id: 'Buang air kecil per hari', zh: '每日排尿次數' ,en: "Urinations per day" }, dailyPetDateValues(records.map(record => ({ date: record.recorded_date, value: record.urination_count })), days, now), UNIT_TIMES, '#0F766E'),
+    dateSeries('urine-clumps', { id: 'Gumpalan urin per hari', zh: '每日尿塊數' ,en: "Urine clumps per day" }, dailyPetDateValues(records.map(record => ({ date: record.recorded_date, value: record.litter_box_urine_clumps })), days, now), UNIT_CLUMPS, '#7C3AED'),
   ]
 }
 
 function buildDigestionSeries(records: DigestionTrendRow[], days: number, now: dayjs.Dayjs): PetTrendSeries[] {
   return [
-    dateSeries('defecation', { id: 'Buang air besar per hari', zh: '每日排便次數' ,en: "Buang water besar per days" }, dailyPetDateValues(records.map(record => ({ date: record.recorded_date, value: record.defecation_count })), days, now), UNIT_TIMES, '#047857'),
-    dateSeries('stool-score', { id: 'Skor feses harian', zh: '每日糞便評分' ,en: "Skor feses daily" }, dailyPetDateValues(records.map(record => ({ date: record.recorded_date, value: record.stool_score })), days, now), UNIT_SCORE, '#B45309', wholeNumber),
-    dateSeries('vomiting', { id: 'Muntah per hari', zh: '每日嘔吐次數' ,en: "Muntah per days" }, dailyPetDateValues(records.map(record => ({ date: record.recorded_date, value: record.vomiting_count })), days, now), UNIT_TIMES, '#BE123C'),
+    dateSeries('defecation', { id: 'Buang air besar per hari', zh: '每日排便次數' ,en: "Bowel movements per day" }, dailyPetDateValues(records.map(record => ({ date: record.recorded_date, value: record.defecation_count })), days, now), UNIT_TIMES, '#047857'),
+    dateSeries('stool-score', { id: 'Skor feses harian', zh: '每日糞便評分' ,en: "Daily stool score" }, dailyPetDateValues(records.map(record => ({ date: record.recorded_date, value: record.stool_score })), days, now), UNIT_SCORE, '#B45309', wholeNumber),
+    dateSeries('vomiting', { id: 'Muntah per hari', zh: '每日嘔吐次數' ,en: "Vomiting episodes per day" }, dailyPetDateValues(records.map(record => ({ date: record.recorded_date, value: record.vomiting_count })), days, now), UNIT_TIMES, '#BE123C'),
   ]
 }
 
 function buildAppetiteSeries(records: AppetiteTrendRow[], days: number, now: dayjs.Dayjs): PetTrendSeries[] {
-  return [timedSeries('appetite', { id: 'Rata-rata nafsu makan harian', zh: '每日平均進食比例' ,en: "Rata-rata nafsu makan daily" }, records.map(record => ({ at: record.recorded_at, value: record.appetite_percent })), 'average', days, now, UNIT_PERCENT, '#4F46E5')]
+  return [timedSeries('appetite', { id: 'Rata-rata nafsu makan harian', zh: '每日平均進食比例' ,en: "Daily average appetite" }, records.map(record => ({ at: record.recorded_at, value: record.appetite_percent })), 'average', days, now, UNIT_PERCENT, '#4F46E5')]
 }
 
 function buildFluidSeries(records: FluidTrendRow[], days: number, now: dayjs.Dayjs): PetTrendSeries[] {
-  return [timedSeries('fluid-volume', { id: 'Total cairan subkutan harian', zh: '每日皮下點滴總量' ,en: "Total fluid subkutan daily" }, records.map(record => ({ at: record.administered_at, value: record.fluid_volume_ml })), 'total', days, now, UNIT_ML, '#0891B2', oneDecimal)]
+  return [timedSeries('fluid-volume', { id: 'Total cairan subkutan harian', zh: '每日皮下點滴總量' ,en: "Daily subcutaneous fluid total" }, records.map(record => ({ at: record.administered_at, value: record.fluid_volume_ml })), 'total', days, now, UNIT_ML, '#0891B2', oneDecimal)]
 }
 
 function buildEndocrineSeries(insulin: InsulinTrendRow[], glucose: GlucoseTrendRow[], days: number, now: dayjs.Dayjs): PetTrendSeries[] {
   return [
-    timedSeries('insulin', { id: 'Total insulin harian', zh: '每日胰島素總量' ,en: "Total insulin daily" }, insulin.map(record => ({ at: record.administered_at, value: record.insulin_units })), 'total', days, now, UNIT_INSULIN, '#7C3AED', oneDecimal),
-    timedSeries('glucose', { id: 'Rata-rata gula darah harian', zh: '每日平均血糖' ,en: "Rata-rata gula blood daily" }, glucose.map(record => ({ at: record.measured_at, value: record.glucose_mg_dl })), 'average', days, now, UNIT_MG_DL, '#DB2777'),
+    timedSeries('insulin', { id: 'Total insulin harian', zh: '每日胰島素總量' ,en: "Daily insulin total" }, insulin.map(record => ({ at: record.administered_at, value: record.insulin_units })), 'total', days, now, UNIT_INSULIN, '#7C3AED', oneDecimal),
+    timedSeries('glucose', { id: 'Rata-rata gula darah harian', zh: '每日平均血糖' ,en: "Daily average blood glucose" }, glucose.map(record => ({ at: record.measured_at, value: record.glucose_mg_dl })), 'average', days, now, UNIT_MG_DL, '#DB2777'),
   ]
 }
 
@@ -261,7 +263,8 @@ export function PetTrendPanel({ kind, patientId, days, refreshKey = '' }: { kind
 
   if (failed) return (
     <div>
-      <p role="alert" className="text-sm font-semibold text-red-700">{text({ id: 'Tren hewan tidak dapat dimuat.', zh: '目前無法讀取寵物趨勢。' ,en: "Tren animal not could be loaded." })}</p>
+      {/* 載入失敗英文翻譯修正 */}
+      <p role="alert" className="text-sm font-semibold text-red-700">{text({ id: 'Tren hewan tidak dapat dimuat.', zh: '目前無法讀取寵物趨勢。' ,en: "Unable to load pet trends." })}</p>
       <button type="button" onClick={() => setRetryKey(value => value + 1)} className="mt-3 min-h-11 rounded-xl border border-red-200 bg-white px-4 text-sm font-bold text-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500">
         {text({ id: 'Coba lagi', zh: '重新載入' ,en: "Try again" })}
       </button>

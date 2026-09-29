@@ -5,12 +5,14 @@
 */
 import { describe, expect, test } from 'bun:test'
 import { buildRecordCsv } from '../../src/lib/recordReport'
+import { GENERAL_ADULT_RESOLVER } from '../../src/lib/bpStandards'
 import { buildCompleteCareCsv } from '../../src/lib/accountExport'
 
 describe('Account Features & Legal Compliance', () => {
   test('CSV export generates valid UTF-8 BOM formatted output', () => {
     const csv = buildRecordCsv([], 'Test User', {
       selectedDays: 365,
+      standardResolver: GENERAL_ADULT_RESOLVER,
     })
     expect(csv.startsWith('\uFEFF')).toBe(true)
     expect(csv).toContain('Subjek / 對象')

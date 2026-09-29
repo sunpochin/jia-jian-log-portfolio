@@ -34,13 +34,13 @@ export function TermsPage() {
         <article className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm md:p-8 space-y-6">
           <div>
             <span className="inline-block rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-extrabold text-emerald-700">
-              {text({ id: 'Syarat & Ketentuan Layanan', zh: '服務條款與合規說明' ,en: 'Terms of Service and Compliance Instructions' })}
+              {text({ id: 'Syarat & Ketentuan Layanan', zh: '服務條款與合規說明', en: 'Terms of Service and Compliance Instructions' })}
             </span>
             <h1 className="mt-2 text-2xl font-black tracking-tight text-gray-900 md:text-3xl">
-              {text({ id: 'Syarat & Ketentuan', zh: '服務條款' ,en: 'Terms of Service' })}
+              {text({ id: 'Syarat & Ketentuan', zh: '服務條款', en: 'Terms of Service' })}
             </h1>
-            <p className="mt-1 text-xs text-gray-500">
-              {text({ id: 'Terakhir diperbarui: 27 Agustus 2026', zh: '最後更新日期：2026 年 8 月 27 日' ,en: "Terakhir diperbarui: 27 Agustus 2026" })}
+            <p className="text-xs text-gray-500">
+              {text({ id: 'Terakhir diperbarui: 27 Agustus 2026', zh: '最後更新日期：2026 年 8 月 27 日', en: 'Last updated: August 27, 2026' })}
             </p>
           </div>
 
@@ -49,13 +49,14 @@ export function TermsPage() {
           {/* 1. Penerimaan Syarat */}
           <section className="space-y-2">
             <h2 className="text-base font-bold text-gray-900">
-              1. {text({ id: 'Penerimaan Syarat', zh: '條款接受' ,en: 'Terms Acceptance' })}
+              1. {text({ id: 'Penerimaan Syarat', zh: '條款接受', en: 'Terms Acceptance' })}
             </h2>
             <p className="text-sm leading-relaxed text-gray-600">
-              {/* 繁體中文註解：條款必須與首頁使用同一個品牌常數，印尼文同步更新為新英文識別 JiaJian Log。 */}
+              {/* 繁體中文註解：條款必須與首頁使用同一個品牌常數，印尼文與英文同步更新為新英文識別 Family Health Note。 */}
               {text({
-                id: 'Dengan melanjutkan dari halaman masuk, Anda menyetujui untuk terikat oleh Syarat & Ketentuan JiaJian Log ini. Data kesehatan dan medis memerlukan persetujuan tegas terpisah berdasarkan Pemberitahuan Pengumpulan Data Pribadi.',
-                zh: `當您從登入頁繼續使用「${APP_NAME}」時，即代表您同意並遵守本服務條款。健康與醫療資料另依《個人資料蒐集告知事項》取得明確同意。` ,en: 'Dengan continuing from halaman sign in, You agree for bound oleh Terms & Ketentuan JiaJian Log this. Data health and medis requires persepurpose tegas separate berdasarkan Pemberitahuan Collectoran Data Pribadi.'
+                id: 'Dengan melanjutkan dari halaman masuk, Anda menyetujui untuk terikat oleh Syarat & Ketentuan Family Health Note ini. Data kesehatan dan medis memerlukan persetujuan tegas terpisah berdasarkan Pemberitahuan Pengumpulan Data Pribadi.',
+                zh: `當您從登入頁繼續使用「${APP_NAME}」時，即代表您同意並遵守本服務條款。健康與醫療資料另依《個人資料蒐集告知事項》取得明確同意。`,
+                en: 'By continuing from the sign-in page, you agree to be bound by these Family Health Note Terms of Service. Health and medical data requires separate explicit consent under the Health Data Privacy Notice.',
               })}
             </p>
           </section>
@@ -63,7 +64,7 @@ export function TermsPage() {
           {/* 2. Penolakan Medis (Medical Disclaimer) */}
           <section className="space-y-2">
             <h2 className="text-base font-bold font-extrabold text-amber-800">
-              2. {text({ id: 'Penolakan Medis (PENTING)', zh: '醫療免責聲明（重要）' ,en: 'Penolakan Medis (PENTING)' })}
+              2. {text({ id: 'Penolakan Medis (PENTING)', zh: '醫療免責聲明（重要）' ,en: 'Medical Disclaimer (IMPORTANT)' })}
             </h2>
             <div className="rounded-2xl bg-amber-50 p-4 border border-amber-200 text-sm leading-relaxed text-amber-900 space-y-2">
               <p className="font-bold">
@@ -110,12 +111,13 @@ export function TermsPage() {
           {/* 5. Biaya Layanan：對應登入頁費用說明區塊（issue #444），目前系統無任何付費功能或訂閱機制 */}
           <section className="space-y-2">
             <h2 className="text-base font-bold text-gray-900">
-              5. {text({ id: 'Biaya Layanan', zh: '服務費用' ,en: "Biaya Layanan" })}
+              5. {text({ id: 'Biaya Layanan', zh: '服務費用', en: 'Service Fees' })}
             </h2>
             <p className="text-sm leading-relaxed text-gray-600">
               {text({
                 id: 'Saat ini layanan ini tidak memungut biaya apa pun dan tidak memiliki fitur berbayar atau langganan. Jika ini berubah di masa depan, kami akan mengumumkannya terlebih dahulu di halaman ini.',
-                zh: '本服務目前完全免費，不含任何付費功能或訂閱機制。未來若有異動，我們會事先於本頁公告。' ,en: "When this layanan this not memungut biaya apa pun and not memiliki fthatr berbayar or langganan. If this berubah in masa depan, we will mengumumkannya terlebih dahulu in halaman this."
+                zh: '本服務目前完全免費，不含任何付費功能或訂閱機制。未來若有異動，我們會事先於本頁公告。',
+                en: 'This service is currently completely free, with no paid features or subscription models. Any future changes will be announced in advance on this page.',
               })}
             </p>
           </section>
@@ -123,12 +125,13 @@ export function TermsPage() {
           {/* 6. Hubungi Kami */}
           <section className="space-y-2">
             <h2 className="text-base font-bold text-gray-900">
-              6. {text({ id: 'Hubungi Kami', zh: '聯絡方式' ,en: 'Hubungi Kami' })}
+              6. {text({ id: 'Hubungi Kami', zh: '聯絡方式', en: 'Contact' })}
             </h2>
             <p className="text-sm leading-relaxed text-gray-600">
               {text({
                 id: 'Untuk pertanyaan atau saran mengenai Syarat & Ketentuan ini, silakan hubungi:',
-                zh: '若對本服務條款有任何疑問，請聯繫：' ,en: 'Untuk pertanyaan or saran mengenai Terms & Ketentuan this, please contact:'
+                zh: '若對本服務條款有任何疑問，請聯繫：',
+                en: 'If you have any questions or suggestions regarding these Terms of Service, please contact:',
               })}
             </p>
             <p className="text-sm font-semibold text-blue-600">
@@ -137,9 +140,9 @@ export function TermsPage() {
           </section>
 
           <section className="border-t border-gray-100 pt-5 text-sm text-gray-600">
-            <h2 className="font-bold text-gray-900">{text({ id: 'Kontak & Versi', zh: '聯絡方式與版本' ,en: 'Kontak & Version' })}</h2>
+            <h2 className="font-bold text-gray-900">{text({ id: 'Kontak & Versi', zh: '聯絡方式與版本', en: 'Contact & Version' })}</h2>
             {/* 將聯絡我導向作者個人網站，提供完整簡介與聯繫方式 */}
-            <p className="mt-2">{text({ id: 'Hubungi saya', zh: '聯絡我' ,en: 'Hubungi saya' })}: <a className="font-semibold text-blue-600 underline" href={APP_AUTHOR_URL} target="_blank" rel="noreferrer">https://portfolio-author.github.io/</a></p>
+            <p className="mt-2">{text({ id: 'Hubungi saya', zh: '聯絡我', en: 'Contact me' })}: <a className="font-semibold text-blue-600 underline" href={APP_AUTHOR_URL} target="_blank" rel="noreferrer">https://portfolio-author.github.io/</a></p>
             <p className="mt-1"><a className="text-blue-600 underline" href="https://github.com/portfolio-author" target="_blank" rel="noreferrer">GitHub / portfolio-author</a> · <ReleaseVersion /></p>
           </section>
         </article>

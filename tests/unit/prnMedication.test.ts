@@ -1,11 +1,11 @@
 /*
 檔案用途：驗證 PRN 使用事件的照護日、狀態投影、冪等重試與作廢資料轉接。
 所在層：tests/unit；隔離 Supabase query chain，不連接真實資料庫。
-主要關聯：對應 src/lib/prnMedication.ts 與 PRN 每日照護元件。
+主要關聯：對應 src/lib/medication/prnMedication.ts 與 PRN 每日照護元件。
 */
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 import dayjs from 'dayjs'
-import type { MedicationPlanView } from '../../src/lib/medications'
+import type { MedicationPlanView } from '../../src/lib/medication/medications'
 import type { PrnMedicationEvent } from '../../src/types/database'
 
 type Response = { data?: unknown; error?: unknown }
@@ -53,7 +53,7 @@ const {
   savePrnMedicationEvent,
   updatePrnMedicationEffectStatus,
   voidPrnMedicationEvent,
-} = await import('../../src/lib/prnMedication')
+} = await import('../../src/lib/medication/prnMedication')
 
 const plan: MedicationPlanView = {
   id: 'prn-plan-1',

@@ -1,7 +1,7 @@
 /*
-檔案用途：驗證每日照護顯示偏好以 patient_id 共用讀寫，含 12 個模組旗標與自訂範本開關，並保留安全預設。
+檔案用途：驗證每日照護顯示偏好以 patient_id 共用讀寫，含 14 個模組旗標與自訂範本開關，並保留安全預設。
 所在層：tests/unit；以 Supabase client stub 覆蓋資料轉接層，不連線遠端環境。
-主要關聯：src/lib/dailyCarePreferences.ts 與 patient_daily_care_preferences migration。
+主要關聯：src/lib/preferences/dailyCarePreferences.ts 與 patient_daily_care_preferences migration。
 */
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
@@ -24,9 +24,9 @@ const supabase = {
 
 mock.module('../../src/lib/supabase', () => ({ supabase }))
 
-const { readDailyCarePreferenceForPatient, saveDailyCarePreferenceForPatient } = await import('../../src/lib/dailyCarePreferences')
+const { readDailyCarePreferenceForPatient, saveDailyCarePreferenceForPatient } = await import('../../src/lib/preferences/dailyCarePreferences')
 
-const ALL_VISIBLE = { bloodPressure: true, temperature: true, medication: true, nutrition: true, weight: true, petLiquidIntake: true, petDigestion: true, petAppetite: true, petFluidTherapy: true, petEndocrine: true, dementiaCare: false, fluidBalance: false, careReminders: true }
+const ALL_VISIBLE = { bloodPressure: true, temperature: true, medication: true, nutrition: true, weight: true, petLiquidIntake: true, petDigestion: true, petAppetite: true, petFluidTherapy: true, petEndocrine: true, dementiaCare: false, fluidBalance: false, careReminders: true, visitQuestions: false, labResults: false }
 
 beforeEach(() => {
   responses.length = 0
@@ -40,24 +40,24 @@ describe('daily care display preference adapter', () => {
     // 不能只看 preference 是否等於預設值——設定過但剛好全開的病人不該再被精靈打斷並覆蓋設定。
     await expect(readDailyCarePreferenceForPatient('patient-1')).resolves.toEqual({ preference: ALL_VISIBLE, useCustomTemplate: false, hasStoredPreference: false })
     expect(calls).toEqual([
-      { method: 'select', args: ['show_blood_pressure, show_temperature, show_medication, show_nutrition, show_weight, show_pet_liquid_intake, show_pet_digestion, show_pet_appetite, show_pet_fluid_therapy, show_pet_endocrine, show_dementia_care, show_fluid_balance, show_care_reminders, use_custom_template'] },
+      { method: 'select', args: ['show_blood_pressure, show_temperature, show_medication, show_nutrition, show_weight, show_pet_liquid_intake, show_pet_digestion, show_pet_appetite, show_pet_fluid_therapy, show_pet_endocrine, show_dementia_care, show_fluid_balance, show_care_reminders, show_visit_questions, show_lab_results, use_custom_template'] },
       { method: 'eq', args: ['patient_id', 'patient-1'] },
     ])
   })
 
   test('maps a stored row to the display preference shape, including pet flags and custom template', async () => {
-    responses.push({ data: { show_blood_pressure: true, show_temperature: false, show_medication: true, show_nutrition: false, show_weight: true, show_pet_liquid_intake: false, show_pet_digestion: true, show_pet_appetite: false, show_pet_fluid_therapy: true, show_pet_endocrine: false, show_dementia_care: true, show_fluid_balance: true, show_care_reminders: false, use_custom_template: true }, error: null })
+    responses.push({ data: { show_blood_pressure: true, show_temperature: false, show_medication: true, show_nutrition: false, show_weight: true, show_pet_liquid_intake: false, show_pet_digestion: true, show_pet_appetite: false, show_pet_fluid_therapy: true, show_pet_endocrine: false, show_dementia_care: true, show_fluid_balance: true, show_care_reminders: false, show_visit_questions: true, show_lab_results: true, use_custom_template: true }, error: null })
     await expect(readDailyCarePreferenceForPatient('patient-1')).resolves.toEqual({
-      preference: { bloodPressure: true, temperature: false, medication: true, nutrition: false, weight: true, petLiquidIntake: false, petDigestion: true, petAppetite: false, petFluidTherapy: true, petEndocrine: false, dementiaCare: true, fluidBalance: true, careReminders: false },
+      preference: { bloodPressure: true, temperature: false, medication: true, nutrition: false, weight: true, petLiquidIntake: false, petDigestion: true, petAppetite: false, petFluidTherapy: true, petEndocrine: false, dementiaCare: true, fluidBalance: true, careReminders: false, visitQuestions: true, labResults: true },
       useCustomTemplate: true,
       hasStoredPreference: true,
     })
   })
 
-  test('upserts all twelve module flags plus the custom template flag with the patient conflict key', async () => {
+  test('upserts all fourteen module flags plus the custom template flag with the patient conflict key', async () => {
     responses.push({ data: null, error: null })
     await expect(saveDailyCarePreferenceForPatient('patient-2', {
-      preference: { bloodPressure: true, temperature: true, medication: false, nutrition: false, weight: true, petLiquidIntake: true, petDigestion: false, petAppetite: true, petFluidTherapy: false, petEndocrine: true, dementiaCare: true, fluidBalance: true, careReminders: true },
+      preference: { bloodPressure: true, temperature: true, medication: false, nutrition: false, weight: true, petLiquidIntake: true, petDigestion: false, petAppetite: true, petFluidTherapy: false, petEndocrine: true, dementiaCare: true, fluidBalance: true, careReminders: true, visitQuestions: true, labResults: true },
       useCustomTemplate: true,
     })).resolves.toBeUndefined()
     expect(calls[0]).toMatchObject({ method: 'upsert' })
@@ -76,6 +76,8 @@ describe('daily care display preference adapter', () => {
       show_dementia_care: true,
       show_fluid_balance: true,
       show_care_reminders: true,
+      show_visit_questions: true,
+      show_lab_results: true,
       use_custom_template: true,
       updated_at: expect.any(String),
     })

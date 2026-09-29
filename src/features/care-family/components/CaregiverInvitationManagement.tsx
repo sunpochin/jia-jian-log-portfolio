@@ -125,7 +125,7 @@ export function CaregiverInvitationManagement({ isDemoMode }: { isDemoMode: bool
     try {
       await approveCaregiverInvitation(invitationId)
       await reload()
-      setMessage(text({ id: 'Akses caregiver telah diaktifkan.', zh: '已確認並開通家人照護權限。', en: 'Caregiver access is now active.' }))
+      setMessage(text({ id: 'Akses perawatan untuk anggota keluarga telah diaktifkan.', zh: '已確認並開通家人照護權限。', en: 'Caregiver access is now active.' }))
     } catch (error) {
       console.error('[approve caregiver invitation error]', error)
       setMessage(text(describeSaveError(error, { id: 'Undangan tidak dapat dikonfirmasi.', zh: '無法確認家人照護邀請。', en: 'Unable to approve the family care invitation.' })))
@@ -150,7 +150,7 @@ export function CaregiverInvitationManagement({ isDemoMode }: { isDemoMode: bool
 
   const handleRevokeAccess = async (invitation: CaregiverInvitation) => {
     if (!invitation.requestedEmail) return
-    if (!(await confirm(text({ id: 'Cabut akses caregiver untuk pasien ini?', zh: '確定撤銷這位家人對此病人的照護權限嗎？', en: 'Revoke this caregiver’s access to this patient?' }), { danger: true }))) return
+    if (!(await confirm(text({ id: 'Cabut akses perawatan anggota keluarga ini untuk pasien ini?', zh: '確定撤銷這位家人對此病人的照護權限嗎？', en: 'Revoke this caregiver’s access to this patient?' }), { danger: true }))) return
     setSaving(true)
     try {
       await revokeCaregiverAccess(invitation.patientId, invitation.requestedEmail)
@@ -169,7 +169,17 @@ export function CaregiverInvitationManagement({ isDemoMode }: { isDemoMode: bool
   return (
     <section className="mt-6 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4">
       {confirmDialog}
-      <h2 className="font-bold text-gray-900">{text({ id: 'Undang keluarga untuk merawat', zh: '邀請家人一起照護', en: 'Invite family to help with care' })}</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="font-bold text-gray-900">{text({ id: 'Undang keluarga untuk merawat', zh: '邀請家人一起照護', en: 'Invite family to help with care' })}</h2>
+        {/* 提供直接連到教學頁的入口，方便管理者了解邀請與權限機制 */}
+        <a
+          href="/guides/family-invitations"
+          className="text-xs font-semibold text-indigo-700 hover:text-indigo-900 hover:underline flex items-center gap-0.5"
+        >
+          <span>{text({ id: 'Panduan', zh: '操作教學', en: 'Guide' })}</span>
+          <span aria-hidden="true">↗</span>
+        </a>
+      </div>
       <p className="mt-1 text-sm text-gray-600">
         {text({ id: 'Pilih satu pasien, email Google penerima, dan izin yang diperlukan. Penerima dapat melihat undangan setelah masuk; Anda tetap mengonfirmasi sebelum akses dibuka.', zh: '選一位病人、對方的 Google Email 與需要的權限。對方登入後會看到邀請；仍須由你確認後才會開通權限。', en: 'Choose a patient, the recipient’s Google email, and the needed permissions. The recipient can see the invitation after signing in; you still approve before access opens.' })}
       </p>

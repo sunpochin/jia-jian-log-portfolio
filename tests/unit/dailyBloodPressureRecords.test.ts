@@ -4,7 +4,7 @@
 主要關聯：src/features/vitals/components/DailyBloodPressureRecords.tsx。
 */
 import { describe, expect, test } from 'bun:test'
-import { mergeOptimisticBpRecord, reconcileOptimisticBpRecords, sortBpRecordsByMeasuredAtDesc } from '../../src/features/vitals/components/DailyBloodPressureRecords'
+import { mergeOptimisticBpRecord, mergePendingBpRecords, reconcileOptimisticBpRecords, sortBpRecordsByMeasuredAtDesc } from '../../src/features/vitals/components/DailyBloodPressureRecords'
 import type { BpRecord } from '../../src/types/database'
 
 const record = (overrides: Partial<BpRecord> = {}): BpRecord => ({
@@ -88,5 +88,34 @@ describe('sortBpRecordsByMeasuredAtDesc', () => {
     const input = [earlier, later]
     sortBpRecordsByMeasuredAtDesc(input)
     expect(input.map(item => item.id)).toEqual(['bp-earlier', 'bp-later'])
+  })
+})
+
+describe('mergePendingBpRecords', () => {
+  test('keeps only the current patient\'s pending rows in the current care day', () => {
+    const current = new Date().toISOString()
+    const pending = record({ id: 'pending-bp-current', created_at: current, measured_at: current })
+    const otherPatient = record({ id: 'pending-bp-other', patient_id: 'patient-2', created_at: current, measured_at: current })
+
+    // Pending queue 可能同時含多位照護對象；先按 patient_id 與伺服器建立時間篩選，避免跨病人或跨照護日混入額度清單。
+    expect(mergePendingBpRecords([], [pending, otherPatient], 'patient-1').map(item => item.id)).toEqual(['pending-bp-current'])
+  })
+
+  test('drops a pending row already represented in the canonical list, but keeps a genuinely new one', () => {
+    const current = new Date().toISOString()
+    const earlier = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+    const canonical = record({ id: 'bp-canonical', created_at: current, measured_at: current })
+    // 已經出現在正式清單裡的 pending row：canonicalRecords 篩選要靠 pendingForCareDay 比對才保留，
+    // additions 篩選則要靠 canonicalRecords 比對才不會被重複加回去。
+    const alreadyCanonicalPending = record({ id: 'pending-bp-kept', created_at: current, measured_at: current })
+    const stillPendingOnly = record({ id: 'pending-bp-new', created_at: current, measured_at: earlier })
+
+    const merged = mergePendingBpRecords(
+      [canonical, alreadyCanonicalPending],
+      [alreadyCanonicalPending, stillPendingOnly],
+      'patient-1',
+    )
+
+    expect(merged.map(item => item.id).sort()).toEqual(['bp-canonical', 'pending-bp-kept', 'pending-bp-new'])
   })
 })

@@ -14,10 +14,11 @@ export function GuidesIndexPage() {
   const metaTagCreatedRef = useRef(false)
 
   useEffect(() => {
-    document.title = text({ id: 'Panduan Edukatif JiaJian Log', zh: '家健錄公開衛教' ,en: "Panduan Edukatif JiaJian Log" })
+    document.title = text({ id: 'Panduan Edukatif Family Health Note', zh: '家健錄公開衛教' ,en: "Family Health Note Educational Guides" })
     const metaDescription = text({
       id: 'Panduan edukatif kesehatan lansia dan hewan peliharaan: tekanan darah, jadwal obat, operan perawat, dan pencatatan harian. Gratis dan tanpa login.',
-      zh: '家健錄免登入公開衛教：長輩血壓量測、服藥時段、看護交接、寵物慢性病紀錄等實用指南。', en: "Panduan edukatif tosehatan lansia and animal peliharaan: blood pressure, schedule medication, operan perawat, and penrecordan daily. Gratis and without login.",
+      zh: '家健錄免登入公開衛教：長輩血壓量測、服藥時段、看護交接、寵物慢性病紀錄等實用指南。',
+      en: 'Public health education for elderly and pet care: blood pressure monitoring, medication schedules, caregiver handovers, and chronic pet care logging. Free without login.',
     })
     let metaTag = document.querySelector("meta[name='description']")
     // 若 meta tag 不存在，才由本元件建立；否則只更新既有的，卸載時也不移除。
@@ -38,47 +39,51 @@ export function GuidesIndexPage() {
 
   const guides = [
     {
-      title: { id: 'Prinsip 722 Pengukuran Tekanan Darah di Rumah', zh: '居家血壓 722 原則' ,en: "Prinsip 722 Pengukuran Blood pressure in Rumah" },
+      title: { id: 'Prinsip 722 Pengukuran Tekanan Darah di Rumah', zh: '居家血壓 722 原則', en: 'The 722 Rule for Home Blood Pressure Monitoring' },
       description: {
         id: 'Panduan pengukuran tekanan darah sesuai standar rumah tangga (7 hari, 2 sesi/hari, 2 kali/sesi) dan tabel referensi tekanan darah normal.',
-        zh: '按照家庭標準量血壓的 722 原則與家庭血壓參考表，認識正常血壓範圍。', en: "Panduan pengukuran blood pressure sesuai standar rumah tangga (7 days, 2 sesi/days, 2 kali/sesi) and tabel referensi blood pressure normal.",
+        zh: '按照家庭標準量血壓的 722 原則與家庭血壓參考表，認識正常血壓範圍。',
+        en: 'Guide to home blood pressure monitoring using the 722 rule (7 days, 2 sessions/day, 2 readings/session) and reference range table.',
       },
       emoji: '🩺',
       href: '/guides/blood-pressure-722',
       color: 'rose',
     },
     {
-      title: { id: 'Jadwal Waktu Minum Obat Lansia dan Prinsip Mencatat Dosis Terlewat', zh: '長輩用藥時段對照與漏藥處理原則' ,en: "Schedule Time Take Medication Lansia and Prinsip Menrecord Dose Terlewat" },
+      title: { id: 'Jadwal Waktu Minum Obat Lansia dan Prinsip Mencatat Dosis Terlewat', zh: '長輩用藥時段對照與漏藥處理原則', en: 'Elderly Medication Schedules and Missed Dose Logging Principles' },
       description: {
         id: 'Enam waktu minum obat (sebelum/sesudah makan, sebelum tidur) dan cara mencatat dosis terlewat tanpa menghitung persentase kepatuhan otomatis.',
-        zh: '六個常用服藥時段的對照，以及為何 App 只記錄實際情形而不自動換算遵從率百分比。', en: "Enam time take medication (before/after makan, before tidur) and cara record dose terlewat without menghthatng persentase topatuhan otomatis.",
+        zh: '六個常用服藥時段的對照，以及為何 App 只記錄實際情形而不自動換算遵從率百分比。',
+        en: 'Six common medication time slots and how to record missed doses without automated compliance percentages.',
       },
       emoji: '💊',
       href: '/guides/medication-schedule',
       color: 'blue',
     },
     {
-      title: { id: 'Daftar Serah Terima untuk Pengasuh Baru di Minggu Pertama', zh: '外籍看護到職第一週交接清單' ,en: "Daftar Serah Terima for Pengasuh Baru in Week Pertama" },
+      title: { id: 'Daftar Serah Terima untuk Pengasuh Baru di Minggu Pertama', zh: '外籍看護到職第一週交接清單', en: 'First-Week Handover Checklist for New Caregivers' },
       description: {
         id: 'Checklist empat bagian (jadwal obat, alergi, rutinitas harian, kontak darurat) untuk membantu pengasuh baru memulai dengan informasi lengkap.',
-        zh: '給新看護的四大交接重點：服藥時間、過敏禁忌、作息習慣、緊急聯絡人。', en: "Checklist empat bagian (schedule medication, alergi, rutthistas daily, kontak darurat) for membantu caregiver new memulai with informasi lengkap.",
+        zh: '給新看護的四大交接重點：服藥時間、過敏禁忌、作息習慣、緊急聯絡人。',
+        en: 'A 4-part handover checklist (medication schedule, allergies, daily routines, emergency contacts) to help new caregivers get started.',
       },
       emoji: '📋',
       href: '/guides/caregiver-handover',
       color: 'amber',
     },
     {
-      title: { id: 'Item Pencatatan Harian untuk Kucing Ginjal Kronis / Anjing-Kucing Diabetes', zh: '慢性腎病貓／糖尿病犬貓的居家紀錄項目' ,en: "Item Penrecordan Harian for Cat Ginjal Kronis / Dog-Cat Diabetes" },
+      title: { id: 'Item Pencatatan Harian untuk Kucing Ginjal Kronis / Anjing-Kucing Diabetes', zh: '慢性腎病貓／糖尿病犬貓的居家紀錄項目', en: 'Daily Tracking Items for Chronic Kidney Disease Cats & Diabetic Pets' },
       description: {
         id: 'Item pencatatan harian untuk hewan kronis (cairan infus, insulin, gula darah, nafsu makan) yang membantu dokter hewan memantau perkembangan.',
-        zh: '慢性腎病貓與糖尿病犬貓要記錄的項目：飲水量、排尿、輸液、胰島素、血糖、食慾等。', en: "Item penrecordan daily for animal kronis (fluid infus, insulin, gula blood, nafsu makan) that membantu dokter animal memantau pertombangan.",
+        zh: '慢性腎病貓與糖尿病犬貓要記錄的項目：飲水量、排尿、輸液、胰島素、血糖、食慾等。',
+        en: 'Daily tracking items for chronic pet diseases (fluid therapy, insulin, blood glucose, appetite) to help veterinarians track trends.',
       },
       emoji: '🐾',
       href: '/guides/pet-chronic-disease',
       color: 'green',
     },
     {
-      title: { id: 'Cara Mengundang Keluarga ke JiaJian Log', zh: '如何邀請家人使用家健錄', en: 'How to invite family to JiaJian Log' },
+      title: { id: 'Cara Mengundang Keluarga ke Family Health Note', zh: '如何邀請家人使用家健錄', en: 'How to invite family to Family Health Note' },
       description: {
         id: 'Panduan memilih jenis undangan, membagikan tautan, mengonfirmasi akun, dan mencabut akses dengan aman.',
         zh: '教你選對邀請類型、分享連結、確認帳號，以及安全撤銷邀請或照護權限。',
@@ -106,12 +111,13 @@ export function GuidesIndexPage() {
       <main className="w-full max-w-2xl flex-1 space-y-6">
         <div className="text-center space-y-2 mb-8">
           <h1 className="text-3xl font-black text-slate-900">
-            {text({ id: 'Panduan Edukasi Kesehatan', zh: '衛教資源中心' ,en: "Panduan Edukasi Kesehatan" })}
+            {text({ id: 'Panduan Edukasi Kesehatan', zh: '衛教資源中心', en: 'Health Education Resource Center' })}
           </h1>
           <p className="text-sm text-slate-600">
             {text({
               id: 'Panduan gratis untuk keluarga yang merawat lansia dan hewan peliharaan kronis. Baca tanpa perlu login.',
-              zh: '照護長輩與寵物的實用指南，免費、免登入，隨時閱讀。', en: "Panduan gratis for family that merawat lansia and animal peliharaan kronis. Baca without perlu login.",
+              zh: '照護長輩與寵物的實用指南，免費、免登入，隨時閱讀。',
+              en: 'Practical guides for families caring for seniors and pets with chronic conditions. Free and accessible without login.',
             })}
           </p>
         </div>
@@ -144,11 +150,12 @@ export function GuidesIndexPage() {
 
         <div className="mt-8 p-5 rounded-xl bg-amber-50 border border-amber-200">
           <p className="text-sm text-amber-900">
-            <span className="font-semibold">⚠️ {text({ id: 'Perhatian', zh: '重要聲明' ,en: "Perhatian" })}</span>
+            <span className="font-semibold">⚠️ {text({ id: 'Perhatian', zh: '重要聲明', en: 'Important Notice' })}</span>
             <br />
             {text({
               id: 'Panduan ini hanya edukasi kesehatan umum, bukan saran medis. Untuk keputusan kesehatan, selalu konsultasi dengan dokter atau tenaga medis profesional.',
-              zh: '本頁面為健康教育資訊，非醫療建議。任何健康決策請洽詢醫師或醫療專業人員。', en: "Panduan this only edukasi tosehatan umum, bukan saran medis. Untuk toputusan tosehatan, selalu konsultasi with dokter or tenaga medis profesional.",
+              zh: '本頁面為健康教育資訊，非醫療建議。任何健康決策請洽詢醫師或醫療專業人員。',
+              en: 'This page provides general health education and does not constitute medical advice. Always consult a physician or healthcare professional for health decisions.',
             })}
           </p>
         </div>
@@ -158,7 +165,8 @@ export function GuidesIndexPage() {
         <p className="text-xs text-slate-500">
           {text({
             id: 'Ingin mencoba? Buka demo tanpa login atau login untuk mulai mencatat data keluarga Anda.',
-            zh: '想要試用？點擊試用按鈕體驗展示版本，或登入開始記錄您的照護資料。', en: "Ingin mencoba? Open demo without login or login for mulai record data family You.",
+            zh: '想要試用？點擊試用按鈕體驗展示版本，或登入開始記錄您的照護資料。',
+            en: 'Want to try it out? Open the demo without login, or sign in to start tracking your family’s care.',
           })}
         </p>
         <div className="flex flex-col gap-2">
@@ -166,13 +174,13 @@ export function GuidesIndexPage() {
             href="/demo"
             className="inline-block px-6 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-colors"
           >
-            ✨ {text({ id: 'Coba Demo', zh: '試用看看' ,en: "Coba Demo" })}
+            ✨ {text({ id: 'Coba Demo', zh: '試用看看', en: 'Try Demo' })}
           </a>
           <a
             href="/"
             className="inline-block px-6 py-2 rounded-full border border-slate-300 hover:border-slate-400 text-slate-700 hover:text-slate-900 text-sm font-medium transition-colors"
           >
-            {text({ id: 'Kembali', zh: '返回首頁' ,en: "Back" })}
+            {text({ id: 'Kembali', zh: '返回首頁', en: 'Back to Home' })}
           </a>
         </div>
 

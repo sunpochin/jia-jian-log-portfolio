@@ -276,6 +276,16 @@ describe('storage path safety', () => {
     expect(directSignedCalls).toEqual([missingPath])
   })
 
+  test('ignores a direct fallback error and preserves the original batch failure', async () => {
+    const firstPath = 'patients/p/events/e/first.webp'
+    const secondPath = 'patients/p/events/e/second.webp'
+    signedResult = { data: null, error: new Error('batch sign failed') }
+    directSignedResult = () => { throw new Error('direct sign failed') }
+
+    // 單張補救失敗不能覆蓋批次錯誤；呼叫端需要知道是簽署服務失敗，而不是誤顯示成沒有照片。
+    await expect(signCareEventPhotoPathsBestEffort([firstPath, secondPath])).rejects.toThrow('batch sign failed')
+  })
+
   test('uses the direct endpoint for a single newly uploaded photo', async () => {
     const newPhotoPath = 'patients/p/events/e/new-photo-thumb.webp'
     directSignedResult = { data: { signedUrl: 'https://signed.test/new-photo' }, error: null }

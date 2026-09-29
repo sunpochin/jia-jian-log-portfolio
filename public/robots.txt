@@ -1,4 +1,4 @@
-# 檔案用途：搜尋引擎爬蟲規則，允許公開頁被索引並指向 sitemap，明確封鎖需要登入的後台與未來的分享連結路徑。
+# 檔案用途：搜尋引擎爬蟲規則，允許公開頁被索引並指向 sitemap，明確封鎖需要登入的後台與唯讀分享連結路徑（邀請入口靠頁面 noindex 排除，不能 Disallow，否則爬蟲看不到 noindex）。
 # 所在層：public/ 靜態資源；Vite build 會原封不動複製到 dist/ 根目錄，不經過任何模板處理。
 # 主要關聯：dist/sitemap.xml（由 vite.config.ts 的 sitemapPlugin 於建置期產生）、src/lib/publicRoutes.ts、issue #441。
 

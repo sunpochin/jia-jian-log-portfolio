@@ -1,9 +1,11 @@
 /*
 檔案用途：唯讀分享連結接收端（沒有帳號的家人）呼叫 share-link-exchange／share-summary 的資料轉接層。
 所在層：src/lib；只服務 ShareSummaryPage，不與 ShareLinkManagement 的建立／管理流程共用狀態。
-主要關聯：supabase/functions/share-link-exchange、supabase/functions/share-summary、ShareSummaryPage.tsx。
+主要關聯：supabase/functions/share-link-exchange、supabase/functions/share-summary、ShareSummaryPage.tsx、
+  src/lib/shareSummaryV2Dto.ts（daily-summary-v2 的逐鍵驗證；本檔依 scopeVersion 分派）。
 */
 import { resolveSupabaseUrl } from './supabaseConfig'
+import { SHARE_SUMMARY_V2_SCOPE, parseShareSummaryV2, type PatientShareSummaryV2Dto } from './shareSummaryV2Dto'
 
 const supabaseUrl = resolveSupabaseUrl(import.meta.env)
 
@@ -17,6 +19,23 @@ export type PatientShareSummaryDto = {
   timezone: string
   bloodPressure: { systolic: number; diastolic: number; pulse: number | null; measuredAt: string } | null
   generatedAt: string
+}
+
+// v1 沒有 scopeVersion 鍵（Stage 2 定型時還沒有第二個 scope）；v2 頂層帶 scopeVersion: 'daily-summary-v2'。
+// 頁面用 'scopeVersion' in summary 分辨要畫哪一版。
+export type PatientShareSummary = PatientShareSummaryDto | PatientShareSummaryV2Dto
+
+export function isShareSummaryV2(summary: PatientShareSummary): summary is PatientShareSummaryV2Dto {
+  return 'scopeVersion' in summary && summary.scopeVersion === SHARE_SUMMARY_V2_SCOPE
+}
+
+// 503：伺服器這一刻無法給出完整且正確的摘要（判讀標準讀不到、藥單資料異常）。與「連結無效」分開，
+// 因為文案不同（設計 §6 E7 vs E8）：前者請對方稍後再開，後者是連結真的失效了。
+export class ShareSummaryUnavailableError extends Error {
+  constructor() {
+    super('share summary is temporarily unavailable')
+    this.name = 'ShareSummaryUnavailableError'
+  }
 }
 
 // URL fragment（#token=...）只在瀏覽器記憶體短暫存在；呼叫端拿到字串後要立刻用
@@ -35,11 +54,14 @@ function isLocalizedText(value: unknown): value is LocalizedText {
 
 // 為什麼要驗證整個形狀：這支頁面沒有帳號、沒有登入狀態保護，任何回應畸形都必須被視為
 // 「連結無效」而不是讓 undefined 直接進畫面渲染或被誤讀成某個欄位有值。
-export function parseShareSummaryResponse(value: unknown): PatientShareSummaryDto {
+export function parseShareSummaryResponse(value: unknown): PatientShareSummary {
   if (!value || typeof value !== 'object') throw new Error('share summary response is invalid')
   const summary = (value as Record<string, unknown>).summary
   if (!summary || typeof summary !== 'object') throw new Error('share summary payload is invalid')
   const row = summary as Record<string, unknown>
+  // 依 scope 分派：v2 走逐鍵驗證的專用 parser；沒有 scopeVersion 就是 v1，形狀與 Stage 2 一字不差。
+  if (row.scopeVersion === SHARE_SUMMARY_V2_SCOPE) return parseShareSummaryV2(row)
+  if (row.scopeVersion !== undefined) throw new Error('share summary scope is not supported')
   if (!isLocalizedText(row.patientAlias)) throw new Error('share summary alias is invalid')
   if (typeof row.summaryDate !== 'string' || typeof row.timezone !== 'string' || typeof row.generatedAt !== 'string') {
     throw new Error('share summary metadata is invalid')
@@ -72,6 +94,8 @@ async function postToShareFunction(functionName: string, body: Record<string, un
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
   })
+  // 503 只有 share-summary 會回（v2 的 unavailable／資料異常），語意是「稍後再試」而不是「連結無效」。
+  if (functionName === 'share-summary' && response.status === 503) throw new ShareSummaryUnavailableError()
   if (!response.ok) throw new Error(`${functionName} request failed with status ${response.status}`)
   return response.json()
 }
@@ -84,7 +108,7 @@ export async function exchangeShareToken(token: string): Promise<{ session: stri
   return { session: (data as Record<string, unknown>).session as string }
 }
 
-export async function fetchShareSummary(session: string): Promise<PatientShareSummaryDto> {
+export async function fetchShareSummary(session: string): Promise<PatientShareSummary> {
   const data = await postToShareFunction('share-summary', { session })
   return parseShareSummaryResponse(data)
 }

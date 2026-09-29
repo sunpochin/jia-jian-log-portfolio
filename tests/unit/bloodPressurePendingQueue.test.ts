@@ -13,12 +13,22 @@ import {
 
 const originalLocalStorage = globalThis.localStorage
 const values = new Map<string, string>()
+let storageReadFails = false
+let storageWriteFails = false
 
 function installStorage() {
   values.clear()
+  storageReadFails = false
+  storageWriteFails = false
   ;(globalThis as typeof globalThis & { localStorage: Storage }).localStorage = {
-    getItem: key => values.get(key) ?? null,
-    setItem: (key, value) => { values.set(key, value) },
+    getItem: key => {
+      if (storageReadFails) throw new Error('storage read blocked')
+      return values.get(key) ?? null
+    },
+    setItem: (key, value) => {
+      if (storageWriteFails) throw new Error('storage write blocked')
+      values.set(key, value)
+    },
     removeItem: key => { values.delete(key) },
   } as Storage
 }
@@ -61,6 +71,15 @@ describe('blood pressure pending queue', () => {
     expect(enqueuePendingBloodPressureRecord(pendingRecord())).toBe(true)
     expect(enqueuePendingBloodPressureRecord(pendingRecord({ systolic: 135 }))).toBe(true)
     expect(readPendingBloodPressureRecords('patient-a', 'care@example.com')).toEqual([pendingRecord({ systolic: 135 })])
+  })
+
+  test('treats unavailable localStorage as an empty queue and reports failed writes', () => {
+    // 私密瀏覽或儲存配額不足時，離線佇列不能假裝保存成功，也不能讓量測頁直接崩潰。
+    storageReadFails = true
+    expect(readPendingBloodPressureRecords('patient-a', 'care@example.com')).toEqual([])
+    storageReadFails = false
+    storageWriteFails = true
+    expect(enqueuePendingBloodPressureRecord(pendingRecord())).toBe(false)
   })
 
   test('flushes in order and removes only records confirmed by the saver', async () => {

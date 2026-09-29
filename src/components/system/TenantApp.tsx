@@ -7,7 +7,7 @@ import { useEffect, useState, useMemo } from 'react'
 import type { User } from '@supabase/supabase-js'
 import dayjs from 'dayjs'
 import { useBpRecords } from '../../hooks/useBpRecords'
-import { evaluateReading } from '../../types/database'
+import { BpStandardProvider, useBpEvaluator } from '../../features/vitals/hooks/useBpEvaluator'
 import { addHouseholdPatient, beginHouseholdOnboarding, fetchTenantContext, saveTenantBpRecord, type CareRecipientType, type TenantContext } from '../../lib/tenant'
 import { signOut } from '../../lib/auth'
 import { useI18n } from '../../lib/i18n'
@@ -115,7 +115,20 @@ import { DeleteAccountModal } from '../modals/DeleteAccountModal'
 import { ExportCsvModal, type ExportTarget } from '../modals/ExportCsvModal'
 
 function TenantRecorder({ context, onReload, error }: { context: TenantContext; onReload: () => Promise<void>; error: string }) {
-  const { text } = useI18n(); const [patientId, setPatientId] = useState(context.patients[0]?.id ?? '')
+  const [patientId, setPatientId] = useState(context.patients[0]?.id ?? '')
+  // patientId 是這個殼自己的 state（TenantApp 不經過 App.tsx 的路由），所以 Provider 掛在這裡。
+  // 還沒有任何照護對象時 patientId 是空字串，Provider 會直接結束載入並讓判讀退回一般成人標準
+  // （configured: false），不需要在這裡分岔出第二個版本的畫面。
+  return (
+    <BpStandardProvider patientId={patientId}>
+      <TenantRecorderContent context={context} onReload={onReload} error={error} patientId={patientId} setPatientId={setPatientId} />
+    </BpStandardProvider>
+  )
+}
+
+function TenantRecorderContent({ context, onReload, error, patientId, setPatientId }: { context: TenantContext; onReload: () => Promise<void>; error: string; patientId: string; setPatientId: (id: string) => void }) {
+  const evaluator = useBpEvaluator()
+  const { text } = useI18n()
   const [systolic, setSystolic] = useState('120'); const [diastolic, setDiastolic] = useState('80'); const [pulse, setPulse] = useState('70'); const [message, setMessage] = useState(error); const [saving, setSaving] = useState(false)
   const [isExportModalOpen, setIsExportModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
@@ -142,7 +155,7 @@ function TenantRecorder({ context, onReload, error }: { context: TenantContext; 
   const selected = context.patients.find(patient => patient.id === patientId)
   const progress = records.filter(record => dayjs(record.measured_at).isAfter(dayjs().subtract(7, 'day'))).length
 
-  return <main className="mx-auto min-h-dvh max-w-md bg-gray-50 px-5 py-6 text-gray-900"><header className="flex items-start justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-gray-400">{text({ id: 'Catatan perawatan', zh: '照護紀錄' ,en: 'Care Record' })}</p><h1 className="text-2xl font-black">{selected?.display_name}</h1></div><button onClick={() => signOut()} className="rounded-lg px-2 py-1 text-xs text-gray-500">{text({ id: 'Keluar', zh: '登出' ,en: 'Sign out' })}</button></header><CareRecipientForm onCreated={async newPatientId => { await onReload(); setPatientId(newPatientId); setMessage(text({ id: 'Penerima perawatan siap dicatat.', zh: '照護對象已建立，可開始記錄。' ,en: 'Subject has been created and is ready to start recording.' })) }} /><p className="mt-3 rounded-xl bg-white p-3 text-sm text-gray-600">{text({ id: `${progress} / 28 catatan dalam 7 hari`, zh: `最近 7 天 ${progress} / 28 筆` ,en: `${progress} / 28 records in the last 7 days` })}</p><form onSubmit={save} className="mt-5 space-y-3 rounded-3xl bg-white p-5 shadow-sm"><label className="block text-sm font-bold">{text({ id: 'Penerima perawatan', zh: '照護對象' ,en: 'Subjects of Care' })}<select value={patientId} onChange={event => setPatientId(event.target.value)} className="mt-1 w-full rounded-xl border border-gray-300 p-3">{context.patients.map(patient => <option key={patient.id} value={patient.id}>{patient.display_name}</option>)}</select></label><div className="grid grid-cols-3 gap-2">{[[text({ id: 'Sistolik', zh: '收縮壓' ,en: 'Systolic' }), systolic, setSystolic], [text({ id: 'Diastolik', zh: '舒張壓' ,en: 'Diastolic' }), diastolic, setDiastolic], [text({ id: 'Nadi', zh: '心跳' ,en: 'Heart rate' }), pulse, setPulse]].map(([label, value, setValue]) => <label key={label as string} className="text-xs font-bold">{label as string}<input inputMode="numeric" value={value as string} onChange={event => (setValue as (v: string) => void)(event.target.value)} className="mt-1 w-full rounded-xl border border-gray-300 p-3 text-lg" /></label>)}</div>{message && <p role="status" className="text-sm text-gray-600">{message}</p>}<button disabled={saving} className="w-full rounded-xl bg-red-600 px-4 py-3 font-bold text-white disabled:opacity-60">{text({ id: 'Simpan', zh: '儲存讀值' ,en: 'Save readings' })}</button></form><section className="mt-5"><h2 className="font-bold">{text({ id: '30 hari terakhir', zh: '最近 30 天' ,en: 'Last 30 days' })}</h2>{loading ? <p className="mt-2 text-sm text-gray-400">{text({ id: 'Memuat…', zh: '載入中…' ,en: 'Loading…' })}</p> : <ul className="mt-2 space-y-2">{records.slice(0, 10).map(record => { const state = evaluateReading(record.systolic, record.diastolic, record.pulse); return <li key={record.id} className="rounded-xl bg-white p-3 text-sm"><span className="font-bold text-[#C23B3B]">{record.systolic}</span> / <span className="font-bold text-[#2563EB]">{record.diastolic}</span> · <span className="font-bold text-[#7C3AED]">{record.pulse ?? '—'}</span><span className="ml-2 text-xs text-gray-400">{text(state.labels)}</span></li> })}</ul>}</section>
+  return <main className="mx-auto min-h-dvh max-w-md bg-gray-50 px-5 py-6 text-gray-900"><header className="flex items-start justify-between"><div><p className="text-xs font-bold uppercase tracking-widest text-gray-400">{text({ id: 'Catatan perawatan', zh: '照護紀錄' ,en: 'Care Record' })}</p><h1 className="text-2xl font-black">{selected?.display_name}</h1></div><button onClick={() => signOut()} className="rounded-lg px-2 py-1 text-xs text-gray-500">{text({ id: 'Keluar', zh: '登出' ,en: 'Sign out' })}</button></header><CareRecipientForm onCreated={async newPatientId => { await onReload(); setPatientId(newPatientId); setMessage(text({ id: 'Penerima perawatan siap dicatat.', zh: '照護對象已建立，可開始記錄。' ,en: 'Subject has been created and is ready to start recording.' })) }} /><p className="mt-3 rounded-xl bg-white p-3 text-sm text-gray-600">{text({ id: `${progress} / 28 catatan dalam 7 hari`, zh: `最近 7 天 ${progress} / 28 筆` ,en: `${progress} / 28 records in the last 7 days` })}</p><form onSubmit={save} className="mt-5 space-y-3 rounded-3xl bg-white p-5 shadow-sm"><label className="block text-sm font-bold">{text({ id: 'Penerima perawatan', zh: '照護對象' ,en: 'Subjects of Care' })}<select value={patientId} onChange={event => setPatientId(event.target.value)} className="mt-1 w-full rounded-xl border border-gray-300 p-3">{context.patients.map(patient => <option key={patient.id} value={patient.id}>{patient.display_name}</option>)}</select></label><div className="grid grid-cols-3 gap-2">{[[text({ id: 'Sistolik', zh: '收縮壓' ,en: 'Systolic' }), systolic, setSystolic], [text({ id: 'Diastolik', zh: '舒張壓' ,en: 'Diastolic' }), diastolic, setDiastolic], [text({ id: 'Nadi', zh: '心跳' ,en: 'Heart rate' }), pulse, setPulse]].map(([label, value, setValue]) => <label key={label as string} className="text-xs font-bold">{label as string}<input inputMode="numeric" value={value as string} onChange={event => (setValue as (v: string) => void)(event.target.value)} className="mt-1 w-full rounded-xl border border-gray-300 p-3 text-lg" /></label>)}</div>{message && <p role="status" className="text-sm text-gray-600">{message}</p>}<button disabled={saving} className="w-full rounded-xl bg-red-600 px-4 py-3 font-bold text-white disabled:opacity-60">{text({ id: 'Simpan', zh: '儲存讀值' ,en: 'Save readings' })}</button></form><section className="mt-5"><h2 className="font-bold">{text({ id: '30 hari terakhir', zh: '最近 30 天' ,en: 'Last 30 days' })}</h2>{loading ? <p className="mt-2 text-sm text-gray-400">{text({ id: 'Memuat…', zh: '載入中…' ,en: 'Loading…' })}</p> : <ul className="mt-2 space-y-2">{records.slice(0, 10).map(record => { const state = evaluator.evaluateAt(record.systolic, record.diastolic, record.pulse, record.measured_at); return <li key={record.id} className="rounded-xl bg-white p-3 text-sm"><span className="font-bold text-[#C23B3B]">{record.systolic}</span> / <span className="font-bold text-[#2563EB]">{record.diastolic}</span> · <span className="font-bold text-[#7C3AED]">{record.pulse ?? '—'}</span><span className="ml-2 text-xs text-gray-400">{text(state.labels)}</span></li> })}</ul>}</section>
 <button onClick={() => void onReload()} className="mt-5 text-xs text-gray-500 underline">{text({ id: 'Muat ulang', zh: '重新載入家庭資料' ,en: 'Reload' })}</button>
 
 <div className="mt-8 border-t border-gray-200 pt-5 space-y-3 pb-10">
@@ -168,7 +181,7 @@ function TenantRecorder({ context, onReload, error }: { context: TenantContext; 
       onClick={() => setIsDeleteModalOpen(true)}
       className="text-left text-sm font-bold text-red-600 underline mt-2"
     >
-      {text({ id: 'Hapus Akun', zh: '刪除帳號' ,en: 'DELETE ACCOUNT' })}
+      {text({ id: 'Hapus Akun', zh: '刪除帳號' ,en: 'Delete account' })}
     </button>
   </div>
 </div>

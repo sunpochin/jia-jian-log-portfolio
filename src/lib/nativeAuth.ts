@@ -3,11 +3,13 @@
 所在層：src/lib；只包裝原生 App／Browser plugin，不取代既有 Supabase auth 與 RLS。
 主要關聯：由 useAuth 與 GoogleSignInButton 呼叫，將 callback code 交回 Supabase session；
          iOS／Android 共用同一份 adapter，React 畫面只需改一處就能同時反映在兩個平台。
+         appUrlOpen 是 App 唯一的 URL 入口：先判 OAuth callback，不是才交給 nativeAppLinks.ts 的 https 白名單（issue #820）。
 */
 import { App, type URLOpenListenerEvent } from '@capacitor/app'
-import { Capacitor } from '@capacitor/core'
 import { Browser } from '@capacitor/browser'
 import { supabase } from './supabase'
+import { isNativeApp } from './platform'
+import { openNativeAppLink } from './nativeAppLinks'
 
 export const NATIVE_AUTH_CALLBACK_URL = 'jia-jian-log://auth/callback'
 
@@ -19,11 +21,8 @@ export type NativeAuthCallback = {
 const NATIVE_AUTH_ERROR = 'oauth_error'
 const NATIVE_AUTH_CALLBACK_PARAMS = new Set(['code', 'state', 'error', 'error_code', 'error_description'])
 
-// 只判定「是不是原生殼」，不分 iOS／Android：兩個平台都用同一套系統瀏覽器 OAuth 流程，
-// 避免未來新增平台時要在每個呼叫點重複加條件。
-export function isNativeApp(): boolean {
-  return Capacitor.isNativePlatform()
-}
+// 平台判定的單一來源在 platform.ts；這裡保留 re-export，避免既有呼叫端（GoogleSignInButton、useAuth）改 import 路徑。
+export { isNativeApp }
 
 /**
  * 只接受 App 自己註冊的 scheme、host 與 path；即使外部 App 傳入另一個 URL，
@@ -86,9 +85,15 @@ function handleNativeBrowserFinished(): void {
   settleNativeAuthAttempt(new Error('Native OAuth browser was dismissed before the callback.'))
 }
 
-async function exchangeNativeAuthCallback(event: URLOpenListenerEvent): Promise<void> {
+async function exchangeNativeAuthCallback(event: URLOpenListenerEvent, fromLaunch = false): Promise<void> {
   const callback = parseNativeAuthCallback(event.url)
-  if (!callback) return
+  if (!callback) {
+    // 為什麼 OAuth 一定先判：OAuth callback 走自訂 scheme，app link 只收 https，兩者本來不會重疊；
+    // 固定順序讓「一個 URL 只會被一條路徑處理」成為結構保證，而不是依賴兩份白名單剛好互斥。
+    // 未知 URL 由 openNativeAppLink 靜默忽略，不寫 log（fragment 可能是 token）。
+    await openNativeAppLink(event.url, { fromLaunch })
+    return
+  }
   if (activeNativeAuthAttempt) activeNativeAuthAttempt.callbackReceived = true
   await Browser.close().catch(() => undefined)
   if (callback.error || !callback.code) {
@@ -133,7 +138,7 @@ export async function initializeNativeAuth(): Promise<() => Promise<void>> {
   await ensureNativeAuthListeners()
   // 冷啟動時 callback 可能早於 listener 到達；getLaunchUrl 補上這個唯一競態窗口。
   const launchUrl = await App.getLaunchUrl()
-  if (launchUrl?.url) await exchangeNativeAuthCallback({ url: launchUrl.url })
+  if (launchUrl?.url) await exchangeNativeAuthCallback({ url: launchUrl.url }, true)
   // listener 跟 App 同壽命；不在 React StrictMode 的 effect cleanup 移除，避免開發模式的 mount/unmount
   // 競態讓第二次初始化拿到已被第一個 cleanup 移除的 listener，進而漏接 OAuth 回程。
   return async () => undefined

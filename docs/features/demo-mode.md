@@ -1,7 +1,7 @@
 <!--
 檔案用途：說明面試展示的 demo 入口、種子資料與唯讀安全隔離。
 所在層：docs/features；供 /demo、seed-demo 與公開 RLS 修改使用。
-主要關聯：src/lib/demoData.ts、demoStorage.ts、Supabase public policy 與 auth-and-rls。
+主要關聯：src/lib/demoData.ts、src/lib/demoStorage/（依領域拆分的展示模式本機資料層）、Supabase public policy 與 auth-and-rls。
 -->
 
 # Demo 模式 / Demo Mode
@@ -40,6 +40,10 @@ Demo 模式提供互動式視覺導覽，幫助首次造訪者快速熟悉主要
 - **重播與手動重置**: 設定頁面 (`SettingsPage.tsx`) 提供「重播教學導覽」連結，使用者可隨時重新開啟導覽步驟。
 - **目標元素定位 (Targeting)**: 頁面 key UI 元件（如底欄 Tab `tab-events`, `tab-dailyCare`, `tab-dashboard`, `tab-settings`）傳入 `dataTutorial` 屬性，Overlay 以 `getBoundingClientRect()` 與 `MutationObserver` 動態追蹤定位與繪製指示標誌。
 - **無障礙與鍵盤導覽 (A11y & Focus Trap)**: 導覽開啟時保存觸發前 focus 元素並於結束時還原，步驟切換時自動聚焦「下一步」按鈕，支援 `Escape` 鍵跳過，並以 `Focus Trap` 將 Tab 焦點鎖定在 Modal 內。
+- **步驟定義只有一份 (`src/lib/demoTutorialSteps.ts`)**: 首次自動導覽（`App.tsx`）與設定頁的重播入口（`SettingsPage.tsx`）共用同一組 builder。先前兩邊各寫一份陣列且已經漂移（重播版少了承接 CTA），所以集中；兩個情境真正不同的那一步（首次版講「重播鈕在設定頁」、重播版講設定頁本身）用 `replayHintStep()` 與 `settingsOverviewStep()` 分開表達，是刻意差異而非重複。
+- **步驟可帶 `onEnter` 與 `scrollIntoView`**: `onEnter` 讓步驟在顯示前先做一件事（最常見的是切分頁，呼叫端傳 `() => changeTab('events')`）；刻意不做成 `navigateTo: TabKey`，避免共用元件反過來依賴 App 外殼的分頁列舉。`scrollIntoView` 只在該步第一次找到目標時捲動一次，並自行讀 `prefers-reduced-motion`——明確傳入的 `behavior` 會蓋過 `index.css` 的全域 `scroll-behavior: auto !important`。
+- **目標找不到時降級 (`TARGET_RESOLVE_TIMEOUT_MS`)**: 分頁是 lazy 載入的，切完分頁目標不會立刻在 DOM 裡，所以要等；但逾時（1500ms）仍找不到就整步降級成置中純文字卡，不畫高亮框也不畫箭頭，避免留下指著空白處的箭頭。等待期間只留遮罩不畫說明框；而且目標位置與步驟索引綁在一起儲存，否則切步時的第一次 render 會沿用上一步的位置，卡片先畫在舊目標旁邊再跳走。
+- **章節式進度 (`chapter`)**: 導覽變長後若照舊顯示「6 / 8」，訪客第一眼看到的是「還有一大段」而直接跳過；帶 `chapter` 的相鄰步驟會合併成一章，進度改顯示「章節名・章內 n / m」（換算邏輯在 `src/lib/tutorialProgress.ts`，純函式）。不帶 `chapter` 的步驟維持原本的全域 n / 總數。
 - **步驟可覆蓋主按鈕 (`primaryActionLabel` / `onPrimaryAction`)**: 一般步驟的主按鈕固定呼叫 `nextStep()`；只有需要轉換動作的步驟（目前僅最後一步的登入 CTA）會帶這兩個欄位，讓 `TutorialOverlay` 改顯示自訂文字並呼叫自訂行為，而不是照常前進到下一步。
 
 ## 試用承接：demo → 登入的模組偏好交接 (Demo Handoff)
@@ -50,6 +54,13 @@ Demo 模式提供互動式視覺導覽，幫助首次造訪者快速熟悉主要
 - **首次登入才套用，套用即清除**：`App.tsx` 讀取每日照護偏好時，若這是這位病人第一次使用（`!hasStoredPreference && !hasCompletedOnboardingWizard`）且讀到承接記錄，會直接用 `buildOnboardingDailyCarePreference()` 套用、存檔、標記精靈已完成、清掉中繼記錄，並顯示「你剛剛試用的是這些模組，可在設定調整」的空狀態提示，而不是照常跳三題精靈。
 - **使用者可以拒絕承接**：空狀態提示附「重新設定」，點下去會清掉提示並重新開啟三題精靈，讓使用者從頭選擇；拒絕承接不影響流程能不能完成。
 - **邊界維持**：`demoStorage` 與正式資料庫的既有唯讀／隔離邊界不變——這裡只多了一個純前端 localStorage 中繼記錄，不共用 session，也不讓 demo 訪客的匿名寫入路徑碰得到正式帳號資料。
+
+## 事件照片與 AI 藥單草稿的展示模式支援
+
+`/demo` 的事件照片與 AI 藥單辨識卡片刻意不走「不支援」的早退路徑，改成本機可互動的展示：
+
+- **事件照片（issue #720 系列的延伸）**：`src/lib/demoData.ts` 的種子時間軸（「輕微感冒症狀與心衰竭體重水腫監測」一筆）帶 `demo_photo_urls`，指向 `public/demo/care-timeline/` 下的兩張抽象 SVG 示意圖（非任何真人照片）。這個欄位跟 `photo_paths` 分開定義在 `src/lib/careTimeline.ts` 的 `CareTimelineEntry`：`photo_paths` 只該是 Storage 相對路徑，會經過 `isSafeStoredPhotoPath` 檢查並簽署；`demo_photo_urls` 是已經可以直接顯示的網址，完全繞過那條檢查與簽署流程。`CareTimeline.tsx` 在 `isDemoPatientId()` 時整段跳過 Supabase：讀取走 `demoStorage.readDemoCareTimeline()`（合併種子故事與本機新增／修改，種子事件的刪除用墓碑 id 名單處理，不動程式碼常數本身）；訪客當場拍的照片經 `demoCareEventPhotos.ts` 的 `prepareDemoCareEventPhotoUrls()` 壓成小尺寸 data URI（同時當縮圖與原圖，預算比正式 Storage 縮圖更小，因為整包資料要塞進 localStorage）存進 `demoStorage.saveDemoCareTimelineEntry()`。
+- **AI 藥單辨識**：`MedicationAiDraftSection.tsx` 在展示模式選照片後，完全不讀取照片內容、不打任何網路請求，固定顯示一份腳本化的草稿（品牌名對齊 demoData 既有故事裡王美玲已經在吃的 Concor／Exforge，其中一筆刻意給低信心示範警示卡）。卡片上有一個**常駐**「示範結果，未實際呼叫 AI」標籤——不是 tooltip、不是只寫在導覽文字裡，因為跳過導覽的訪客也可能直接點到這張卡。套用到表單一樣是真的本機動作（`onApplyDraft`），只是資料來源是劇本而非 Function。
 
 ## 不採用的替代
 

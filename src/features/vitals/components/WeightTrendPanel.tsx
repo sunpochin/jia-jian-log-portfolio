@@ -54,7 +54,7 @@ export function WeightTrendPanel({ patientId, days }: { patientId: string; days:
     return () => { cancelled = true }
   }, [days, patientId])
 
-  if (failed) return <p role="alert" className="text-sm font-semibold text-red-700">{text({ id: 'Tren berat badan tidak dapat dimuat.', zh: '目前無法讀取體重趨勢。' ,en: 'Tren berat baand not can dimuat.' })}</p>
+  if (failed) return <p role="alert" className="text-sm font-semibold text-red-700">{text({ id: 'Tren berat badan tidak dapat dimuat.', zh: '目前無法讀取體重趨勢。' ,en: 'Unable to load weight trends.' })}</p>
   if (!points) return <p role="status" className="text-sm text-slate-500">{text(common.loading)}</p>
 
   return <DailyTrendChart
@@ -62,7 +62,7 @@ export function WeightTrendPanel({ patientId, days }: { patientId: string; days:
     color="#1D4ED8"
     unit={{ id: 'kg', zh: 'kg' ,en: "kg" }}
     seriesLabel={{ id: 'Berat badan harian (rata-rata)', zh: '每日體重（當日平均）' ,en: 'Daily weight (average for the day)' }}
-    emptyLabel={{ id: 'Belum ada catatan berat badan pada rentang ini.', zh: '這個區間還沒有體重紀錄。' ,en: 'Not yet ada record berat baand on rentang this.' }}
+    emptyLabel={{ id: 'Belum ada catatan berat badan pada rentang ini.', zh: '這個區間還沒有體重紀錄。' ,en: 'No weight records in this range yet.' }}
     valueFormatter={value => formatWeightKg(value)}
   />
 }

@@ -85,7 +85,8 @@ export function FluidBalancePage({ patientId, userEmail }: {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!userEmail || !draftValid) {
-      fail(text({ id: 'Periksa kembali angka yang dimasukkan.', zh: '請確認輸入的數字是否正確。' ,en: "Periksa back angka that dimasukkan." }))
+      // 驗證輸入數字英文提示修正
+      fail(text({ id: 'Periksa kembali angka yang dimasukkan.', zh: '請確認輸入的數字是否正確。' ,en: "Please check the entered numbers." }))
       return
     }
 
@@ -121,7 +122,7 @@ export function FluidBalancePage({ patientId, userEmail }: {
     const { error } = await supabase.from('fluid_balance_records').insert(payload)
     if (error) {
       console.error('[fluid balance save error]', error)
-      fail(text({ id: 'Tidak dapat menyimpan. Coba lagi.', zh: '暫時無法儲存，請再試一次。' ,en: "Could not saving. Try again." }))
+      fail(text({ id: 'Tidak dapat menyimpan. Coba lagi.', zh: '暫時無法儲存，請再試一次。' ,en: "Could not save. Please try again." }))
       return
     }
     succeed(text({ id: 'Tersimpan.', zh: '已儲存。' ,en: "Saved." }))
@@ -137,7 +138,7 @@ export function FluidBalancePage({ patientId, userEmail }: {
       <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl bg-white p-5 shadow-sm">
         <div>
           <label className="block text-sm font-semibold text-gray-800">
-            {text({ id: 'Jenis catatan', zh: '紀錄類型' ,en: "Type recordan" })}
+            {text({ id: 'Jenis catatan', zh: '紀錄類型' ,en: "Record type" })}
           </label>
           <div className="mt-2 grid grid-cols-2 gap-2">
             {FLUID_BALANCE_RECORD_TYPES.map(option => (
@@ -158,7 +159,7 @@ export function FluidBalancePage({ patientId, userEmail }: {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label htmlFor="fluid-weight-before" className="block text-sm font-semibold text-gray-800">
-                {text({ id: 'Berat sebelum makan (g)', zh: '吃前秤重（公克）' ,en: "Weight before makan (g)" })}
+                {text({ id: 'Berat sebelum makan (g)', zh: '吃前秤重（公克）' ,en: "Weight before meal (g)" })}
               </label>
               <input
                 id="fluid-weight-before"
@@ -174,7 +175,7 @@ export function FluidBalancePage({ patientId, userEmail }: {
             </div>
             <div>
               <label htmlFor="fluid-weight-after" className="block text-sm font-semibold text-gray-800">
-                {text({ id: 'Berat setelah makan (g)', zh: '吃後秤重（公克）' ,en: "Weight after makan (g)" })}
+                {text({ id: 'Berat setelah makan (g)', zh: '吃後秤重（公克）' ,en: "Weight after meal (g)" })}
               </label>
               <input
                 id="fluid-weight-after"
@@ -191,8 +192,8 @@ export function FluidBalancePage({ patientId, userEmail }: {
             {weightBefore !== null && weightAfter !== null && (
               <p className="col-span-2 text-sm font-bold text-indigo-800">
                 {amountValue !== null
-                  ? text({ id: `Jumlah yang dimakan: ${amountValue} g`, zh: `這餐吃了：${amountValue} 公克` ,en: `Jumlah that dimakan: ${amountValue} g` })
-                  : text({ id: 'Berat setelah makan tidak boleh lebih berat dari sebelum makan.', zh: '吃後的重量不能比吃前重，請重新確認。' ,en: "Weight after makan not boleh more weight from before makan." })}
+                  ? text({ id: `Jumlah yang dimakan: ${amountValue} g`, zh: `這餐吃了：${amountValue} 公克` ,en: `Amount consumed: ${amountValue} g` })
+                  : text({ id: 'Berat setelah makan tidak boleh lebih berat dari sebelum makan.', zh: '吃後的重量不能比吃前重，請重新確認。' ,en: "Weight after meal cannot be greater than weight before meal." })}
               </p>
             )}
           </div>
@@ -222,13 +223,13 @@ export function FluidBalancePage({ patientId, userEmail }: {
 
         {recordType === 'bowel_movement' && (
           <p className="text-xs text-gray-500">
-            {text({ id: 'Hanya jumlah dan waktu yang dicatat, tidak perlu menimbang.', zh: '大便只需記錄次數與時間，不用秤重。' ,en: "Only jumlah and time that direcord, not perlu menimbang." })}
+            {text({ id: 'Hanya jumlah dan waktu yang dicatat, tidak perlu menimbang.', zh: '大便只需記錄次數與時間，不用秤重。' ,en: "Only count and time are recorded; no weighing needed." })}
           </p>
         )}
 
         <div>
           <label htmlFor="fluid-notes" className="block text-sm font-semibold text-gray-800">
-            {text({ id: 'Catatan (opsional)', zh: '備註（可不填）' ,en: "Notes (opsional)" })}
+            {text({ id: 'Catatan (opsional)', zh: '備註（可不填）' ,en: "Notes (optional)" })}
           </label>
           <textarea
             id="fluid-notes"
@@ -256,11 +257,12 @@ export function FluidBalancePage({ patientId, userEmail }: {
       </form>
 
       <div className="rounded-2xl bg-white p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-gray-800">{text({ id: 'Catatan hari ini', zh: '今天的紀錄' ,en: "Notes days this" })}</h3>
+        {/* 今日紀錄標題與空狀態英文修正 */}
+        <h3 className="text-sm font-bold text-gray-800">{text({ id: 'Catatan hari ini', zh: '今天的紀錄' ,en: "Today's records" })}</h3>
         {loading ? (
           <p className="mt-2 text-sm text-gray-500">{text({ id: 'Memuat…', zh: '讀取中…' ,en: "Loading…" })}</p>
         ) : todayRecords.length === 0 ? (
-          <p className="mt-2 text-sm text-gray-500">{text({ id: 'Belum ada catatan hari ini.', zh: '今天還沒有紀錄。' ,en: "No recordan days this." })}</p>
+          <p className="mt-2 text-sm text-gray-500">{text({ id: 'Belum ada catatan hari ini.', zh: '今天還沒有紀錄。' ,en: "No records for today yet." })}</p>
         ) : (
           <ul className="mt-2 space-y-2">
             {todayRecords.map(record => (
@@ -273,7 +275,8 @@ export function FluidBalancePage({ patientId, userEmail }: {
                   <p className="mt-1 text-gray-600">
                     {text({
                       id: `Sebelum ${record.weight_before_g}g → setelah ${record.weight_after_g}g (dimakan ${record.amount_value}g)`,
-                      zh: `吃前 ${record.weight_before_g}g → 吃後 ${record.weight_after_g}g（共吃 ${record.amount_value}g）`, en: `Senot yet ${record.weight_before_g}g → after ${record.weight_after_g}g (dimakan ${record.amount_value}g)`,
+                      zh: `吃前 ${record.weight_before_g}g → 吃後 ${record.weight_after_g}g（共吃 ${record.amount_value}g）`,
+                      en: `Before ${record.weight_before_g}g → after ${record.weight_after_g}g (consumed ${record.amount_value}g)`,
                     })}
                   </p>
                 )}

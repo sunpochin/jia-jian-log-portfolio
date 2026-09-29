@@ -1,6 +1,6 @@
 /*
 檔案用途：依目前病人與天數讀取未來行程，並在切換時取消舊請求。
-所在層：src/hooks；供 UpcomingSchedulePage 使用，隔離 loading、stale response 與 retry 狀態。
+所在層：src/hooks；供門診頁的 UpcomingScheduleSection 使用，隔離 loading、stale response 與 retry 狀態。
 主要關聯：src/lib/calendarAgenda.ts、calendar-agenda Edge Function 與 active patient selection。
 */
 import { useCallback, useEffect, useRef, useState } from 'react'

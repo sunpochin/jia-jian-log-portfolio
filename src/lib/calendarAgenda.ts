@@ -1,7 +1,7 @@
 /*
 檔案用途：定義未來行程的瀏覽器資料契約、日期分組與 Edge Function 薄轉接。
 所在層：src/lib；不保存日曆內容，僅在呼叫期間把已授權的 response 交給 hook。
-主要關聯：useUpcomingSchedule、UpcomingSchedulePage、calendar-agenda Edge Function 與 Supabase session。
+主要關聯：useUpcomingSchedule、門診頁的 UpcomingScheduleSection、calendar-agenda Edge Function 與 Supabase session。
 */
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'

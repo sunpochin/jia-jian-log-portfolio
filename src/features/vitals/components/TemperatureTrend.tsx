@@ -32,17 +32,17 @@ export function TemperatureTrend({ patientId, days }: { patientId: string; days:
     <section className="rounded-3xl border border-orange-100 bg-white p-4 shadow-[0_8px_30px_rgba(15,23,42,0.06)]" aria-labelledby="temperature-trend-title">
       <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2">
         <div>
-          <h2 id="temperature-trend-title" className="text-base font-extrabold text-slate-950">{text({ id: 'Tren suhu', zh: '體溫趨勢', en: 'Tren temperature' })}</h2>
-          <p className="mt-1 text-xs text-slate-500">{text({ id: 'Suhu ditampilkan terpisah dari tekanan darah.', zh: '體溫使用獨立刻度，不與血壓混圖。', en: 'Temperature ditampilkan separate from blood pressure.' })}</p>
+          <h2 id="temperature-trend-title" className="text-base font-extrabold text-slate-950">{text({ id: 'Tren suhu', zh: '體溫趨勢', en: 'Temperature trend' })}</h2>
+          <p className="mt-1 text-xs text-slate-500">{text({ id: 'Suhu ditampilkan terpisah dari tekanan darah.', zh: '體溫使用獨立刻度，不與血壓混圖。', en: 'Temperature is plotted separately from blood pressure.' })}</p>
           {days > TEMPERATURE_RETENTION_DAYS && <p className="mt-1 text-xs font-semibold text-orange-700">{text({ id: `Catatan suhu disimpan ${TEMPERATURE_RETENTION_DAYS} hari.`, zh: `體溫紀錄保留 ${TEMPERATURE_RETENTION_DAYS} 天。`, en: `Temperature records are retained for ${TEMPERATURE_RETENTION_DAYS} days.` })}</p>}
         </div>
         {latest && <div className="text-right"><strong className="text-2xl font-black text-orange-700">{latest.temperature_c.toFixed(1)}°C</strong><p className="text-xs font-bold text-slate-500">{text(temperatureStatusLabel(getTemperatureStatus(latest.temperature_c)))}</p></div>}
       </div>
       {loading && <p className="mt-3 text-sm text-slate-500">{text({ id: 'Memuat…', zh: '載入中…', en: 'Loading…' })}</p>}
       {error && <p role="alert" className="mt-3 text-sm font-semibold text-red-700">{error}</p>}
-      {!loading && !error && records.length === 0 && <p className="mt-3 text-sm text-slate-500">{text({ id: 'Belum ada catatan suhu.', zh: '目前沒有體溫紀錄。', en: 'Not yet ada record temperature.' })}</p>}
+      {!loading && !error && records.length === 0 && <p className="mt-3 text-sm text-slate-500">{text({ id: 'Belum ada catatan suhu.', zh: '目前沒有體溫紀錄。', en: 'No temperature records yet.' })}</p>}
       {!loading && !error && records.length > 0 && <>
-        <div className="mt-3 h-56 w-full" role="img" aria-label={text({ id: 'Grafik tren suhu tubuh', zh: '體溫趨勢圖', en: 'Grafik tren temperature tubuh' })}>
+        <div className="mt-3 h-56 w-full" role="img" aria-label={text({ id: 'Grafik tren suhu tubuh', zh: '體溫趨勢圖', en: 'Body temperature trend chart' })}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 8, right: 8, left: -18, bottom: 4 }}>
               <XAxis dataKey="time" tick={{ fontSize: 11 }} minTickGap={24} />
@@ -53,8 +53,8 @@ export function TemperatureTrend({ patientId, days }: { patientId: string; days:
           </ResponsiveContainer>
         </div>
         <table className="sr-only">
-          <caption>{text({ id: 'Data grafik suhu tubuh', zh: '體溫趨勢圖資料', en: 'Data grafik temperature tubuh' })}</caption>
-          <thead><tr><th>{text({ id: 'Waktu', zh: '時間', en: 'time' })}</th><th>{text({ id: 'Suhu', zh: '體溫', en: 'Temperature' })}</th></tr></thead>
+          <caption>{text({ id: 'Data grafik suhu tubuh', zh: '體溫趨勢圖資料', en: 'Body temperature trend chart data' })}</caption>
+          <thead><tr><th>{text({ id: 'Waktu', zh: '時間', en: 'Time' })}</th><th>{text({ id: 'Suhu', zh: '體溫', en: 'Temperature' })}</th></tr></thead>
           <tbody>{records.map(record => <tr key={record.id}><td>{dayjs(record.measured_at).tz(TZ).format('MM/DD HH:mm')}</td><td>{record.temperature_c.toFixed(1)}°C</td></tr>)}</tbody>
         </table>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-slate-600">

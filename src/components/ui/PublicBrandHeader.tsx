@@ -19,7 +19,7 @@ export function PublicBrandHeader({ className = '' }: PublicBrandHeaderProps) {
       <div className="flex min-w-0 items-center gap-2">
         <img
           src="/favicon.svg"
-          alt={text({ id: 'Logo JiaJian Log', zh: '家健錄商標', en: 'Home Health Record Logo' })}
+          alt={text({ id: 'Logo Family Health Note', zh: '家健錄商標', en: 'Family Health Note Logo' })}
           className="h-6 w-6 shrink-0 object-contain"
         />
         <div className="min-w-0">

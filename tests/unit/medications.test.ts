@@ -1,7 +1,7 @@
 /*
 檔案用途：測試結構化藥品單位格式化、藥品名稱展示與服藥變更歷史紀錄讀取。
 所在層：tests/unit 單元測試層。
-主要關聯：驗證 src/lib/medications.ts 邏輯。
+主要關聯：驗證 src/lib/medication/medications.ts 邏輯。
 */
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test'
 
@@ -61,9 +61,10 @@ const {
   readMedicationHistory,
   resolveMedicationNames,
   saveMedicationDose,
-} = await import('../../src/lib/medications')
+} = await import('../../src/lib/medication/medications')
 const { DEMO_MEILING_PATIENT_ID, getFallbackDemoMedicationHistory } = await import('../../src/lib/demoData')
-import type { MedicationPlanView } from '../../src/lib/medications'
+const { saveDemoPatientMedicationInstruction } = await import('../../src/lib/demoStorage')
+import type { MedicationPlanView } from '../../src/lib/medication/medications'
 
 const plan: MedicationPlanView = {
   id: 'portfolio-author-latrigine-am',
@@ -111,6 +112,23 @@ describe('structured medication dose records & change logs', () => {
     expect(formatDoseAmount(0.5, 'tablet')).toBe('½ tablet')
   })
 
+  test('shows quarter and three-quarter tablets as fractions for tapering doses', () => {
+    // 減藥期常見從半顆再降到 1/4 顆；分數要跟半顆一樣明確寫出，不能顯示成 0.25 讓照護者誤讀。
+    expect(formatDoseAmount(0.25, 'tablet')).toBe('¼ tablet')
+    expect(formatDoseAmount(0.75, 'tablet')).toBe('¾ tablet')
+    expect(formatDoseAmountLocalized(0.25, 'tablet', 'zh')).toBe('¼ 錠')
+    expect(formatDoseAmountLocalized(0.75, 'tablet', 'id')).toBe('¾ tablet')
+  })
+
+  test('keeps the quarter fraction when it is combined with a whole number of tablets', () => {
+    // 選單新增的 1/4、3/4 步距也能跟整數合併（例如 1又1/4 顆）；不能因為多了整數部分就退回顯示成 1.25。
+    expect(formatDoseAmount(1.25, 'tablet')).toBe('1¼ tablets')
+    expect(formatDoseAmount(1.75, 'tablet')).toBe('1¾ tablets')
+    expect(formatDoseAmountLocalized(2.25, 'tablet', 'zh')).toBe('2¼ 錠')
+    // 半顆維持既有規則：只有單獨半顆顯示分數，跟整數合併的半顆（例如 1.5）仍是既有測試鎖定的小數行為。
+    expect(formatDoseAmount(1.5, 'tablet')).toBe('1.5 tablets')
+  })
+
   test('uses plural units whenever the prescribed amount is not one', () => {
     expect(formatDoseAmount(1, 'capsule')).toBe('1 capsule')
     expect(formatDoseAmount(2, 'tablet')).toBe('2 tablets')
@@ -139,6 +157,16 @@ describe('structured medication dose records & change logs', () => {
     expect(formatDoseAmountLocalized(2, 'capsule', 'id')).toBe('2 kapsul')
     expect(formatDoseAmountLocalized(1, 'liquid', 'id')).toBe('1 dosis')
     expect(formatDoseAmountLocalized(1, 'tablet', 'zh')).toBe('1 錠')
+  })
+
+  test('uses English dosage units in English instead of falling back to Indonesian', () => {
+    // issue #920：en 過去落到印尼文單位（kapsul、dosis）；英文 ≤ 1（含零頭）用單數，> 1 用複數。
+    expect(formatDoseAmountLocalized(1, 'capsule', 'en')).toBe('1 capsule')
+    expect(formatDoseAmountLocalized(2, 'capsule', 'en')).toBe('2 capsules')
+    expect(formatDoseAmountLocalized(0.5, 'tablet', 'en')).toBe('½ tablet')
+    expect(formatDoseAmountLocalized(2.25, 'tablet', 'en')).toBe('2¼ tablets')
+    expect(formatDoseAmountLocalized(1, 'liquid', 'en')).toBe('1 dose')
+    expect(formatDoseAmountLocalized(2, 'powder', 'en')).toBe('2 sachets')
   })
 
   test('does not repeat the strength already written in a combination brand name', () => {
@@ -229,6 +257,30 @@ describe('structured medication dose records & change logs', () => {
     expect(history[0].medication.brand_name).toBe('Latrigine')
   })
 
+  test('readMedicationHistory silently drops a change log whose medication has since been removed from the catalog', async () => {
+    changeLogsResponse = {
+      data: [
+        {
+          id: 'log-1', patient_id: 'pat-1', action: 'create', plan_id: 'p-1', medication_id: 'latrigine-50',
+          schedule_slot: 'morning', dose_amount: 1, dose_count: 1, as_needed: false, reason: '新增藥單',
+          actor_email: 'caregiver@example.com', before_snapshot: {}, after_snapshot: {},
+          recorded_at: '2026-08-01T00:00:00Z', effective_at: '2026-08-01T00:00:00Z', created_at: '2026-08-01T00:00:00Z',
+        },
+        {
+          id: 'log-2', patient_id: 'pat-1', action: 'create', plan_id: 'p-2', medication_id: 'deleted-medication',
+          schedule_slot: 'morning', dose_amount: 1, dose_count: 1, as_needed: false, reason: '已刪除藥品的舊紀錄',
+          actor_email: 'caregiver@example.com', before_snapshot: {}, after_snapshot: {},
+          recorded_at: '2026-07-01T00:00:00Z', effective_at: '2026-07-01T00:00:00Z', created_at: '2026-07-01T00:00:00Z',
+        },
+      ],
+      error: null,
+    }
+    medicationsResponse = { data: [plan.medication], error: null }
+
+    const history = await readMedicationHistory('pat-1')
+    expect(history.map(entry => entry.id)).toEqual(['log-1'])
+  })
+
   test('readMedicationHistory falls back to the demo story when a demo patient has no real change logs', async () => {
     // 這條分支專屬展示帳號：正式病人遇到空歷史應該回傳空陣列，不能被誤套 Demo 故事。
     changeLogsResponse = { data: [], error: null }
@@ -289,6 +341,18 @@ describe('/demo mode routing keeps writes off Supabase', () => {
 
   test('clearMedicationDose reports a demo dose that was never taken', async () => {
     await expect(clearMedicationDose('no-such-plan', DEMO_MEILING_PATIENT_ID, '2026-08-01', 1)).rejects.toThrow('Demo medication dose not found')
+  })
+
+  test('readMedicationDay attaches the B-layer instruction to the matching plan and null to the rest', async () => {
+    saveDemoPatientMedicationInstruction({
+      patient_id: DEMO_MEILING_PATIENT_ID, medication_id: 'demo-med-exforge-5-80',
+      instruction_codes: ['crush_ok'], instruction_note: '磨粉配水', source: 'pharmacist', confirmed_on: '2026-07-01',
+    })
+    const day = await readMedicationDay(DEMO_MEILING_PATIENT_ID, '2026-08-01')
+    const withInstruction = day.plans.find(plan => plan.medication_id === 'demo-med-exforge-5-80')
+    const withoutInstruction = day.plans.find(plan => plan.medication_id === 'demo-med-metformin-500')
+    expect(withInstruction?.instruction).toMatchObject({ instruction_codes: ['crush_ok'], source: 'pharmacist', confirmed_on: '2026-07-01' })
+    expect(withoutInstruction?.instruction).toBeNull()
   })
 
   test('readMedicationHistory reads the demo adapter directly when actually running in /demo mode', async () => {

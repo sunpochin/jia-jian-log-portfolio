@@ -173,7 +173,7 @@ export function ExportCsvModal({ isOpen, onClose, targets }: ExportCsvModalProps
               onClick={onClose}
               className="flex-1 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-xs font-bold text-gray-700 transition active:bg-gray-100 disabled:opacity-50"
             >
-              {text({ id: 'Batal', zh: '取消', en: 'CANCEL' })}
+              {text({ id: 'Batal', zh: '取消', en: 'Cancel' })}
             </button>
 
             <button

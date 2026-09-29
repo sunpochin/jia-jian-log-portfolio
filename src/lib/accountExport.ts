@@ -10,7 +10,7 @@ import { supabase } from './supabase'
 import { REPORT_TIMEZONE } from './recordReport'
 import type { CareTimelineEntry } from './careTimeline'
 import { normalizeCareEventPhotoPaths } from './careEventPhotos'
-import type { BpRecord, MealRecord, MealRecordItem, MedicationCatalog, MedicationIntakeLog, MedicationPlan, PatientWeightMeasurementRecord, PrnMedicationDailyAssessment, PrnMedicationEvent, TemperatureRecord } from '../types/database'
+import type { BpRecord, MealRecord, MealRecordItem, MedicationCatalog, MedicationIntakeLog, MedicationPlan, PatientMedicationInstruction, PatientWeightMeasurementRecord, PrnMedicationDailyAssessment, PrnMedicationEvent, TemperatureRecord } from '../types/database'
 
 dayjs.extend(utc)
 dayjs.extend(timezone)
@@ -63,6 +63,10 @@ const CSV_HEADERS = [
   'Porsi / 份量',
   'Kalori / 熱量',
   'Dasar kalori / 熱量依據',
+  'Kode cara minum / 服用方式代碼',
+  'Sumber cara minum / 服用方式來源',
+  'Tanggal konfirmasi cara minum / 服用方式確認日期',
+  'Catatan cara minum / 服用方式備註',
 ]
 
 export interface CompleteCareExportData {
@@ -77,6 +81,7 @@ export interface CompleteCareExportData {
   mealRecords?: MealRecord[]
   mealRecordItems?: MealRecordItem[]
   weightMeasurements?: PatientWeightMeasurementRecord[]
+  patientMedicationInstructions?: PatientMedicationInstruction[]
 }
 
 function csvCell(value: string | number | boolean | null | undefined): string {
@@ -295,6 +300,27 @@ export function buildCompleteCareCsv(data: CompleteCareExportData): string {
         [CSV_HEADERS[45]]: item.calorie_basis,
       }),
     })),
+    // 服用方式 B 層（issue #625）：換手交接最需要的正是這句「藥師交代怎麼吃」，不能因為漏了匯出而在最需要時消失。
+    ...(data.patientMedicationInstructions ?? []).map(instruction => {
+      const medication = medicationById.get(instruction.medication_id)
+      return {
+        occurredAt: instruction.updated_at,
+        cells: completeCareRow({
+          [CSV_HEADERS[0]]: 'Cara minum obat / 服用方式',
+          [CSV_HEADERS[1]]: localTime(instruction.updated_at),
+          [CSV_HEADERS[2]]: instruction.updated_at,
+          [CSV_HEADERS[3]]: REPORT_TIMEZONE,
+          [CSV_HEADERS[4]]: `${instruction.patient_id}:${instruction.medication_id}`,
+          [CSV_HEADERS[9]]: instruction.updated_by,
+          [CSV_HEADERS[10]]: instruction.medication_id,
+          [CSV_HEADERS[11]]: medication?.brand_name_zh || medication?.brand_name,
+          [CSV_HEADERS[46]]: instruction.instruction_codes.join('; '),
+          [CSV_HEADERS[47]]: instruction.source,
+          [CSV_HEADERS[48]]: instruction.confirmed_on,
+          [CSV_HEADERS[49]]: instruction.instruction_note,
+        }),
+      }
+    }),
   ]
 
   rows.sort((left, right) => right.occurredAt.localeCompare(left.occurredAt))
@@ -302,7 +328,7 @@ export function buildCompleteCareCsv(data: CompleteCareExportData): string {
   return `\uFEFF${[CSV_HEADERS, ...rows.map(row => row.cells)].map(row => row.map(csvCell).join(',')).join('\r\n')}`
 }
 
-type PatientDataTable = 'blood_pressure_records' | 'body_temperature_records' | 'medication_plans' | 'medication_intake_logs' | 'prn_medication_events' | 'prn_medication_daily_assessments' | 'care_timeline_entries' | 'meal_records' | 'meal_record_items' | 'patient_weight_measurement_records'
+type PatientDataTable = 'blood_pressure_records' | 'body_temperature_records' | 'medication_plans' | 'medication_intake_logs' | 'prn_medication_events' | 'prn_medication_daily_assessments' | 'care_timeline_entries' | 'meal_records' | 'meal_record_items' | 'patient_weight_measurement_records' | 'patient_medication_instructions'
 
 function isMissingPrnTable(error: unknown) {
   const candidate = error && typeof error === 'object' ? error as { code?: string; message?: string } : {}
@@ -337,7 +363,7 @@ async function readMedications(medicationIds: string[]): Promise<MedicationCatal
   for (let index = 0; index < uniqueIds.length; index += 100) {
     const { data, error } = await supabase
       .from('medications')
-      .select('id, drug_product_id, brand_name, brand_name_zh, brand_name_id, generic_name, strength_mg, strength_label, dosage_form, specialties, verification_status, tfda_license_number, nhi_drug_code, appearance_note, appearance_color, appearance_shape, appearance_photo_url, atc_code, created_at')
+      .select('id, drug_product_id, brand_name, brand_name_zh, brand_name_id, generic_name, strength_mg, strength_label, dosage_form, specialties, verification_status, tfda_license_number, nhi_drug_code, appearance_note, appearance_color, appearance_shape, appearance_photo_url, atc_code, official_dosage_form_text, official_score_text, created_at')
       .in('id', uniqueIds.slice(index, index + 100))
     if (error) throw error
     medications.push(...((data ?? []) as MedicationCatalog[]))
@@ -350,7 +376,7 @@ export async function downloadAccountCsv(subjectLabel = 'Personal / 個人紀錄
   if (!patientId) throw new Error('Patient ID required for CSV export')
 
   try {
-    const [bloodPressureRecords, temperatureRecords, medicationPlans, medicationLogs, prnMedicationEvents, prnMedicationAssessments, timelineEntries, mealRecords, mealRecordItems, weightMeasurements] = await Promise.all([
+    const [bloodPressureRecords, temperatureRecords, medicationPlans, medicationLogs, prnMedicationEvents, prnMedicationAssessments, timelineEntries, mealRecords, mealRecordItems, weightMeasurements, patientMedicationInstructions] = await Promise.all([
       readAllPatientRows<BpRecord>('blood_pressure_records', '*', patientId, 'measured_at'),
       readAllPatientRows<TemperatureRecord>('body_temperature_records', '*', patientId, 'measured_at'),
       readAllPatientRows<MedicationPlan>('medication_plans', 'id, account_email, patient_id, medication_id, schedule_slot, as_needed, dose_amount, dose_count, display_order, active, created_at', patientId, 'created_at'),
@@ -361,10 +387,11 @@ export async function downloadAccountCsv(subjectLabel = 'Personal / 個人紀錄
       readAllPatientRows<MealRecord>('meal_records', 'id, patient_id, meal_type, occurred_at, notes, source, recorded_by, created_at, updated_at', patientId, 'occurred_at'),
       readAllPatientRows<MealRecordItem>('meal_record_items', 'id, meal_record_id, patient_id, food_catalog_item_id, food_name_snapshot, serving_label_snapshot, quantity, calories_kcal, calorie_basis, created_at', patientId, 'created_at'),
       readAllPatientRows<PatientWeightMeasurementRecord>('patient_weight_measurement_records', 'id, patient_id, profile_email, weight_kg, measured_on, measurement_number, measured_at, recorded_by, created_at', patientId, 'measured_at'),
+      readAllPatientRows<PatientMedicationInstruction>('patient_medication_instructions', 'patient_id, medication_id, instruction_codes, instruction_note, source, confirmed_on, updated_by, updated_at', patientId, 'updated_at'),
     ])
-    const medications = await readMedications([...medicationPlans, ...medicationLogs, ...prnMedicationEvents].map(row => row.medication_id))
-    // 匯出以同一個 patient_id 讀取三個新資料域，避免「完整照護」其實漏掉餐點與體重。
-    const csvContent = buildCompleteCareCsv({ bloodPressureRecords, temperatureRecords, medicationPlans, medicationLogs, medications, timelineEntries, prnMedicationEvents, prnMedicationAssessments, mealRecords, mealRecordItems, weightMeasurements })
+    const medications = await readMedications([...medicationPlans, ...medicationLogs, ...prnMedicationEvents, ...patientMedicationInstructions].map(row => row.medication_id))
+    // 匯出以同一個 patient_id 讀取新資料域，避免「完整照護」其實漏掉餐點、體重與服用方式。
+    const csvContent = buildCompleteCareCsv({ bloodPressureRecords, temperatureRecords, medicationPlans, medicationLogs, medications, timelineEntries, prnMedicationEvents, prnMedicationAssessments, mealRecords, mealRecordItems, weightMeasurements, patientMedicationInstructions })
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')

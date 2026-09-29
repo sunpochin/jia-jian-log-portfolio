@@ -112,7 +112,7 @@ export function DailyBloodPressureRecords({ patientId, refreshVersion, pendingRe
     if (requestId !== refreshRequestIdRef.current) return
     if (error) {
       console.error('[daily blood pressure read error]', error)
-      setMessage({ id: 'Catatan tekanan darah hari ini tidak dapat dimuat.', zh: '目前無法讀取今天的血壓紀錄。' ,en: 'Record blood pressure days this not can dimuat.' })
+      setMessage({ id: 'Catatan tekanan darah hari ini tidak dapat dimuat.', zh: '目前無法讀取今天的血壓紀錄。' ,en: 'Unable to load today’s blood pressure records.' })
       return
     }
     remoteRecordsRef.current = (data ?? []) as BpRecord[]
@@ -132,7 +132,7 @@ export function DailyBloodPressureRecords({ patientId, refreshVersion, pendingRe
   const save = async (record: BpRecord) => {
     const systolic = Number(draft.systolic); const diastolic = Number(draft.diastolic); const pulse = draft.pulse === '' ? null : Number(draft.pulse)
     if (!isValidBpInput(systolic, diastolic, pulse)) {
-      setMessage({ id: 'Periksa kembali tekanan sistolik dan diastolik, serta denyut bila diisi.', zh: '請重新確認高壓、低壓，以及有填寫時的心跳數字。' ,en: 'Periksa back tekanan sistolik and diastolik, serta heart rate bila diisi.' })
+      setMessage({ id: 'Periksa kembali tekanan sistolik dan diastolik, serta denyut bila diisi.', zh: '請重新確認高壓、低壓，以及有填寫時的心跳數字。' ,en: 'Please check the systolic, diastolic, and pulse values (if entered).' })
       return
     }
     setSaving(true); setMessage(null)
@@ -151,13 +151,13 @@ export function DailyBloodPressureRecords({ patientId, refreshVersion, pendingRe
     }
     setSaving(false)
     setEditingId(null)
-    setMessage({ id: 'Catatan tekanan darah diperbarui.', zh: '血壓紀錄已更新。' ,en: 'Record blood pressure diUpdate.' })
+    setMessage({ id: 'Catatan tekanan darah diperbarui.', zh: '血壓紀錄已更新。' ,en: 'Blood pressure record updated.' })
     await refresh(); onChanged?.()
   }
 
   const remove = async (record: BpRecord) => {
     // 刪除會釋出每日名額，先確認才能避免把可用的 722 量測紀錄誤刪。
-    if (!(await confirm(text({ id: 'Hapus catatan tekanan darah ini? Tindakan ini tidak dapat dibatalkan.', zh: '確定刪除這筆血壓紀錄嗎？此操作無法復原。' ,en: 'Delete record blood pressure this? Tindakan this not can dibatalkan.' }), { danger: true }))) return
+    if (!(await confirm(text({ id: 'Hapus catatan tekanan darah ini? Tindakan ini tidak dapat dibatalkan.', zh: '確定刪除這筆血壓紀錄嗎？此操作無法復原。' ,en: 'Delete this blood pressure record? This action cannot be undone.' }), { danger: true }))) return
     setSaving(true); setMessage(null)
     try {
       if (isDemoMode()) {
@@ -185,7 +185,7 @@ export function DailyBloodPressureRecords({ patientId, refreshVersion, pendingRe
     {records.length === 0 ? <p className="mt-3 text-sm text-slate-500">{text({ id: 'Belum ada catatan pada hari perawatan ini.', zh: '本照護日還沒有量測紀錄。' ,en: 'No measurements have been recorded for this day of care.' })}</p> : <ol className="mt-3 space-y-2">{records.map(record => {
       const isPending = record.id.startsWith('pending-bp-')
       return <li key={record.id} className="rounded-2xl bg-slate-50 p-3 text-sm">
-        {editingId === record.id ? <div className="space-y-3"><div className="grid grid-cols-3 gap-2">{(['systolic', 'diastolic', 'pulse'] as const).map(key => <input key={key} aria-label={text(key === 'systolic' ? { id: 'Sistolik', zh: '高壓' ,en: 'Systolic' } : key === 'diastolic' ? { id: 'Diastolik', zh: '低壓' ,en: 'LOW PRESSURE' } : { id: 'Nadi (opsional)', zh: '心跳（可不填）' ,en: 'Heartbeat (optional)' })} type="number" inputMode="numeric" value={draft[key]} onChange={event => setDraft(current => ({ ...current, [key]: event.target.value }))} className="min-h-11 min-w-0 rounded-xl border border-slate-300 px-2 py-2 text-center font-bold" />)}</div><div className="flex gap-2"><button type="button" disabled={saving} onClick={() => void save(record)} className="min-h-11 rounded-xl bg-indigo-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-60">{text({ id: 'Simpan perubahan', zh: '儲存修改' ,en: 'Save Changes' })}</button><button type="button" disabled={saving} onClick={() => setEditingId(null)} className="min-h-11 rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700">{text({ id: 'Batal', zh: '取消' ,en: 'CANCEL' })}</button></div></div> : <div className="flex flex-wrap items-center justify-between gap-2"><div><div className="flex flex-wrap items-center gap-2"><time className="text-xs text-slate-500">{dayjs(record.measured_at).tz(TZ).format('YYYY/MM/DD HH:mm')}</time><VitalAlertBadge systolic={record.systolic} diastolic={record.diastolic} pulse={record.pulse} /></div><VitalReading systolic={record.systolic} diastolic={record.diastolic} pulse={record.pulse} className="mt-0.5 text-base font-black" />{isPending && <p className="mt-1 text-xs font-semibold text-slate-500" role="status">{text({ id: 'Menyinkronkan…', zh: '同步中…' ,en: 'Syncing…' })}</p>}</div><div className="flex gap-2"><button type="button" disabled={saving || isPending} onClick={() => edit(record)} className="min-h-11 rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-bold text-indigo-800 disabled:opacity-50">{text({ id: 'Ubah', zh: '修改' ,en: 'Modification' })}</button><button type="button" disabled={saving || isPending} onClick={() => void remove(record)} className="min-h-11 rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold text-red-700 disabled:opacity-50">{text({ id: 'Hapus', zh: '刪除' ,en: 'DELETE' })}</button></div></div>}
+        {editingId === record.id ? <div className="space-y-3"><div className="grid grid-cols-3 gap-2">{(['systolic', 'diastolic', 'pulse'] as const).map(key => <input key={key} aria-label={text(key === 'systolic' ? { id: 'Sistolik', zh: '高壓' ,en: 'Systolic' } : key === 'diastolic' ? { id: 'Diastolik', zh: '低壓' ,en: 'Diastolic' } : { id: 'Nadi (opsional)', zh: '心跳（可不填）' ,en: 'Heart rate (optional)' })} type="number" inputMode="numeric" value={draft[key]} onChange={event => setDraft(current => ({ ...current, [key]: event.target.value }))} className="min-h-11 min-w-0 rounded-xl border border-slate-300 px-2 py-2 text-center font-bold" />)}</div><div className="flex gap-2"><button type="button" disabled={saving} onClick={() => void save(record)} className="min-h-11 rounded-xl bg-indigo-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-60">{text({ id: 'Simpan perubahan', zh: '儲存修改' ,en: 'Save Changes' })}</button><button type="button" disabled={saving} onClick={() => setEditingId(null)} className="min-h-11 rounded-xl border border-slate-300 px-3 py-2 text-xs font-bold text-slate-700">{text({ id: 'Batal', zh: '取消' ,en: 'Cancel' })}</button></div></div> : <div className="flex flex-wrap items-center justify-between gap-2"><div><div className="flex flex-wrap items-center gap-2"><time className="text-xs text-slate-500">{dayjs(record.measured_at).tz(TZ).format('YYYY/MM/DD HH:mm')}</time><VitalAlertBadge systolic={record.systolic} diastolic={record.diastolic} pulse={record.pulse} measuredAt={record.measured_at} /></div><VitalReading systolic={record.systolic} diastolic={record.diastolic} pulse={record.pulse} className="mt-0.5 text-base font-black" />{isPending && <p className="mt-1 text-xs font-semibold text-slate-500" role="status">{text({ id: 'Menyinkronkan…', zh: '同步中…' ,en: 'Syncing…' })}</p>}</div><div className="flex gap-2"><button type="button" disabled={saving || isPending} onClick={() => edit(record)} className="min-h-11 rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-bold text-indigo-800 disabled:opacity-50">{text({ id: 'Ubah', zh: '修改' ,en: 'Edit' })}</button><button type="button" disabled={saving || isPending} onClick={() => void remove(record)} className="min-h-11 rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold text-red-700 disabled:opacity-50">{text({ id: 'Hapus', zh: '刪除' ,en: 'Delete' })}</button></div></div>}
       </li>
     })}</ol>}
   </section>

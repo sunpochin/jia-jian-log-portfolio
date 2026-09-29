@@ -1,0 +1,32 @@
+{
+  "key": "ckd_diabetes",
+  "names": {
+    "zh": "糖尿病／腎病",
+    "id": "Diabetes atau ginjal",
+    "en": "Diabetes or kidney"
+  },
+  "descriptions": {
+    "zh": "收縮壓目標與一般成人接近（110–129），但舒張壓門檻收緊到 80，80–84 這一段在一般成人只是「偏高觀察」，在這裡就算超出目標。",
+    "id": "Target sistolik mirip dewasa umum (110–129), tetapi ambang diastolik diperketat ke 80; rentang 80–84 yang pada dewasa umum hanya \"observasi\" di sini sudah dihitung di atas target.",
+    "en": "The systolic target is close to the general adult one (110–129), but the diastolic threshold is tightened to 80: the 80–84 band that general adults only \"observe\" already counts as above target here."
+  },
+  "ladder": {
+    "kind": "dual-axis",
+    "systolic": [
+      { "levelKey": "cukup_tinggi", "min": 160, "max": 179 },
+      { "levelKey": "tinggi", "min": 135, "max": 159 },
+      { "levelKey": "off_target", "min": 130, "max": 134 },
+      { "levelKey": "on_target", "min": 110, "max": 129 },
+      { "levelKey": "below_target", "min": 100, "max": 109 },
+      { "levelKey": "warning_low", "min": 90, "max": 99 }
+    ],
+    "diastolic": [
+      { "levelKey": "cukup_tinggi", "min": 100, "max": 119 },
+      { "levelKey": "tinggi", "min": 85, "max": 99 },
+      { "levelKey": "off_target", "min": 80, "max": 84 },
+      { "levelKey": null, "min": 60, "max": 79 },
+      { "levelKey": "diastolic_below_ref", "min": 55, "max": 59 },
+      { "levelKey": "warning_low", "min": 50, "max": 54 }
+    ]
+  }
+}

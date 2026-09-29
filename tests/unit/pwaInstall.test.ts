@@ -5,7 +5,15 @@
 */
 
 import { describe, expect, test } from 'bun:test'
-import { isIosDevice, isStandalonePwa, PWA_INSTALL_DISMISS_DURATION_MS, readPwaInstallDismissedAt, shouldShowPwaInstallPrompt } from '../../src/lib/pwaInstall'
+import {
+  clearPwaInstallDismissedAt,
+  isIosDevice,
+  isStandalonePwa,
+  PWA_INSTALL_DISMISS_DURATION_MS,
+  persistPwaInstallDismissedAt,
+  readPwaInstallDismissedAt,
+  shouldShowPwaInstallPrompt,
+} from '../../src/lib/pwaInstall'
 
 describe('PWA install prompt policy', () => {
   test('does not nag again during the 30-day dismissal window', () => {
@@ -17,6 +25,34 @@ describe('PWA install prompt policy', () => {
   test('invalid storage values are treated as no dismissal', () => {
     expect(readPwaInstallDismissedAt({ getItem: () => 'not-a-timestamp' })).toBeNull()
     expect(readPwaInstallDismissedAt({ getItem: () => null })).toBeNull()
+  })
+
+  test('reads, persists, and clears a valid dismissal timestamp', () => {
+    const values = new Map<string, string>()
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => { values.set(key, value) },
+      removeItem: (key: string) => { values.delete(key) },
+    }
+    persistPwaInstallDismissedAt(storage, 123_456)
+    expect(readPwaInstallDismissedAt(storage)).toBe(123_456)
+    clearPwaInstallDismissedAt(storage)
+    expect(readPwaInstallDismissedAt(storage)).toBeNull()
+  })
+
+  // 私密瀏覽器可能讓三種 storage 操作各自丟例外；提示功能只能降級，不能阻斷照護輸入。
+  test('storage is optional and failures never escape the PWA policy', () => {
+    const brokenStorage = {
+      getItem: () => { throw new Error('SecurityError') },
+      setItem: () => { throw new Error('QuotaExceededError') },
+      removeItem: () => { throw new Error('SecurityError') },
+    }
+    expect(readPwaInstallDismissedAt(brokenStorage)).toBeNull()
+    expect(readPwaInstallDismissedAt(null)).toBeNull()
+    expect(() => persistPwaInstallDismissedAt(brokenStorage, 1)).not.toThrow()
+    expect(() => persistPwaInstallDismissedAt(undefined, 1)).not.toThrow()
+    expect(() => clearPwaInstallDismissedAt(brokenStorage)).not.toThrow()
+    expect(() => clearPwaInstallDismissedAt(undefined)).not.toThrow()
   })
 
   test('recognizes iPhone, iPad and desktop-mode iPad user agents', () => {

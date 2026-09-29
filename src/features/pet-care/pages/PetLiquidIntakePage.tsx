@@ -57,7 +57,7 @@ export function PetLiquidIntakePage({ patientId, userEmail }: {
         if (error) {
           console.error('[pet liquid intake load error]', error)
           setStatus('err')
-          setMessage(text({ id: 'Tidak dapat memuat data.', zh: '暫時無法讀取資料。' ,en: "Could not loading data." }))
+          setMessage(text({ id: 'Tidak dapat memuat data.', zh: '暫時無法讀取資料。' ,en: 'Unable to load data right now.' }))
           return
         }
         const record = data as PetLiquidIntakeRecord | null
@@ -80,7 +80,8 @@ export function PetLiquidIntakePage({ patientId, userEmail }: {
     if (!userEmail) return
 
     if (formData.waterIntakeMl === '' && formData.urinationCount === '' && formData.litterBoxUrineClumps === '') {
-      setMessage(text({ id: 'Masukkan setidaknya satu nilai.', zh: '請至少輸入一個值。' ,en: "Masukkan setidaknya satu nilai." }))
+      // 至少輸入一項提示英文修正
+      setMessage(text({ id: 'Masukkan setidaknya satu nilai.', zh: '請至少輸入一個值。' ,en: "Please enter at least one value." }))
       return
     }
 
@@ -114,7 +115,7 @@ export function PetLiquidIntakePage({ patientId, userEmail }: {
     const { data, error } = await request.select('*').single()
     if (error) {
       console.error('[pet liquid intake save error]', error)
-      setMessage(text({ id: 'Tidak dapat menyimpan. Coba lagi.', zh: '暫時無法儲存，請再試一次。' ,en: "Could not saving. Try again." }))
+      setMessage(text({ id: 'Tidak dapat menyimpan. Coba lagi.', zh: '暫時無法儲存，請再試一次。' ,en: "Could not save. Please try again." }))
       setStatus('err')
       return
     }
@@ -129,12 +130,13 @@ export function PetLiquidIntakePage({ patientId, userEmail }: {
       <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl bg-white p-5 shadow-sm">
         {todayRecord && (
           <p className="text-xs font-semibold text-indigo-700">
-            {text({ id: 'Mengedit catatan hari ini.', zh: '目前正在修改今天已存的紀錄。' ,en: "Mengedit recordan days this." })}
+            {/* 編輯今日紀錄提示英文修正 */}
+            {text({ id: 'Mengedit catatan hari ini.', zh: '目前正在修改今天已存的紀錄。' ,en: "Editing today's saved record." })}
           </p>
         )}
         <div>
           <label className="block text-sm font-semibold text-gray-800">
-            {text({ id: 'Asupan air (ml)', zh: '飲水量（毫升）' ,en: "Asupan water (ml)" })}
+            {text({ id: 'Asupan air (ml)', zh: '飲水量（毫升）' ,en: "Water intake (ml)" })}
           </label>
           <input
             type="number"
@@ -149,7 +151,7 @@ export function PetLiquidIntakePage({ patientId, userEmail }: {
 
         <div>
           <label className="block text-sm font-semibold text-gray-800">
-            {text({ id: 'Frekuensi buang air kecil', zh: '排尿次數' ,en: "Frekuensi buang water tocil" })}
+            {text({ id: 'Frekuensi buang air kecil', zh: '排尿次數' ,en: "Urination frequency" })}
           </label>
           <input
             type="number"
@@ -164,10 +166,10 @@ export function PetLiquidIntakePage({ patientId, userEmail }: {
 
         <div>
           <label className="block text-sm font-semibold text-gray-800">
-            {text({ id: 'Jumlah gumpalan urin di kotak pasir', zh: '貓砂盆尿塊數' ,en: "Jumlah gumpalan urin in kotak pasir" })}
+            {text({ id: 'Jumlah gumpalan urin di kotak pasir', zh: '貓砂盆尿塊數' ,en: "Litter box urine clumps" })}
           </label>
           <p className="mt-1 text-xs text-gray-500">
-            {text({ id: '(Opsional) Untuk kucing dengan kotak pasir', zh: '（可不填）適用於使用貓砂盆的貓咪' ,en: "(Opsional) Untuk cat with kotak pasir" })}
+            {text({ id: '(Opsional) Untuk kucing dengan kotak pasir', zh: '（可不填）適用於使用貓砂盆的貓咪' ,en: "(Optional) For cats using a litter box" })}
           </p>
           <input
             type="number"

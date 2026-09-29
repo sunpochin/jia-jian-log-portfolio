@@ -1,7 +1,7 @@
 /*
 檔案用途：依台北日期呈現未來行程卡片，保持標題／地點原文與其餘系統文字雙語。
-所在層：src/components/schedule；由 UpcomingSchedulePage 組合，不讀取日曆或保存資料。
-主要關聯：src/lib/calendarAgenda.ts、useI18n 與 UpcomingSchedulePage。
+所在層：src/components/schedule；由門診頁的 UpcomingScheduleSection（原 UpcomingSchedulePage，#949 併入）組合，不讀取日曆或保存資料。
+主要關聯：src/lib/calendarAgenda.ts、useI18n 與 src/features/visit/components/UpcomingScheduleSection.tsx。
 */
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'

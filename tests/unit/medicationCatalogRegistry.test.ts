@@ -1,10 +1,10 @@
 /*
 檔案用途：測試 MedicationCatalogRegistry 及 TFDA、NHI 中藥、MOA 動物藥三種 Catalog Provider 的搜尋轉譯、Strategy 模式與異常處理邏輯。
 所在層：tests/unit 單元測試層。
-主要關聯：驗證 src/lib/medicationCatalogRegistry.ts 邏輯。
+主要關聯：驗證 src/lib/medication/medicationCatalogRegistry.ts 邏輯。
 */
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
-import type { MedicationCatalogProvider } from '../../src/lib/medicationCatalogRegistry'
+import type { MedicationCatalogProvider } from '../../src/lib/medication/medicationCatalogRegistry'
 
 type RpcResponse = { data?: unknown; error?: unknown }
 let rpcResponses: Record<string, RpcResponse> = {}
@@ -23,10 +23,10 @@ const {
   NhiTcmCatalogProvider,
   TfdaCatalogProvider,
   globalCatalogRegistry,
-} = await import('../../src/lib/medicationCatalogRegistry')
+} = await import('../../src/lib/medication/medicationCatalogRegistry')
 // medicationCatalog.ts 只是薄相容層，底層仍是同一個 TfdaCatalogProvider；
 // 沿用這裡已經建立好的 supabase.rpc mock，避免另開一個 mock.module 造成跨檔污染。
-const { searchTfdaDrugProducts } = await import('../../src/lib/medicationCatalog')
+const { searchTfdaDrugProducts } = await import('../../src/lib/medication/medicationCatalog')
 
 describe('MedicationCatalogRegistry & Multi-source Providers', () => {
   beforeEach(() => {

@@ -76,7 +76,7 @@ export const DATA_ERROR_TEXT = {
   },
   connection: {
     id: 'Koneksi atau konfigurasi server bermasalah. Beri tahu keluarga.',
-    zh: '連線或伺服器設定有問題，請通知家屬', en: 'Koneksi or konfigurasi server has a problem. Beri tahu family.',
+    zh: '連線或伺服器設定有問題，請通知家屬', en: 'There is a problem with the connection or server settings. Please let the family know.',
   },
   save: {
     id: 'Gagal menyimpan. Silakan coba lagi.',

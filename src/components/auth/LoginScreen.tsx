@@ -83,11 +83,54 @@ export function LoginScreen({ onEnterDemo, showDemo = true }: LoginScreenProps) 
           </div>
         </div>
 
-        {/* 公開衛教資源：取代原本的核心功能卡片，直接以可點擊的衛教連結呈現 */}
-        <div className="w-full space-y-2">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            {text({ id: 'Sumber Edukasi Kesehatan', zh: '公開衛教資源' ,en: 'Health education' })}
-          </p>
+        {/* 公開教學與衛教資源：包含顯眼的家庭邀請操作教學入口，以及 4 個衛教主題小卡 */}
+        <div className="w-full space-y-2.5">
+          <div className="flex items-center justify-between px-0.5">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              {text({ id: 'Panduan & Edukasi', zh: '使用教學與衛教資源', en: 'Guides & Health Education' })}
+            </p>
+            {/* 連結至衛教中樞頁，讓訪客也能探索全部指南 */}
+            <a
+              href="/guides"
+              className="text-[11px] font-medium text-indigo-600 hover:text-indigo-700 hover:underline flex items-center gap-0.5"
+            >
+              <span>{text({ id: 'Semua', zh: '全部指南', en: 'All guides' })}</span>
+              <span aria-hidden="true">→</span>
+            </a>
+          </div>
+
+          {/* 顯眼的家庭邀請教學入口：以柔和的靛藍卡片突顯，引導新舊家庭了解邀請機制 */}
+          <a
+            href="/guides/family-invitations"
+            className="group flex items-center justify-between p-3 rounded-2xl bg-indigo-50/70 border border-indigo-200/70 hover:border-indigo-300 hover:bg-indigo-50/90 hover:shadow-xs transition-all text-left"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-indigo-100/90 flex items-center justify-center shrink-0 text-lg">
+                👥
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                    {text({ id: 'Cara Mengundang Keluarga', zh: '如何邀請家人使用家健錄？', en: 'How to invite family to Family Health Note' })}
+                  </span>
+                  <span className="shrink-0 text-[10px] font-semibold text-indigo-700 bg-indigo-100/90 px-1.5 py-0.5 rounded-full">
+                    {text({ id: 'Panduan', zh: '操作教學', en: 'Guide' })}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                  {text({
+                    id: 'Langkah mengundang pasien & pengasuh keluarga',
+                    zh: '搞懂本人與照護者邀請，分享連結與確認帳號',
+                    en: 'Inviting patients & family caregivers step-by-step',
+                  })}
+                </p>
+              </div>
+            </div>
+            <span aria-hidden="true" className="text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all text-sm font-bold pl-2 shrink-0">
+              →
+            </span>
+          </a>
+
           <div className="grid grid-cols-2 gap-2">
             <a
               href="/guides/blood-pressure-722"

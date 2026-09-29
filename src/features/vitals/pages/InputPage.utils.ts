@@ -14,6 +14,7 @@ import { describeSaveError, isConnectionError, isPermissionError, matchesConstra
 import { isDemoPatientId } from '../../../lib/demoData'
 import { getDemoBpRecords, isDemoMode } from '../../../lib/demoStorage'
 import { careDateKey, careDayWindow } from '../../../lib/careDay'
+import type { AlertLevel } from '../../../types/database'
 
 dayjs.extend(utc)
 dayjs.extend(timezone)
@@ -41,27 +42,28 @@ export function saveErrorMessage(error: unknown, locale: Locale = 'id'): string 
 // ── Bilingual string table (Indonesian first, Chinese second) ──────────────
 // 繁體中文註解：放置印尼文與中文的雙語字典，便於維護與翻譯擴充。
 export const L = {
-  title:     { id: 'Tekanan Darah',       zh: '血壓紀錄' ,en: 'Tekanan Darah' },
+  title:     { id: 'Tekanan Darah',       zh: '血壓紀錄' ,en: 'Blood Pressure Record' },
   systolic:  { id: 'Sistolik',            zh: '高壓' ,en: 'Systolic' },
-  diastolic: { id: 'Diastolik',           zh: '低壓' ,en: 'LOW PRESSURE' },
+  diastolic: { id: 'Diastolik',           zh: '低壓' ,en: 'Diastolic' },
   pulse:     { id: 'Jantung',             zh: '心跳' ,en: 'Heart rate' },
   save:      { id: 'Simpan',              zh: '儲存' ,en: 'Save' },
   saving:    { id: 'Menyimpan…',          zh: '儲存中…' ,en: 'Saving...' },
   saved:     { id: '✓ Tersimpan!',        zh: '✓ 已記錄！' ,en: 'Recorded' },
   queued:    { id: 'Tersimpan di perangkat', zh: '已暫存於本機' ,en: "Saved on this device" },
-  pending: (count: number) => ({ id: `${count} catatan menunggu sinkronisasi`, zh: `${count} 筆紀錄等待同步` ,en: `${count} recordan menunggu sync` }),
-  pendingSyncing: { id: 'Menyinkronkan catatan…', zh: '正在同步紀錄…' ,en: "Syncing recordan…" },
-  pendingSyncError: { id: 'Periksa koneksi lalu coba sinkronisasi lagi.', zh: '請確認網路後再重新同步。' ,en: "Periksa connection lalu coba sync lagi." },
+  pending: (count: number) => ({ id: `${count} catatan menunggu sinkronisasi`, zh: `${count} 筆紀錄等待同步` ,en: `${count} records waiting to sync` }),
+  pendingLastAttempt: (timeStr: string) => ({ id: `Percobaan sinkronisasi terakhir pukul ${timeStr}`, zh: `最後一次嘗試同步時間：${timeStr}` ,en: `Last sync attempt at ${timeStr}` }),
+  pendingSyncing: { id: 'Menyinkronkan catatan…', zh: '正在同步紀錄…' ,en: "Syncing records…" },
+  pendingSyncError: { id: 'Periksa koneksi lalu coba sinkronisasi lagi.', zh: '請確認網路後再重新同步。' ,en: "Check your connection and try syncing again." },
   retryPending: { id: 'Sinkronkan sekarang', zh: '現在同步' ,en: "Sync now" },
   normal:      { id: 'Normal',              zh: '正常' ,en: 'Normal' },
-  warning:     { id: 'Agak Tinggi',         zh: '略高' ,en: 'Somewhat higher' },
-  danger:      { id: '⚠️ Terlalu Tinggi!',  zh: '⚠️ 血壓偏高！' ,en: 'High ⚠️ blood pressure!' },
-  'warning-low': { id: 'Agak Rendah',       zh: '偏低' ,en: 'Somewhat low' },
-  'danger-low':  { id: '⚠️ Terlalu Rendah!', zh: '⚠️ 血壓過低！' ,en: 'Low ⚠️ blood pressure!' },
+  warning:     { id: 'Agak Tinggi',         zh: '略高' ,en: 'Slightly high' },
+  danger:      { id: '⚠️ Terlalu Tinggi!',  zh: '⚠️ 血壓偏高！' ,en: '⚠️ High blood pressure!' },
+  'warning-low': { id: 'Agak Rendah',       zh: '偏低' ,en: 'Slightly low' },
+  'danger-low':  { id: '⚠️ Terlalu Rendah!', zh: '⚠️ 血壓過低！' ,en: '⚠️ Low blood pressure!' },
   pagi:      { id: 'Pagi',               zh: '早上' ,en: 'Morning' },
   siang:     { id: 'Siang',              zh: '下午' ,en: 'Afternoon' },
-  malam1:    { id: '18:00+',             zh: '晚上18點' ,en: '18:00 PM' },
-  malam2:    { id: '20:00+',             zh: '晚上20點' ,en: '8pm' },
+  malam1:    { id: '18:00+',             zh: '晚上18點' ,en: '6 PM' },
+  malam2:    { id: '20:00+',             zh: '晚上20點' ,en: '8 PM' },
   // 晚間分類仍供流程判斷，但不把時段標籤塞回紀錄摘要，避免畫面資訊重複。
   malam3:    { id: '',                   zh: '' ,en: '' },
   rest: {
@@ -80,8 +82,108 @@ export const L = {
   // 血壓已存進資料庫，只有 Telegram 通知失敗；用警示色而非紅色錯誤，避免看護誤以為血壓沒存到。
   notifyFailed: {
     id: '✓ Tekanan darah tersimpan, tapi notifikasi Telegram ke keluarga gagal terkirim.',
-    zh: '✓ 血壓已存檔，但 Telegram 通知家人失敗，請截圖回報。', en: "✓ Blood pressure saved, tapi notifikasi Telegram to family failed terkirim.",
+    zh: '✓ 血壓已存檔，但 Telegram 通知家人失敗，請截圖回報。', en: "✓ Blood pressure saved, but failed to send Telegram notification to family.",
   },
+  // 通知服務正常，但這位照護對象沒有訂閱共用家屬群組、也沒有個人化通知；家人不會自動收到。
+  // 只陳述事實，不寫「尚未設定」：看護在 app 裡沒有開通的入口，暗示要去設定只會讓人找不到。
+  // 附上「危險值請直接聯絡家人」這個看護能立刻做的動作。
+  familyAlertSkipped: {
+    id: '✓ Tekanan darah tersimpan. Catatan ini tidak dikirim otomatis ke keluarga. Jika angkanya berbahaya, hubungi keluarga langsung.',
+    zh: '✓ 血壓已存檔。這筆紀錄不會自動通知家人；若數值危險，請直接聯絡家人。',
+    en: '✓ Blood pressure saved. This reading was not sent to the family automatically. If it is dangerous, contact the family directly.',
+  },
+  // ADR-007 D9-b：共用群組那一則的送達結果。三種都先說「血壓已存」，看護不必重新輸入；
+  // 「送出中」不是成功；「無法確認」與「沒有送出」都要看護直接聯絡家人。
+  // 「沒有送出」刻意寫明不會自動重試（D9-c）：說「稍後重試」會讓看護以為系統還在努力，於是不打電話。
+  familyAlertInProgress: {
+    id: '✓ Tekanan darah tersimpan. Notifikasi ke keluarga sedang dikirim, hasilnya belum pasti…',
+    zh: '✓ 血壓已存檔。家人通知送出中，結果尚未確定…',
+    en: '✓ Blood pressure saved. The family notification is being sent, result not yet confirmed…',
+  },
+  familyAlertUnconfirmed: {
+    id: '✓ Tekanan darah tersimpan, tapi tidak bisa dipastikan apakah notifikasi sampai ke keluarga. Hubungi keluarga langsung untuk memastikan.',
+    zh: '✓ 血壓已存檔，但無法確認家人是否收到通知；請直接聯絡家人確認。',
+    en: '✓ Blood pressure saved, but it could not be confirmed whether the family received the notification. Contact the family directly to confirm.',
+  },
+  familyAlertNotSent: {
+    id: '✓ Tekanan darah tersimpan, tapi notifikasi ke keluarga tidak terkirim dan tidak akan dicoba ulang otomatis. Hubungi keluarga langsung.',
+    zh: '✓ 血壓已存檔，但家人通知沒有送出，也不會自動重試；請直接聯絡家人。',
+    en: '✓ Blood pressure saved, but the family notification was not sent and will not be retried automatically. Contact the family directly.',
+  },
+  // 個人化通知已排入 outbox（有自己的重試者）時，「沒送」「不明」只指共用群組那一則；說「家人通知沒送出、不會重試」
+  // 就是對個人那條路徑說謊（PR #988 Codex P2）。仍請看護直接確認：群組那一則確實沒到／不明。
+  familyAlertSharedUnconfirmedPersonalQueued: {
+    id: '✓ Tekanan darah tersimpan, tapi tidak bisa dipastikan apakah notifikasi grup keluarga sampai. Notifikasi pribadi sudah masuk antrean dan akan dikirim otomatis. Hubungi keluarga langsung untuk memastikan.',
+    zh: '✓ 血壓已存檔，但無法確認家人群組是否收到通知；個人通知已排入佇列，會自動送出。請直接聯絡家人確認。',
+    en: '✓ Blood pressure saved, but it could not be confirmed whether the family group received the notification. Personal notifications are queued and will be sent automatically. Contact the family directly to confirm.',
+  },
+  familyAlertSharedNotSentPersonalQueued: {
+    id: '✓ Tekanan darah tersimpan, tapi notifikasi ke grup keluarga tidak terkirim dan tidak akan dicoba ulang otomatis. Notifikasi pribadi sudah masuk antrean dan akan dikirim otomatis. Hubungi keluarga langsung untuk memastikan.',
+    zh: '✓ 血壓已存檔，但家人群組通知沒有送出，也不會自動重試；個人通知已排入佇列，會自動送出。請直接聯絡家人確認。',
+    en: '✓ Blood pressure saved, but the family group notification was not sent and will not be retried automatically. Personal notifications are queued and will be sent automatically. Contact the family directly to confirm.',
+  },
+  // 個人化通知沒有在路上、但有一則可能已送達（delivery_unknown，不會重送）：兩邊都只能說「無法確認」，不能講成「沒有個人通知」
+  // 也不能說「會自動送出」（PR #988 Codex P2）。
+  familyAlertSharedUnconfirmedPersonalUnknown: {
+    id: '✓ Tekanan darah tersimpan, tapi tidak bisa dipastikan apakah notifikasi grup keluarga maupun notifikasi pribadi sampai. Hubungi keluarga langsung untuk memastikan.',
+    zh: '✓ 血壓已存檔，但無法確認家人群組與個人通知是否送達；請直接聯絡家人確認。',
+    en: '✓ Blood pressure saved, but it could not be confirmed whether the family group or the personal notifications were delivered. Contact the family directly to confirm.',
+  },
+  // 未訂閱共用群組（沒有群組那一則）、個人那一則不明：只剩「無法確認」可說，仍要請看護聯絡家人（PR #988 Codex P2）。
+  familyAlertPersonalUnknown: {
+    id: '✓ Tekanan darah tersimpan, tapi tidak bisa dipastikan apakah notifikasi pribadi ke keluarga sampai. Hubungi keluarga langsung untuk memastikan.',
+    zh: '✓ 血壓已存檔，但無法確認家人的個人通知是否送達；請直接聯絡家人確認。',
+    en: '✓ Blood pressure saved, but it could not be confirmed whether the personal notifications reached the family. Contact the family directly to confirm.',
+  },
+  // 個人化通知已送達（drain 已 sent）：只能說「個人通知已送達」，不能說「已排入、會自動送出」（PR #988 Codex P2）。
+  familyAlertSharedUnconfirmedPersonalDelivered: {
+    id: '✓ Tekanan darah tersimpan. Notifikasi pribadi ke keluarga sudah terkirim, tapi tidak bisa dipastikan apakah notifikasi grup keluarga sampai.',
+    zh: '✓ 血壓已存檔。家人的個人通知已送達，但無法確認家人群組是否收到通知。',
+    en: '✓ Blood pressure saved. The personal notifications reached the family, but it could not be confirmed whether the family group received the notification.',
+  },
+  familyAlertSharedNotSentPersonalDelivered: {
+    id: '✓ Tekanan darah tersimpan. Notifikasi pribadi ke keluarga sudah terkirim, tapi notifikasi ke grup keluarga tidak terkirim dan tidak akan dicoba ulang otomatis.',
+    zh: '✓ 血壓已存檔。家人的個人通知已送達，但家人群組通知沒有送出，也不會自動重試。',
+    en: '✓ Blood pressure saved. The personal notifications reached the family, but the family group notification was not sent and will not be retried automatically.',
+  },
+  familyAlertSharedNotSentPersonalUnknown: {
+    id: '✓ Tekanan darah tersimpan, tapi notifikasi ke grup keluarga tidak terkirim dan tidak akan dicoba ulang otomatis; notifikasi pribadi tidak bisa dipastikan sampai. Hubungi keluarga langsung untuk memastikan.',
+    zh: '✓ 血壓已存檔，但家人群組通知沒有送出，也不會自動重試；個人通知無法確認是否送達。請直接聯絡家人確認。',
+    en: '✓ Blood pressure saved, but the family group notification was not sent and will not be retried automatically; the personal notifications could not be confirmed as delivered. Contact the family directly to confirm.',
+  },
+}
+
+// 待同步狀態列要顯示「最後一次嘗試同步」的時間，統一用照護日所在的台北時區格式化，
+// 避免看護裝置系統時區跟 App 內其他時間戳（如量測時間）對不上。
+export function formatPendingAttemptTime(epochMs: number): string {
+  return dayjs(epochMs).tz(TZ).format('HH:mm')
+}
+
+// 「沒有任何家屬通知送出」的提示只對需要現在行動的讀數顯示（北極星鐵律 3：警報分級、寧缺勿濫）。
+// 多數病人沒有訂閱共用群組也沒有個人化通知，若每一筆都提示，看護很快就會忽略它，
+// 真正危險的那一筆反而沒人看。納入與排除的理由：
+// - 納入 danger／danger-low／warning-low 與 warning：九級表對這些等級都有「重測／回報」的行動建議，
+//   心跳 >120 也會把 level 推上 warning，一併納入。
+// - 排除 warning 裡的「偏高觀察」（observasi）：九級表本身寫明「記錄即可，無須警報」，但它的
+//   webAlertLevel 也是 warning，所以要用規則 key 排除，不能只看 level；心跳 >120 時仍要提示。
+// - 排除 normal、off-target、below-target：後兩者的建議是「記錄、回診時一併回報」，不是現在行動。
+export interface FamilyAlertEvaluation {
+  level: AlertLevel
+  pulseWarning: boolean
+  bpRule: { key: string }
+}
+
+export function isFamilyAlertLevelReading(evaluation: FamilyAlertEvaluation): boolean {
+  switch (evaluation.level) {
+    case 'danger':
+    case 'danger-low':
+    case 'warning-low':
+      return true
+    case 'warning':
+      return evaluation.pulseWarning || evaluation.bpRule.key !== 'observasi'
+    default:
+      return false
+  }
 }
 
 export const BP_INPUT_LIMITS = {
@@ -134,22 +236,23 @@ export function isValidBpInput(sys: unknown, dia: unknown, pul: unknown): boolea
   )
 }
 
-// ── Style maps keyed by alert level ───────────────────────────────────────
-// 繁體中文註解：定義不同警示等級所對應的 CSS 樣式，避免程式碼散落於排版中。
-export const alertCls = {
+// ── Style maps keyed by alert tone ────────────────────────────────────────
+// 繁體中文註解：輸入當下的即時回饋面板底色。等級對照表在 src/lib/alertPresentation.ts（§4.3 收斂），
+// 這裡只保留「輸入頁專屬」的淺底面板樣式——它比 chip 大得多，實心深紅會整塊蓋住下方文字。
+// 送出按鈕的底色與圖示直接用 alertPresentation 的 ALERT_BUTTON_CLASS／ALERT_ICON，不在本檔另建一份。
+import type { AlertTone } from '../../../lib/alertPresentation'
+
+export const alertCls: Record<AlertTone, string> = {
+  'on-target':   'bg-brand-50  text-brand-700  border-brand-200',
   normal:        'bg-green-50  text-green-800  border-green-200',
-  warning:       'bg-orange-50 text-orange-800 border-orange-200',
-  danger:        'bg-red-50    text-red-800    border-red-200',
+  'below-target':'bg-warn-50   text-warn-700   border-amber-200',
   'warning-low': 'bg-orange-50 text-orange-800 border-orange-200',
   'danger-low':  'bg-red-50    text-red-800    border-red-200',
-}
-
-export const btnCls = {
-  normal:        'bg-green-600 active:bg-green-700',
-  warning:       'bg-orange-500 active:bg-orange-600',
-  danger:        'bg-red-500   active:bg-red-600',
-  'warning-low': 'bg-orange-500 active:bg-orange-600',
-  'danger-low':  'bg-red-500   active:bg-red-600',
+  'off-target':  'bg-danger-50 text-danger-700 border-red-200',
+  'pulse-warning':'bg-orange-50 text-orange-800 border-orange-200',
+  warning:       'bg-danger-50 text-danger-700 border-red-300',
+  danger:        'bg-red-100   text-red-800    border-red-300',
+  critical:      'bg-red-200   text-red-900    border-red-400',
 }
 
 export const sessionIcon  = { pagi: '🌅', siang: '☀️', malam1: '🌙', malam2: '🌙', malam3: '🌙' } as const
@@ -161,11 +264,7 @@ export const sessionColor = {
   malam3: 'bg-indigo-100 text-indigo-800',
 } as const
 
-// ── Status icon for summary rows ───────────────────────────────────────────
-export const statusIcon = {
-  normal: '✅', warning: '⚠️', danger: '🔴',
-  'warning-low': '⚠️', 'danger-low': '🔴',
-} as const
+
 
 // ── One row in the 3-day summary (one date+session group) ─────────────────
 export interface SessionSummary {

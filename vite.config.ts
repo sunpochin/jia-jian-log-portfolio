@@ -53,7 +53,8 @@ function resolveBuildMetadata(): BuildMetadata {
   }
 }
 
-function buildProvenancePlugin(metadata: BuildMetadata): Plugin {
+// 匯出建置 hook factory，讓單元測試能在暫存 outDir 驗證檔案產出與 hook 順序，不必啟動完整 Vite build。
+export function buildProvenancePlugin(metadata: BuildMetadata): Plugin {
   return {
     name: 'build-provenance',
     generateBundle() {
@@ -69,7 +70,7 @@ function buildProvenancePlugin(metadata: BuildMetadata): Plugin {
 
 // 集中在建置期插入分享預覽卡與 SEO meta，讓 index.html 只留一個插入點註解、實際文案單一來源於 shareMeta.ts；
 // 同時讓原本沒有任何地方使用的 APP_CANONICAL_URL（見 issue #437）真正被 canonical／og:url／hreflang 使用。
-function shareMetaPlugin(): Plugin {
+export function shareMetaPlugin(): Plugin {
   const metaTags = [
     `<meta name="description" content="${escapeHtmlAttr(SHARE_PREVIEW_DESCRIPTION)}" />`,
     `<link rel="canonical" href="${escapeHtmlAttr(APP_CANONICAL_URL)}" />`,
@@ -105,12 +106,12 @@ function shareMetaPlugin(): Plugin {
   }
 }
 
-// 公開路由（/demo、/privacy、/terms、/releases、/admin）在 build 完成後各自輸出一份靜態 HTML，
+// PUBLIC_ROUTE_META 列出的每條非首頁路由（公開頁、衛教、/admin 與 /share、/join 等 token 入口）在 build 完成後各自輸出一份靜態 HTML，
 // 讓 curl／搜尋引擎爬蟲不執行 JS 也能看到該頁專屬的 title／description（issue #441 驗收條件）；
 // 登入後由 App.tsx 的 currentPath 判斷接手渲染，行為不變——這裡只換 <head>，不改 <body> 的掛載方式。
 // 用 closeBundle（而非 generateBundle）是為了確保 index.html 已經寫進 outDir、shareMetaPlugin 的
 // transformIndexHtml 也已套用完畢，才有完整內容可複製。
-function publicRoutePrerenderPlugin(): Plugin {
+export function publicRoutePrerenderPlugin(): Plugin {
   let resolvedConfig: ResolvedConfig
   return {
     name: 'public-route-prerender',
@@ -144,8 +145,8 @@ function publicRoutePrerenderPlugin(): Plugin {
 }
 
 // sitemap.xml 只列 PUBLIC_ROUTE_META 裡 includeInSitemap 為 true 的路由；
-// /admin 與未來的 /share 一律排除，見 src/lib/publicRoutes.ts 的說明。
-function sitemapPlugin(buildTime: string): Plugin {
+// /admin 與 /share、/join、/patient-invite 等帶 token 的入口一律排除，見 src/lib/publicRoutes.ts 的說明。
+export function sitemapPlugin(buildTime: string): Plugin {
   return {
     name: 'sitemap',
     apply: 'build',
@@ -164,7 +165,8 @@ function sitemapPlugin(buildTime: string): Plugin {
 // 名稱還是英文。抽成獨立函式也讓這兩份文案可以直接被單元測試 import 驗證，不用真的跑一次
 // build 才能發現兩邊字串又不小心分岔。
 export function buildPwaManifestName(): string {
-  return `${APP_HOME_SCREEN_TITLE.zh} JiaJian Log 家人的健康與照護紀錄`
+  // 繁體中文註解：PWA 完整名稱對齊 Family Health Note 英文品牌名與既有中文描述。
+  return `${APP_HOME_SCREEN_TITLE.zh} Family Health Note 家人的健康與照護紀錄`
 }
 
 export function buildPwaManifestShortName(): string {
@@ -202,7 +204,7 @@ export function buildPwaScreenshotManifestEntries(locale: PwaManifestLocale): Pw
 
 export function buildLocalizedManifestOverrides() {
   return {
-    name: `${APP_HOME_SCREEN_TITLE.id} — JiaJian Log`,
+    name: `${APP_HOME_SCREEN_TITLE.id} — Catatan Kesehatan Keluarga`,
     short_name: APP_HOME_SCREEN_TITLE.id,
     description: 'Catatan kesehatan keluarga yang mudah dipasang di layar utama.',
     lang: 'id',
@@ -216,7 +218,7 @@ export function buildLocalizedManifestOverrides() {
 
 export function buildEnglishManifestOverrides() {
   return {
-    name: 'JiaJian Log — Family Health Record',
+    name: 'Family Health Note — Family Health Record',
     short_name: APP_HOME_SCREEN_TITLE.en,
     description: 'Keep the existing family health web app one tap away on your home screen.',
     lang: 'en',
@@ -232,7 +234,7 @@ export function buildEnglishManifestOverrides() {
 // apple-mobile-web-app-title 是兩條獨立路徑，沒辦法共用同一份執行期 JS 判斷語系去改內容
 // （manifest 是瀏覽器直接抓的靜態檔，不是先跑過 App 再由 React 動態塞值）。因此在建置期
 // 另外輸出一份印尼文 manifest，執行期再由 App.tsx 依語系切換 <link rel="manifest"> 的 href。
-function localizedManifestPlugin(): Plugin {
+export function localizedManifestPlugin(): Plugin {
   let resolvedConfig: ResolvedConfig
   return {
     name: 'localized-manifest',
@@ -285,9 +287,10 @@ export default defineConfig({
         // 版本檔名更新後立即移除上一版 precache，避免 iPhone PWA 長期留下已失效資源。
         cleanupOutdatedCaches: true,
         // provenance 必須反映伺服器目前部署，不能被舊 service worker 永久留在 precache。
-        // publicRoutePrerenderPlugin 產生的子頁 index.html 也一併排除：這些頁面原本就是每次
-        // 直接連線 Vercel 取得（沒有 SPA navigateFallback），排除它們維持既有的「一律連網取得
-        // 最新內容」行為，避免 workbox 把某次建置當下的 title／description 快取後長期回舊內容
+        // publicRoutePrerenderPlugin 產生的子頁 index.html 也一併排除：service worker 仍以 precache 的
+        // 根 index.html 當 navigateFallback（vite-plugin-pwa 預設），子頁 HTML 不進 precache 只是避免
+        // workbox 把某次建置當下的 title／description 快取後長期回舊內容；也因為有這個 fallback，
+        // 已被 SW 接管的使用者會看不到伺服器端缺頁（issue #806），所以要另外跑 smoke:public-routes
         // （issue #441 驗收條件要求重新確認 globIgnores 行為）。子頁清單從 PUBLIC_ROUTE_META
         // 算出來，避免日後在那邊加新路由卻忘記回來同步這裡。
         globIgnores: ['version.json', 'sitemap.xml', ...prerenderedSubRouteFilenames()],

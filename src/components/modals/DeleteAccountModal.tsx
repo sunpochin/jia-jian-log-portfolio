@@ -123,7 +123,7 @@ export function DeleteAccountModal({ isOpen, onClose }: DeleteAccountModalProps)
         <div className="flex items-center gap-3 text-red-600">
           <span className="text-2xl" aria-hidden="true">⚠️</span>
           <h2 id="delete-account-title" className="text-lg font-black tracking-tight">
-            {text({ id: 'Hapus Akun', zh: '刪除帳號', en: 'DELETE ACCOUNT' })}
+            {text({ id: 'Hapus Akun', zh: '刪除帳號', en: 'Delete account' })}
           </h2>
         </div>
 
@@ -170,7 +170,7 @@ export function DeleteAccountModal({ isOpen, onClose }: DeleteAccountModalProps)
               onClick={onClose}
               className="flex-1 rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-xs font-bold text-gray-700 transition active:bg-gray-100 disabled:opacity-50"
             >
-              {text({ id: 'Batal', zh: '取消', en: 'CANCEL' })}
+              {text({ id: 'Batal', zh: '取消', en: 'Cancel' })}
             </button>
 
             <button

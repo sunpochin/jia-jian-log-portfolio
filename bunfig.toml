@@ -1,0 +1,8 @@
+# 檔案用途：Bun 執行期設定，目前唯一用途是註冊 `bun test` 的 preload 腳本。
+# 所在層：repo 根目錄設定檔；由 Bun CLI 在 bun test 啟動時自動讀取，不影響 bun run／bun build。
+# 主要關聯：tests/unit/helpers/reactHookHarnessPreload.ts、reactHookHarness.ts 與 issue #608。
+
+[test]
+# 讓 react hook 測試 harness 的 mock.module 安裝時機不再依賴「哪個測試檔第一個執行」，
+# 見 tests/unit/helpers/reactHookHarnessPreload.ts 與 issue #608。
+preload = ["./tests/unit/helpers/reactHookHarnessPreload.ts"]

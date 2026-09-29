@@ -1,0 +1,14 @@
+<!--
+檔案用途：/demo 展示模式的照護事件示意圖，非任何真人照片；用來示範照護大事記的照片附件功能。
+所在層：public/demo/care-timeline；純靜態資產，由 src/lib/demoData.ts 的種子時間軸以
+demo_photo_urls 引用，展示模式以外的正式流程不會載入這個檔案。
+主要關聯：src/lib/demoData.ts（getFallbackDemoCareTimeline）、
+src/features/care-family/components/CareTimeline.tsx（渲染 demo_photo_urls）。
+-->
+<svg viewBox="0 0 480 480" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="示意圖：小腿浮腫消退追蹤，非真實照片">
+  <rect width="480" height="480" rx="24" fill="#f0f7ee"/>
+  <text x="240" y="52" text-anchor="middle" font-family="sans-serif" font-size="22" font-weight="700" fill="#3f7a3a">示意圖・非真實照片</text>
+  <path d="M180 100 C180 100 168 220 174 300 C179 345 194 385 210 420 L262 420 C272 390 279 350 274 300 C270 220 268 100 268 100 Z" fill="#c9e6bd" stroke="#6aa85f" stroke-width="4"/>
+  <circle cx="220" cy="330" r="8" fill="#6aa85f" opacity="0.7"/>
+  <text x="240" y="450" text-anchor="middle" font-family="sans-serif" font-size="18" font-weight="600" fill="#2f5c2b">第 3 天：腫脹明顯消退</text>
+</svg>

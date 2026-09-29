@@ -10,12 +10,14 @@ import { buildOnboardingDailyCarePreference, hasCompletedOnboardingWizard, markO
 
 const originalLocalStorage = globalThis.localStorage
 const values = new Map<string, string>()
+let storageThrows = false
 
 beforeEach(() => {
   values.clear()
+  storageThrows = false
   ;(globalThis as typeof globalThis & { localStorage: Storage }).localStorage = {
-    getItem: key => values.get(key) ?? null,
-    setItem: (key, value) => { values.set(key, value) },
+    getItem: key => { if (storageThrows) throw new Error('storage blocked'); return values.get(key) ?? null },
+    setItem: (key, value) => { if (storageThrows) throw new Error('storage blocked'); values.set(key, value) },
   } as Storage
 })
 
@@ -77,5 +79,12 @@ describe('onboarding wizard completion flag', () => {
     markOnboardingWizardCompleted('patient-a')
     expect(hasCompletedOnboardingWizard('patient-a')).toBe(true)
     expect(hasCompletedOnboardingWizard('patient-b')).toBe(false)
+  })
+
+  test('treats blocked localStorage as an optional convenience failure', () => {
+    storageThrows = true
+    // 完成旗標只用來減少重複打擾；儲存被封鎖時仍應讓精靈流程正常結束。
+    expect(hasCompletedOnboardingWizard('patient-a')).toBe(false)
+    expect(() => markOnboardingWizardCompleted('patient-a')).not.toThrow()
   })
 })

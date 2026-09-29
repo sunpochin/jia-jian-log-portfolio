@@ -17,9 +17,11 @@ import { VitalReading } from './VitalReading'
 dayjs.extend(utc)
 dayjs.extend(timezone)
 
+const DAYJS_LOCALE: Record<Locale, string> = { zh: 'zh-tw', id: 'id', en: 'en' }
+
 export function formatLatestVitals(record: BpRecord, locale: Locale = 'id') {
   return {
-    timestamp: dayjs(record.measured_at).tz(TZ).locale(locale === 'zh' ? 'zh-tw' : 'id').format('ddd, D MMM HH:mm:ss'),
+    timestamp: dayjs(record.measured_at).tz(TZ).locale(DAYJS_LOCALE[locale]).format('ddd, D MMM HH:mm:ss'),
     values: `${record.systolic}/${record.diastolic}${record.pulse != null ? ` ♥ ${record.pulse}` : ''}`,
   }
 }
@@ -29,7 +31,10 @@ export function formatMeasurementInterval(measuredAt: string, now: number, local
   const remainingSeconds = Math.max(0, 60 - elapsedSeconds)
   const duration = `${String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:${String(remainingSeconds % 60).padStart(2, '0')}`
 
-  return remainingSeconds > 0 ? (locale === 'zh' ? `再等 ${duration}` : `Tunggu ${duration}`) : (locale === 'zh' ? '可再量測' : 'Boleh ukur lagi')
+  if (remainingSeconds > 0) {
+    return locale === 'zh' ? `再等 ${duration}` : locale === 'en' ? `Wait ${duration}` : `Tunggu ${duration}`
+  }
+  return locale === 'zh' ? '可再量測' : locale === 'en' ? 'Can measure again' : 'Boleh ukur lagi'
 }
 
 export function isMeasurementIntervalActive(measuredAt: string, now: number) {

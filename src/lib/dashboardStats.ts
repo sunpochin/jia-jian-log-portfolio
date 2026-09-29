@@ -7,6 +7,7 @@ import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import timezone from 'dayjs/plugin/timezone'
 import { evaluateReading, type AlertLevel, type BpRecord } from '../types/database'
+import type { BpStandardResolver } from './bpStandards'
 import { getSession, type Session } from './session'
 import { TZ } from './timezone'
 import { careDateKey } from './careDay'
@@ -20,24 +21,32 @@ dayjs.extend(timezone)
 export const SESSION_LABELS: Record<Session, LocalizedText> = {
   pagi: { id: 'Pagi', zh: '早上', en: 'Morning' },
   siang: { id: 'Siang', zh: '下午', en: 'Afternoon' },
-  malam1: { id: '18:00+', zh: '晚上18點', en: '18:00 PM' },
-  malam2: { id: '20:00+', zh: '晚上20點', en: '8pm' },
+  malam1: { id: '18:00+', zh: '晚上18點', en: '6 PM' },
+  malam2: { id: '20:00+', zh: '晚上20點', en: '8 PM' },
   // malam3 仍保留給統計，但不再顯示成 22:00 後的額外 checkpoint 標籤。
   malam3: { id: '', zh: '', en: '' },
 }
 
+// 後兩個是 issue #896 新增的等級：只有選了個別醫囑模板的病人會出現，
+// 一般成人標準永遠不會命中。三語同批補齊（AGENTS.md §3.6）。
 export const ALERT_LABELS: Record<AlertLevel, LocalizedText> = {
   normal: { id: 'Normal', zh: '正常', en: 'Normal' },
   warning: { id: 'Agak Tinggi', zh: '略高', en: 'Somewhat higher' },
   danger: { id: 'Terlalu Tinggi', zh: '偏高', en: 'Somewhat high' },
   'warning-low': { id: 'Agak Rendah', zh: '偏低注意', en: 'Low attention' },
   'danger-low': { id: 'Terlalu Rendah', zh: '過低', en: 'Very low' },
+  'off-target': { id: 'Di atas target', zh: '超出目標', en: 'Above target' },
+  'below-target': { id: 'Di bawah target', zh: '低於目標', en: 'Below target' },
 }
 
 export function alertMarkerColor(level: AlertLevel): string {
   // 圖表的事件點必須和九級規格的警示結果共用同一判定，否則視覺提示可能先於或晚於真正警報而誤導家屬。
   if (level === 'danger' || level === 'danger-low') return '#ef4444'
   if (level === 'warning' || level === 'warning-low') return '#f97316'
+  // 目標帶兩側用不同色相（§4.2）：高了要回報醫師、低了要注意跌倒，是相反方向的處置，
+  // 用同一個顏色講兩件相反的事等於把「往哪邊調」這個資訊丟掉。
+  if (level === 'off-target') return '#f87171'
+  if (level === 'below-target') return '#fbbf24'
   return '#10b981'
 }
 
@@ -65,6 +74,8 @@ const emptyAlertCounts = (): Record<AlertLevel, number> => ({
   danger: 0,
   'warning-low': 0,
   'danger-low': 0,
+  'off-target': 0,
+  'below-target': 0,
 })
 
 const emptySessionCounts = (): Record<Session, number> => ({
@@ -87,14 +98,20 @@ export function sessionFromMeasuredAt(measuredAt: string): Session {
   return getSession(dayjs(measuredAt).tz(TZ).hour())
 }
 
-export function summarizeBpRecords(records: BpRecord[]): DashboardSummary {
+/**
+ * `resolver` 必填、沒有預設值：這份摘要會餵給統計卡、報告與異常示警，漏傳一處就會出現
+ * 「總覽用一般成人標準、清單用術後標準」的分歧（issue #898 §6.1）。沒有病人情境的呼叫端
+ * 必須顯式傳 `GENERAL_ADULT_RESOLVER`，讓 review 看得到那是刻意的。
+ * 逐筆用 `measured_at` 解析，而不是整批套用「現在」的標準——補登的舊讀數要用當時的標準。
+ */
+export function summarizeBpRecords(records: BpRecord[], resolver: BpStandardResolver): DashboardSummary {
   const alertCounts = emptyAlertCounts()
   const sessionCounts = emptySessionCounts()
   let nightLowCount = 0
   let pulseWarningCount = 0
 
   for (const record of records) {
-    const reading = evaluateReading(record.systolic, record.diastolic, record.pulse)
+    const reading = evaluateReading(record.systolic, record.diastolic, record.pulse, resolver(record.measured_at).standard)
     const bpLevel = reading.bpRule.webAlertLevel as AlertLevel
     const session = sessionFromMeasuredAt(record.measured_at)
 

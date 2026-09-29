@@ -1,0 +1,272 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "家健錄 JiaJian Log：高層執行架構",
+    "output": "jia-jian-log-architecture.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "primary-care-path",
+        "label": "主要照護路徑",
+        "focus": ["caregiver", "react-app", "supabase-auth", "postgres"],
+        "note": "從照護者登入到以 patient 範圍讀寫健康資料。"
+      },
+      {
+        "id": "offline-boundary",
+        "label": "離線與重試",
+        "focus": ["caregiver", "react-app", "local-cache"],
+        "note": "看見 PWA 本機快取與暫存佇列如何支援網路不穩。"
+      },
+      {
+        "id": "server-side-effects",
+        "label": "伺服器副作用",
+        "focus": ["react-app", "edge-functions", "postgres", "telegram", "google-calendar"],
+        "note": "辨識 caller-scoped Edge Function 與通知、行程等外部服務。"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "caregiver",
+      "type": "external",
+      "label": "照護者",
+      "sublabel": "Browser / PWA",
+      "pos": [40, 270],
+      "size": [160, 70]
+    },
+    {
+      "id": "vercel",
+      "type": "cloud",
+      "label": "Vercel",
+      "sublabel": "Static hosting",
+      "pos": [310, 70],
+      "size": [170, 70]
+    },
+    {
+      "id": "react-app",
+      "type": "frontend",
+      "label": "React App",
+      "sublabel": "Vite + TypeScript",
+      "tag": "feature-first SPA",
+      "pos": [300, 270],
+      "size": [190, 80]
+    },
+    {
+      "id": "local-cache",
+      "type": "database",
+      "label": "Local cache",
+      "sublabel": "localStorage + pending queue",
+      "tag": "offline fallback",
+      "pos": [290, 460],
+      "size": [210, 80]
+    },
+    {
+      "id": "google-gis",
+      "type": "external",
+      "label": "Google GIS",
+      "sublabel": "ID token",
+      "pos": [40, 470],
+      "size": [170, 70]
+    },
+    {
+      "id": "supabase-auth",
+      "type": "security",
+      "label": "Supabase Auth",
+      "sublabel": "Session + JWT",
+      "pos": [650, 70],
+      "size": [190, 70]
+    },
+    {
+      "id": "postgres",
+      "type": "database",
+      "label": "Postgres + RLS",
+      "sublabel": "patient-scoped health data",
+      "tag": "server truth",
+      "pos": [920, 250],
+      "size": [220, 85]
+    },
+    {
+      "id": "edge-functions",
+      "type": "backend",
+      "label": "Supabase Edge Functions",
+      "sublabel": "caller-scoped workflows",
+      "pos": [650, 470],
+      "size": [230, 85]
+    },
+    {
+      "id": "storage",
+      "type": "cloud",
+      "label": "Supabase Storage",
+      "sublabel": "private care photos",
+      "pos": [920, 500],
+      "size": [220, 80]
+    },
+    {
+      "id": "google-calendar",
+      "type": "external",
+      "label": "Google Calendar",
+      "sublabel": "optional agenda source",
+      "pos": [1180, 70],
+      "size": [160, 70]
+    },
+    {
+      "id": "telegram",
+      "type": "external",
+      "label": "Telegram",
+      "sublabel": "notification side effect",
+      "pos": [1180, 470],
+      "size": [160, 80]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "security-group",
+      "label": "User device boundary",
+      "wraps": ["caregiver", "react-app", "local-cache"]
+    },
+    {
+      "kind": "security-group",
+      "label": "Supabase project trust boundary",
+      "wraps": ["supabase-auth", "postgres", "edge-functions", "storage"]
+    }
+  ],
+  "connections": [
+    {
+      "id": "caregiver-to-app",
+      "from": "caregiver",
+      "to": "react-app",
+      "label": "照護流程",
+      "variant": "emphasis"
+    },
+    {
+      "id": "vercel-to-app",
+      "from": "vercel",
+      "to": "react-app",
+      "label": "serve PWA bundle",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "orthogonal-v"
+    },
+    {
+      "id": "gis-to-app",
+      "from": "google-gis",
+      "to": "react-app",
+      "label": "ID token",
+      "variant": "security"
+    },
+    {
+      "id": "app-to-auth",
+      "from": "react-app",
+      "to": "supabase-auth",
+      "label": "signInWithIdToken",
+      "variant": "security"
+    },
+    {
+      "id": "app-to-postgres",
+      "from": "react-app",
+      "to": "postgres",
+      "label": "patient-scoped reads / writes",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "route": "orthogonal-h",
+      "labelAt": [705, 240]
+    },
+    {
+      "id": "postgres-to-app",
+      "from": "postgres",
+      "to": "react-app",
+      "label": "RLS-filtered records",
+      "variant": "security",
+      "fromSide": "left",
+      "toSide": "right",
+      "route": "orthogonal-h",
+      "labelAt": [705, 380]
+    },
+    {
+      "id": "app-to-cache",
+      "from": "react-app",
+      "to": "local-cache",
+      "label": "cache + retry queue",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "orthogonal-v"
+    },
+    {
+      "id": "app-to-edge",
+      "from": "react-app",
+      "to": "edge-functions",
+      "label": "recordId + patientId",
+      "variant": "dashed"
+    },
+    {
+      "id": "edge-to-postgres",
+      "from": "edge-functions",
+      "to": "postgres",
+      "label": "caller-scoped query",
+      "variant": "security"
+    },
+    {
+      "id": "edge-to-storage",
+      "from": "edge-functions",
+      "to": "storage",
+      "label": "private photo lifecycle",
+      "variant": "security",
+      "labelAt": [1030, 430]
+    },
+    {
+      "id": "edge-to-calendar",
+      "from": "edge-functions",
+      "to": "google-calendar",
+      "label": "agenda read",
+      "variant": "dashed",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "via": [[765, 620], [1160, 620], [1160, 105]],
+      "labelAt": [1050, 620]
+    },
+    {
+      "id": "edge-to-telegram",
+      "from": "edge-functions",
+      "to": "telegram",
+      "label": "server-only notification",
+      "variant": "security",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "via": [[765, 650], [1160, 650], [1160, 510]],
+      "labelAt": [1050, 650]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Primary path",
+      "items": [
+        "React App keeps the current patient scope explicit",
+        "Supabase Auth supplies the session and JWT",
+        "Postgres RLS remains the real authorization boundary"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Offline safety",
+      "items": [
+        "Local cache is a labeled fallback, not server truth",
+        "Transient write failures enter a patient-scoped pending queue",
+        "The UI can recover without weakening RLS"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Side effects",
+      "items": [
+        "Edge Functions re-check caller scope before reading care data",
+        "Telegram notifications remain a fail-soft side effect",
+        "Private photos stay behind Supabase Storage controls"
+      ]
+    }
+  ]
+}

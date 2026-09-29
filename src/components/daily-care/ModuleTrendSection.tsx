@@ -1,7 +1,7 @@
 /*
 檔案用途：提供各照護模組共用的「近期趨勢」區塊外框，含期間選擇、展開記憶與延遲載入邊界。
 所在層：src/components/daily-care；只負責外框與互動，實際圖表由各模組傳入。
-主要關聯：InputPage、TemperaturePage、WeightPage、NutritionPage、MedicationPage 與 lib/trendPreference。
+主要關聯：InputPage、TemperaturePage、WeightPage、NutritionPage、MedicationPage 與 lib/preferences/trendPreference。
 
 為什麼抽成共用元件：五個模組都要在「記錄完馬上看得到趨勢」，若各自實作，
 期間選項、展開行為與標題很快就會長出五種版本（違反〈介面元件化規範〉）。
@@ -16,7 +16,7 @@ import {
   saveTrendPeriod,
   TREND_PERIOD_OPTIONS,
   type TrendPeriodDays,
-} from '../../lib/trendPreference'
+} from '../../lib/preferences/trendPreference'
 
 const DEFAULT_TITLE: LocalizedText = { id: 'Tren terkini', zh: '近期趨勢' ,en: 'Recent trend' }
 

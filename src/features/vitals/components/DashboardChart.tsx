@@ -10,13 +10,14 @@ import {
   ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine
 } from 'recharts'
 import type { BpRecord } from '../../../types/database'
-import { evaluateReading } from '../../../types/database'
+import { ALERT_BAR_CLASS, ALERT_SOFT_CHIP_CLASS, alertTone } from '../../../lib/alertPresentation'
+import { useBpEvaluator, type BpEvaluator } from '../hooks/useBpEvaluator'
 import { VITAL_COLORS } from '../../../lib/vitalPresentation'
 import { TZ } from '../../../lib/timezone'
 import { SESSION_LABELS, sessionFromMeasuredAt } from '../../../lib/dashboardStats'
 import { PulseReading, VitalValue } from './VitalReading'
 import { common, localized, useI18n, type Locale } from '../../../lib/i18n'
-import { formatMedicationDisplayName, type MedicationPlanChangeLogView } from '../../../lib/medications'
+import { formatMedicationDisplayName, type MedicationPlanChangeLogView } from '../../../lib/medication/medications'
 
 dayjs.extend(utc)
 dayjs.extend(timezone)
@@ -48,7 +49,9 @@ function PulseDot({ cx, cy, color }: { cx?: number; cy?: number; color: string }
 }
 
 // 自訂中印雙語 Tooltip，提供更易讀的高對比提示資訊，避免 Recharts 預設 Tooltip 將陣列直接印出的粗糙感
-const CustomTooltip = ({ active, payload, locale }: { active?: boolean; payload?: any[]; locale: Locale }) => {
+// evaluator 由 DashboardChart 以 prop 傳入、不在這裡呼叫 hook：Recharts 會 clone 這個元素並在
+// 自己的渲染流程裡使用，把 hook 綁在它的生命週期上比較脆弱；判讀標準是必要輸入，不能靠運氣取得。
+const CustomTooltip = ({ active, payload, locale, evaluator }: { active?: boolean; payload?: any[]; locale: Locale; evaluator: BpEvaluator }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload
     const systolic = data.systolic
@@ -57,19 +60,12 @@ const CustomTooltip = ({ active, payload, locale }: { active?: boolean; payload?
     const time = data.time
     const sessionName = data.sessionName
 
-    const reading = evaluateReading(systolic, diastolic, pulse)
-    const level = reading.level
-    const isDanger = level === 'danger' || level === 'danger-low'
-    const isWarning = level === 'warning' || level === 'warning-low'
+    // 用該點自己的量測時間解析標準，與清單、報告逐筆一致；否則同一筆讀數在圖上與清單上會是兩種顏色。
+    const reading = evaluator.evaluateAt(systolic, diastolic, pulse, new Date(data.timestamp))
+    const tone = alertTone(reading)
 
     const statusText = localized(reading.labels, locale)
-
-    let statusBg = 'bg-emerald-100 text-emerald-800 border-emerald-200'
-    if (isDanger) {
-      statusBg = 'bg-red-100 text-red-800 border-red-200'
-    } else if (isWarning) {
-      statusBg = 'bg-orange-100 text-orange-800 border-orange-200'
-    }
+    const statusBg = `${ALERT_SOFT_CHIP_CLASS[tone]} ${ALERT_BAR_CLASS[tone]}`
 
     return (
       <div className="min-w-[200px] space-y-2 rounded-xl border border-gray-200 bg-white p-3 text-sm shadow-lg ring-1 ring-black/5">
@@ -119,6 +115,7 @@ export function DashboardChart({
   medicationChanges?: MedicationPlanChangeLogView[]
 }) {
   const { locale, text } = useI18n()
+  const evaluator = useBpEvaluator()
 
   const chartColors = usesDarkColorScheme
     ? { systolic: VITAL_COLORS.systolic.dark, diastolic: VITAL_COLORS.diastolic.dark, pulse: VITAL_COLORS.pulse.dark }
@@ -162,7 +159,7 @@ export function DashboardChart({
     const brandName = (locale === 'zh' ? snapshot.brand_name_zh || snapshot.brand_name : snapshot.brand_name || snapshot.brand_name_zh) || formatMedicationDisplayName(change.medication, locale)
     const isStop = change.action === 'deactivate'
     const labelText = isStop 
-      ? `← ${text({id: 'Stop', zh: '停', en: 'Stop.'})} ${brandName}`
+      ? `← ${text({ id: 'Berhenti', zh: '停', en: 'Stop' })} ${brandName}`
       : change.action === 'update'
         ? `← ${text({id: 'Ubah', zh: '改', en: 'Change'})} ${brandName}`
         : `← ${text({id: 'Tambah', zh: '加', en: 'Addition'})} ${brandName}`
@@ -200,8 +197,8 @@ export function DashboardChart({
           {text({ id: `${records.length} catatan`, zh: `${records.length} 筆`, en: `${records.length} records` })}
         </div>
       </div>
-      {isOfflineData && <p className="mb-2 text-xs font-bold text-amber-700">{text({ id: 'Data cache offline', zh: '離線快取資料', en: 'Data cache offline' })}</p>}
-      <p id="trend-chart-description" className="mb-2 text-xs text-gray-500">{text({ id: 'Garis lurus menghubungkan waktu ukur; tabel lengkap tersedia di bawah.', zh: '直線連接各量測時間；下方提供完整表格。', en: 'Garis lurus menghubungkan time ukur; tabel complete tersedia di bawah.' })}</p>
+      {isOfflineData && <p className="mb-2 text-xs font-bold text-amber-700">{text({ id: 'Data cache offline', zh: '離線快取資料', en: 'Offline cached data' })}</p>}
+      <p id="trend-chart-description" className="mb-2 text-xs text-gray-500">{text({ id: 'Garis lurus menghubungkan waktu ukur; tabel lengkap tersedia di bawah.', zh: '直線連接各量測時間；下方提供完整表格。', en: 'Straight lines connect measurement times; a full table is provided below.' })}</p>
       <div role="img" aria-labelledby="trend-chart-title" aria-describedby="trend-chart-description">
         <ResponsiveContainer width="100%" height={260}>
           <ComposedChart data={chartData} margin={{ top: 10, right: 5, left: -10, bottom: 0 }}>
@@ -238,7 +235,7 @@ export function DashboardChart({
                 }}
               />
             ))}
-            <Tooltip content={<CustomTooltip locale={locale} />} />
+            <Tooltip content={<CustomTooltip locale={locale} evaluator={evaluator} />} />
             <Legend iconSize={10} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
             <Area
               yAxisId="left"
@@ -263,7 +260,7 @@ export function DashboardChart({
               yAxisId="left"
               type="linear"
               dataKey="diastolic"
-              name={text({ id: 'Diastolik', zh: '低壓', en: 'LOW PRESSURE' })}
+              name={text({ id: 'Diastolik', zh: '低壓', en: 'Diastolic' })}
               stroke={chartColors.diastolic}
               strokeWidth={2.5}
               dot={<CustomBpDot type="diastolic" color={chartColors.diastolic} />}

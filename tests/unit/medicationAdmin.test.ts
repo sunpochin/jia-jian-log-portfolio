@@ -1,11 +1,25 @@
+/*
+檔案用途：驗證藥單管理的純函式邏輯——藥品識別碼組成、非本人藥物的雙重確認規則、
+已刪除藥品的選擇復原、依時段分組排序，以及同藥品同時段的覆蓋衝突偵測。
+所在層：tests/unit；對應 src/lib/medication/medicationAdmin.ts 的單元測試。
+主要關聯：src/lib/medication/medicationAdmin.ts、MedicationAdminSection。
+*/
 import { describe, expect, test } from 'bun:test'
-import { findMedicationPlanConflict, groupActiveMedicationPlans, listActiveMedicationPlansForMedication, medicationIdFor, resolveMedicationSelection, requiresDoubleMedicationConfirmation, type AdminMedicationPlan, type MedicationOption } from '../../src/lib/medicationAdmin'
+import { findMedicationPlanConflict, groupActiveMedicationPlans, listActiveMedicationPlansForMedication, medicationIdFor, resolveMedicationSelection, requiresDoubleMedicationConfirmation, type AdminMedicationPlan, type MedicationOption } from '../../src/lib/medication/medicationAdmin'
 
 describe('medication admin identifiers', () => {
   test('uses the complete medicine identity so retrying the same form keeps one catalog item', () => {
     expect(medicationIdFor('My Medicine!', 'Generic', 5, 'tablet')).toBe('my-medicine-generic-5-tablet')
     expect(medicationIdFor('My Medicine!', 'Generic', 5, 'tablet')).toBe('my-medicine-generic-5-tablet')
     expect(medicationIdFor('My Medicine!', 'Generic', 10, 'tablet')).not.toBe('my-medicine-generic-5-tablet')
+  })
+
+  test('accepts a package strength label instead of a number for supplements without a trustworthy mg value (issue #758)', () => {
+    // 營養品沒有可信的 mg 數字；slug 改用包裝劑量原文，重試同一張新藥表單時仍要指向同一筆目錄。
+    expect(medicationIdFor('DaYan Vitamin D3', 'Cholecalciferol', '800 IU', 'tablet')).toBe('dayan-vitamin-d3-cholecalciferol-800-iu-tablet')
+    expect(medicationIdFor('DaYan Vitamin D3', 'Cholecalciferol', '800 IU', 'tablet')).toBe('dayan-vitamin-d3-cholecalciferol-800-iu-tablet')
+    // 不同包裝劑量標示必須落在不同的 id，否則兩種不同劑量的同名營養品會被誤存成同一筆目錄。
+    expect(medicationIdFor('DaYan Vitamin D3', 'Cholecalciferol', '1000 IU', 'tablet')).not.toBe('dayan-vitamin-d3-cholecalciferol-800-iu-tablet')
   })
 })
 

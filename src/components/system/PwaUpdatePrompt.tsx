@@ -6,10 +6,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { localized, type LocalizedText, useI18n } from '../../lib/i18n'
+import { isNativeApp } from '../../lib/platform'
 import { canApplyPwaUpdate, canCheckForPwaUpdate, PWA_UPDATE_CHECK_INTERVAL_MS } from '../../lib/pwaUpdate'
 import { usePwaUpdateGuard } from '../../lib/pwaUpdateGuard'
 
 export function PwaUpdatePrompt() {
+  // 原生殼的 dist/ 是 build 時打包的快照；Service Worker 在原生 WebView 的行為未定義，永遠檢查不到新版本，
+  // 因此完全不掛載 useRegisterSW，把「有新版請更新 App」的責任交給 #817（issue #812）。
+  if (isNativeApp()) return null
+  return <PwaUpdatePromptWeb />
+}
+
+function PwaUpdatePromptWeb() {
   const { locale } = useI18n()
   // Provider 缺失要直接暴露組合錯誤；共用 localized() 只防守字典漏掉當前語系，避免提示變空白。
   const translate = useCallback((value: LocalizedText) => localized(value, locale), [locale])
@@ -100,7 +108,7 @@ export function PwaUpdatePrompt() {
       >
         <div className="w-full max-w-sm rounded-3xl bg-white p-6 text-center text-slate-900 shadow-2xl">
           <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-emerald-200 border-t-emerald-600" aria-hidden="true" />
-          <p className="mt-4 font-black">{translate({ id: 'Sistem sedang diperbarui…', zh: '系統正在更新，請稍候…', en: 'Sistem currently diUpdate…' })}</p>
+          <p className="mt-4 font-black">{translate({ id: 'Sistem sedang diperbarui…', zh: '系統正在更新，請稍候…', en: 'Updating the app, please wait…' })}</p>
         </div>
       </div>
     )
@@ -144,7 +152,7 @@ export function PwaUpdatePrompt() {
           className="min-h-12 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-black text-white shadow-sm active:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
         >
           {translate(hasUnsavedInput
-            ? { id: 'Simpan dulu', zh: '請先儲存', en: 'Save dulu' }
+            ? { id: 'Simpan dulu', zh: '請先儲存', en: 'Save first' }
             : { id: 'Perbarui & buka lagi', zh: '更新並重新開啟', en: 'Update and reopen' })}
         </button>
       </div>

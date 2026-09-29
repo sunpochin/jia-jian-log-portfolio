@@ -9,7 +9,24 @@ import type { LocalizedText } from './i18n'
 // 放在這個純資料層而非元件檔，App.tsx 才能引用它而不必連帶把 DailyCareDisplaySettings 拉進主 bundle。
 export const DAILY_CARE_DISPLAY_SETTINGS_ANCHOR = 'daily-care-display-settings'
 
-export type DailyCareModuleId = 'bloodPressure' | 'temperature' | 'medication' | 'nutrition' | 'weight' | 'petLiquidIntake' | 'petDigestion' | 'petAppetite' | 'petFluidTherapy' | 'petEndocrine' | 'dementiaCare' | 'fluidBalance' | 'careReminders'
+// 「今天」頁的一步操作（例如量血壓）在目標模組被病人設定關閉時，改帶去這張卡並指名該模組；
+// 用 `:moduleId` 附掛在既有錨點後面，維持舊有的純錨點導覽（例如自訂顯示齒輪按鈕）不受影響。
+export function buildDailyCareDisplaySettingsHash(moduleId?: DailyCareModuleId): string {
+  return `#${DAILY_CARE_DISPLAY_SETTINGS_ANCHOR}${moduleId ? `:${moduleId}` : ''}`
+}
+
+export function parseDailyCareDisplaySettingsHash(hash: string): { isAnchor: boolean; moduleId?: DailyCareModuleId } {
+  const value = hash.startsWith('#') ? hash.slice(1) : hash
+  if (value === DAILY_CARE_DISPLAY_SETTINGS_ANCHOR) return { isAnchor: true }
+  const prefix = `${DAILY_CARE_DISPLAY_SETTINGS_ANCHOR}:`
+  if (value.startsWith(prefix)) {
+    const moduleId = value.slice(prefix.length) as DailyCareModuleId
+    return { isAnchor: true, moduleId: DAILY_CARE_MODULES.some(module => module.id === moduleId) ? moduleId : undefined }
+  }
+  return { isAnchor: false }
+}
+
+export type DailyCareModuleId = 'bloodPressure' | 'temperature' | 'medication' | 'nutrition' | 'weight' | 'petLiquidIntake' | 'petDigestion' | 'petAppetite' | 'petFluidTherapy' | 'petEndocrine' | 'dementiaCare' | 'fluidBalance' | 'careReminders' | 'visitQuestions' | 'labResults'
 
 export type DailyCareModule = {
   id: DailyCareModuleId
@@ -46,6 +63,12 @@ export const DAILY_CARE_MODULES: readonly DailyCareModule[] = [
   { id: 'fluidBalance', label: { id: 'Asupan & keluaran cairan', zh: '體液平衡記錄' ,en: 'Fluid balance' }, compactLabel: { id: 'Cairan I/O', zh: '進出量' ,en: 'Fluid I/O' }, applicableToSpecies: ['human'] },
   // 到期提醒同時服務人與寵物；表單再依物種限制回診、疫苗與驅蟲類型，避免把提醒入口拆成兩套來源。
   { id: 'careReminders', label: { id: 'Pengingat jatuh tempo', zh: '到期提醒', en: 'Due reminders' }, compactLabel: { id: 'Pengingat', zh: '提醒', en: 'Reminders' }, applicableToSpecies: ['human', 'dog', 'cat', 'bird', 'rabbit', 'other'] },
+  // 回診問題清單（issue #723）：跟失智照護／體液平衡一樣不是每位病人都需要，預設關閉；
+  // 看獸醫一樣要問問題，因此不限物種。
+  { id: 'visitQuestions', label: { id: 'Pertanyaan untuk dokter', zh: '回診問題清單', en: 'Visit questions' }, compactLabel: { id: 'Pertanyaan', zh: '問題清單', en: 'Questions' }, applicableToSpecies: ['human', 'dog', 'cat', 'bird', 'rabbit', 'other'] },
+  // 檢驗值（issue #687，S4）人類限定：白名單只涵蓋人類抽血項目（電解質、腎功能、糖化血色素等），
+  // 跟失智照護／體液平衡／回診問題清單同理預設關閉，由照護者確認病人真的有檢驗值可記錄後才手動開啟。
+  { id: 'labResults', label: { id: 'Hasil lab', zh: '檢驗值', en: 'Lab results' }, compactLabel: { id: 'Lab', zh: '檢驗值', en: 'Labs' }, applicableToSpecies: ['human'] },
 ] as const
 
 export type DailyCareVisibilityPreference = Record<DailyCareModuleId, boolean>
@@ -67,6 +90,10 @@ export const DEFAULT_DAILY_CARE_VISIBILITY: DailyCareVisibilityPreference = {
   fluidBalance: false,
   // 新功能預設開啟，讓家屬不必先找到設定頁才能看到 issue #414 的入口；仍可依病人關閉。
   careReminders: true,
+  // 預設關閉：跟失智照護／體液平衡同理，不是每位病人都需要，由照護者主動開啟（issue #723）。
+  visitQuestions: false,
+  // 預設關閉：檢驗值是特種健康資料，且人類限定，不是每位病人都要記錄（issue #687）。
+  labResults: false,
 }
 
 export function normalizeDailyCareVisibility(value: Partial<DailyCareVisibilityPreference> | null | undefined): DailyCareVisibilityPreference {

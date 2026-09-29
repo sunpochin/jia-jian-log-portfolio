@@ -18,7 +18,8 @@ function readLabel(block: string, key: string): { id: string; zh: string } {
 const titlesBlock = tabHeaderSource.slice(tabHeaderSource.indexOf('const TAB_TITLES'), tabHeaderSource.indexOf('export type TabHeaderTitle'))
 const navBlock = tabHeaderSource.slice(tabHeaderSource.indexOf('export const TAB_NAV_LABELS'))
 
-const NAV_TABS = ['events', 'dailyCare', 'schedule', 'settings'] as const
+// E 期（照護閉環 T5，issue #949）：「行程」tab 併入門診頁，底部導覽改為 今天／軌跡／照護／門診／設定。
+const NAV_TABS = ['today', 'events', 'dailyCare', 'visit', 'settings'] as const
 
 describe('底部導覽名稱與頁面標題', () => {
   test.each(NAV_TABS)('%s 的導覽名稱與頁面標題共用同一個詞', tab => {

@@ -18,7 +18,7 @@ export function ContactAndVersionFooter({ className = '' }: ContactAndVersionFoo
     <footer className={`text-center space-y-2 text-xs text-gray-400 ${className}`}>
       {/* 聯絡與版本信息 */}
       <div className="flex flex-col items-center gap-2">
-        <span>{text({ id: 'Hubungi saya', zh: '聯絡我', en: 'Hubungi saya' })}: <a className="underline hover:text-gray-600" href={APP_AUTHOR_URL} target="_blank" rel="noreferrer">{APP_AUTHOR_URL}</a></span>
+        <span>{text({ id: 'Hubungi saya', zh: '聯絡我', en: 'Contact me' })}: <a className="underline hover:text-gray-600" href={APP_AUTHOR_URL} target="_blank" rel="noreferrer">{APP_AUTHOR_URL}</a></span>
         <ReleaseVersion />
       </div>
     </footer>

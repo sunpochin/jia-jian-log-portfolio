@@ -1,7 +1,7 @@
 /*
 檔案用途：唯讀呈現一位已封存照護對象的完整血壓與體溫歷史，供家屬事後回顧。
 所在層：src/features/system-admin/pages；只能從設定頁的「查看生命歷史」進入，不掛在底部主導覽。
-主要關聯：BloodPressureReportPanel、TemperatureTrend、lib/trendPreference；由 SettingsPage 以固定 patientId 掛載。
+主要關聯：BloodPressureReportPanel、TemperatureTrend、lib/preferences/trendPreference；由 SettingsPage 以固定 patientId 掛載。
 
 為什麼不經過 activeSubject：已封存對象若進入全域的目前操作對象狀態，會被切換分頁時的
 careSubjectGuard 攔下或造成顯示與寫入不一致的風險（見 AGENTS.md〈生理數值對象綁定不變量〉）。
@@ -11,7 +11,7 @@ careSubjectGuard 攔下或造成顯示與寫入不一致的風險（見 AGENTS.m
 import { lazy, useState } from 'react'
 import type { PatientIdentity } from '../../../lib/auth'
 import { common, useI18n } from '../../../lib/i18n'
-import { readTrendPeriod, saveTrendPeriod, TREND_PERIOD_OPTIONS, type TrendPeriodDays } from '../../../lib/trendPreference'
+import { readTrendPeriod, saveTrendPeriod, TREND_PERIOD_OPTIONS, type TrendPeriodDays } from '../../../lib/preferences/trendPreference'
 
 const BloodPressureReportPanel = lazy(() => import('../../vitals/components/BloodPressureReportPanel').then(m => ({ default: m.BloodPressureReportPanel })))
 const TemperatureTrend = lazy(() => import('../../vitals/components/TemperatureTrend').then(m => ({ default: m.TemperatureTrend })))

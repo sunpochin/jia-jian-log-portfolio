@@ -1,7 +1,7 @@
 /*
 檔案用途：React 應用程式的 DOM 掛載主入口與全域 Provider 包裹。
 所在層：src 根目錄；為前端打包與執行的第一入口。
-主要關聯：掛載 App.tsx 並引入 index.css 全域樣式、PWA 更新提示與 Vercel 的效能及流量分析；另在 render 前套用 lib/readingScale 的閱讀字級偏好。
+主要關聯：掛載 App.tsx 並引入 index.css 全域樣式、PWA 更新提示、原生殼 App 鎖（AppLockGate）與 Vercel 的效能及流量分析；另在 render 前套用 lib/readingScale 的閱讀字級偏好。
 */
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -10,6 +10,8 @@ import App from './App.tsx'
 import { LocaleProvider } from './lib/i18n.tsx'
 import { PwaUpdatePrompt } from './components/system/PwaUpdatePrompt.tsx'
 import { PwaInstallPrompt } from './components/system/PwaInstallPrompt.tsx'
+import { NativeUpdatePrompt } from './components/system/NativeUpdatePrompt.tsx'
+import { AppLockGate } from './components/system/AppLockGate.tsx'
 import { PwaUpdateGuardProvider } from './lib/pwaUpdateGuard.tsx'
 import { TutorialProvider, TutorialOverlay } from './components/tutorial'
 // 本專案屬於 Vite + React 應用程式，若載入 @vercel/speed-insights/next 會引發 Next.js 特有 hook/SSR 運行時期錯誤；因此採用 React 專用的 @vercel/speed-insights/react 子路徑
@@ -59,6 +61,11 @@ createRoot(document.getElementById('root')!).render(
         {/* 更新提示放在所有公開與登入路由外層，避免某個早期 return 讓舊 PWA 永遠收不到新版通知。 */}
         <PwaInstallPrompt />
         <PwaUpdatePrompt />
+        {/* 原生殼專用：PwaUpdatePrompt 在 isNativeApp() 時不掛載，這裡改比對遠端 version.json（issue #817）。 */}
+        <NativeUpdatePrompt />
+        {/* iOS 原生殼的 opt-in 畫面鎖（issue #821）：放在最外層、跟 App 同一次 commit 渲染，冷啟動第一個畫面就能蓋住，
+            不會因為某個路由的早期 return 而漏掉；預設關閉時不渲染任何東西。 */}
+        <AppLockGate />
       </PwaUpdateGuardProvider>
     </LocaleProvider>
   </StrictMode>,

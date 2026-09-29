@@ -5,7 +5,7 @@
 */
 import { describe, expect, test } from 'bun:test'
 import { APP_CANONICAL_URL } from '../../src/lib/canonicalUrl'
-import { createPublicHomepageQrMatrix, PUBLIC_HOMEPAGE_QR_MODULE_COUNT, PUBLIC_HOMEPAGE_QR_PAYLOAD, PUBLIC_HOMEPAGE_QR_VERSION } from '../../src/lib/qrCode'
+import { bchTypeInfo, createPublicHomepageQrMatrix, PUBLIC_HOMEPAGE_QR_MODULE_COUNT, PUBLIC_HOMEPAGE_QR_PAYLOAD, PUBLIC_HOMEPAGE_QR_VERSION } from '../../src/lib/qrCode'
 
 describe('public homepage QR', () => {
   test('uses only the production homepage and a version 3 matrix', () => {
@@ -26,5 +26,10 @@ describe('public homepage QR', () => {
       expect(matrix[row + 1][column + 1]).toBe(false)
       expect(matrix[row + 3][column + 3]).toBe(true)
     }
+  })
+
+  test('runs the BCH remainder loop for a non-zero format value', () => {
+    // 固定首頁使用的 format value 恰好不一定進入除法迴圈；這個合法 5-bit 值專門守住 QR 規格的另一條路徑。
+    expect(bchTypeInfo(0b10101)).toBe(597)
   })
 })

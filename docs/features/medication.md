@@ -1,7 +1,7 @@
 <!--
 檔案用途：整理藥品目錄、病人藥單、服藥紀錄與管理後台的現行設計。
 所在層：docs/features；供 medication feature、TFDA sync 與藥單 RLS 修改使用。
-主要關聯：src/features/medication、src/lib/medications.ts、medicationCatalog.ts 與 data-model。
+主要關聯：src/features/medication、src/lib/medication/medications.ts、medicationCatalog.ts 與 data-model。
 -->
 
 # 服藥 / Medication
@@ -65,17 +65,21 @@ PRN 顯示在固定藥之外的獨立區塊，不產生黃色「尚未服用」�
 
 官方候選資料寫入獨立 `drug_products`，保留許可證、中英文品名、成分、劑型、製造商與日期。搜尋可回傳可能相符，但不靜默修正錯字；藥品連結以官方許可證字號，不以藥名或成分模糊 join。外觀只在有確認來源時回填；多色與多外觀保留原文 note，不假裝成唯一顏色。
 
-未驗證自訂藥允許保留照護價值，但 UI 必須清楚標示 `unverified`，不能拿照片、劑量或相互作用做推測。TFDA 同步只更新公共主檔；若既有補償 migration 仍未套用，照護畫面可能維持舊名稱／外觀，需依 AGENTS.md 的同步閘門處理。
+未驗證自訂藥允許保留照護價值，但 UI 必須清楚標示 `unverified`，不能拿照片、劑量或相互作用做推測。TFDA 同步只更新公共主檔；若既有補償 migration 仍未套用，照護畫面可能維持舊名稱／外觀，需依下方「TFDA 同步完成閘門」處理。官方外觀圖仍由本站 `/api/tfda-appearance-image` 代理提供；前端 adapter 只接受精確 TFDA 圖片路徑或既有 Supabase Storage URL，未知外站不渲染，避免為了顯示目錄圖片而開放或直連任意外站。代理的好處不是隱藏公開圖片或圖片 path，而是讓 TFDA 看到本站伺服器的請求，不直接看到照護者裝置的 IP／User-Agent；本站仍看得到 proxy 請求，這是減少第三方裝置識別，不是匿名化。
 
-`scripts/import-tfda-drug-products.ts` 除了藥證主檔（dataset 37）與外觀（dataset 42），也同步 TFDA「藥品藥理治療分類 ATC 碼」公開資料集（政府資料開放平臺 dataset #9119，export URL 沿用同一慣例的 dataset 41），寫入 `tfda_drug_atc_classifications`（複合主鍵 `tfda_license_number, atc_code`，因複方藥常對應多個碼；`is_primary` 欄位對照官方「主或次項」標示，只有主項才代表這顆藥的主要功能），再由 `refresh_official_medication_atc()` 回填 `medications.atc_code`（優先採用官方標示的主項分類，同為主項或都缺標示時才退回字母序最小值）。ATC 碼本身不直接顯示；`src/lib/medicationAtcCategories.ts` 用一份靜態雙語對照表（前綴匹配，如 `C09` 對應「降血壓藥（ACE抑制劑／ARB）」）把它轉成照護者看得懂的「主要功能」標籤。這個標籤現在顯示在 `MedicationNameHeading` 的藥名正下方（跟藥名同字級、桃紅色粗體，取代舊版藏在色塊旁邊的小字藍底徽章，方便長輩一眼看到），每日服藥打卡卡片裡的 `MedicationAppearance` 因此改用 `showCategory={false}` 隱藏原位置避免重複；排藥／PRN 頓服等沒有搭配 `MedicationNameHeading` 的畫面則仍由 `MedicationAppearance` 就地顯示。改分類措辭只需改對照表，不必跑 migration；沒有官方 ATC 資料或對照表沒收錄的分類一律不顯示，不用猜測的標籤誤導照護判斷。
+`scripts/import-tfda-drug-products.ts` 除了藥證主檔（dataset 37）與外觀（dataset 42），也同步 TFDA「藥品藥理治療分類 ATC 碼」公開資料集（政府資料開放平臺 dataset #9119，export URL 沿用同一慣例的 dataset 41），寫入 `tfda_drug_atc_classifications`（複合主鍵 `tfda_license_number, atc_code`，因複方藥常對應多個碼；`is_primary` 欄位對照官方「主或次項」標示，只有主項才代表這顆藥的主要功能），再由 `refresh_official_medication_atc()` 回填 `medications.atc_code`（優先採用官方標示的主項分類，同為主項或都缺標示時才退回字母序最小值）。ATC 碼本身不直接顯示；`src/lib/medication/medicationAtcCategories.ts` 用一份靜態雙語對照表（前綴匹配，如 `C09` 對應「降血壓藥（ACE抑制劑／ARB）」）把它轉成照護者看得懂的「主要功能」標籤。這個標籤現在顯示在 `MedicationNameHeading` 的藥名正下方（跟藥名同字級、桃紅色粗體，取代舊版藏在色塊旁邊的小字藍底徽章，方便長輩一眼看到），每日服藥打卡卡片裡的 `MedicationAppearance` 因此改用 `showCategory={false}` 隱藏原位置避免重複；排藥／PRN 頓服等沒有搭配 `MedicationNameHeading` 的畫面則仍由 `MedicationAppearance` 就地顯示。改分類措辭只需改對照表，不必跑 migration；沒有官方 ATC 資料或對照表沒收錄的分類一律不顯示，不用猜測的標籤誤導照護判斷。
 
-這個回填函式刻意**不**比照 `refresh_official_medication_appearances()` 額外要求 `verification_status = 'official'`：實測發現 `apply_medication_plan_change`（見 `20260821030000_guard_shared_medication_catalog_writes.sql`）不論藥品是否從官方目錄搜尋加入，一律把 `verification_status` 寫成 `'unverified'`；`'official'` 這個狀態目前只有極少數幾筆最早期手動處理過的藥品才有。ATC 分類是純附加資訊、不會覆蓋任何使用者可能自己修正過的欄位（跟外觀顏色／形狀不同），因此不需要額外要求驗證狀態。
+這個回填函式一開始刻意**不**比照 `refresh_official_medication_appearances()` 額外要求 `verification_status = 'official'`：實測發現 `apply_medication_plan_change`（見 `20260821030000_guard_shared_medication_catalog_writes.sql`）不論藥品是否從官方目錄搜尋加入，一律把 `verification_status` 寫成 `'unverified'`；`'official'` 這個狀態目前只有極少數幾筆最早期手動處理過的藥品才有。ATC 分類是純附加資訊、不會覆蓋任何使用者可能自己修正過的欄位（跟外觀顏色／形狀不同），因此不需要額外要求驗證狀態。`20260915111000_relax_medication_appearance_refresh_to_catalog_source_link.sql`（規劃文件 [`docs/product/shared-medication-catalog.md`](../product/shared-medication-catalog.md) §5.7）之後，外觀回填也放寬到同一條件：拿掉 `verification_status = 'official'` 限制、外觀四欄改成 `COALESCE(medications.x, 官方值)` 只補 NULL、不覆蓋任何人已登錄的值，安全性改由「只補空欄位」把關，而不是靠驗證狀態擋下。
 
 **`20260828020047_backfill_generic_medication_atc_codes.sql` 是第二條、人工維護的回填路徑**，跟上面 `refresh_official_medication_atc()` 走的 TFDA 同步表是兩回事：涵蓋的是只知道學名成分、從未連結過任何 TFDA 商品（`diphenidol-25`／`famotidine-20`／`mirtazapine-30` 這類「學名／商品未確認」項目，見 `20260711030000_add_mother_medication_plans.sql`），或已連結官方藥證但該許可證在 `tfda_drug_atc_classifications` 裡剛好沒有 ATC 資料的藥品。這些藥的 WHO ATC 碼是照該成分（不是特定包裝／外觀）的公認藥理分類手動查證後直接寫死在 migration 裡，只在 `atc_code IS NULL` 時才寫入，不會覆蓋已由官方同步算出的結果。之所以能安全略過驗證狀態，是因為 ATC 標籤描述的是「這個成分是什麼藥效」，跟需要核對外觀照片才能顯示的「這顆藥長什麼樣子」是不同等級的風險；但這代表 `medications.atc_code` 目前有兩個彼此獨立的資料來源，之後若要重新同步或除錯分類不準，要記得檢查是不是命中了這條手動路徑。
 
-**連結官方藥證用的是 `catalog_source`／`catalog_source_id`，不是 `drug_product_id`**：`20260827050000_relax_atc_refresh_to_drug_product_link.sql` 第一版誤以為一般藥品會有 `drug_product_id` 這個外鍵，把回填條件改成只要求它連結；但實測正式環境重新同步後回填數量完全沒變（仍是 12 筆）才發現 `apply_medication_plan_change` 從來不會寫入 `drug_product_id`——這個欄位只有 `link_mother_medications_to_tfda.sql`／`link_bokey_official_product.sql` 這類早期一次性手動遷移才會設定。使用者從官方目錄搜尋加入藥品時，實際寫入的是 `catalog_source = 'tfda'` 與 `catalog_source_id`（TFDA 授權字號，見 `src/lib/medicationCatalogRegistry.ts` 的 `TfdaCatalogProvider.sourceId`）。`20260827060000_fix_atc_refresh_to_use_catalog_source_link.sql` 改成同時比對三種可能連結來源（`drug_product_id` 相容舊資料、舊版 `tfda_license_number` 欄位、`catalog_source = 'tfda'` 時的 `catalog_source_id`），一般搜尋加入的藥品才真正吃得到分類。
+**連結官方藥證用的是 `catalog_source`／`catalog_source_id`，不是 `drug_product_id`**：`20260827050000_relax_atc_refresh_to_drug_product_link.sql` 第一版誤以為一般藥品會有 `drug_product_id` 這個外鍵，把回填條件改成只要求它連結；但實測正式環境重新同步後回填數量完全沒變（仍是 12 筆）才發現 `apply_medication_plan_change` 從來不會寫入 `drug_product_id`——這個欄位只有 `link_mother_medications_to_tfda.sql`／`link_bokey_official_product.sql` 這類早期一次性手動遷移才會設定。使用者從官方目錄搜尋加入藥品時，實際寫入的是 `catalog_source = 'tfda'` 與 `catalog_source_id`（TFDA 授權字號，見 `src/lib/medication/medicationCatalogRegistry.ts` 的 `TfdaCatalogProvider.sourceId`）。`20260827060000_fix_atc_refresh_to_use_catalog_source_link.sql` 改成同時比對三種可能連結來源（`drug_product_id` 相容舊資料、舊版 `tfda_license_number` 欄位、`catalog_source = 'tfda'` 時的 `catalog_source_id`），一般搜尋加入的藥品才真正吃得到分類；`refresh_official_medication_appearances()` 原本只認 `drug_product_id`，有同樣「一般藥品幾乎回填不到」的問題，`20260915111000_relax_medication_appearance_refresh_to_catalog_source_link.sql` 照抄同一套三種來源優先順序與 CTE 寫法（避免 070000 修過的 `UPDATE ... FROM LATERAL` 42P10 錯誤）補上。
 
 實際欄位名稱已在 2026-08-27 第一次真正對外部執行同步時，由 GitHub Actions log 的 `[tfda atc sample fields]` 確認為：`許可證字號`／`代碼`／`中文分類名稱`／`英文分類名稱`／`主或次項`（`toAtcClassifications()` 仍保留候選欄位清單當保險，TFDA 之後若調整命名，命中失敗只會讓那次同步跳過 ATC 分類，不會讓整個匯入失敗）。
+
+### TFDA 同步完成閘門（防止資料只匯入未顯示）
+
+每次成功執行 TFDA 同步後，若該次或已合併的變更包含官方藥品連結、中文品名或外觀回填 migration，Agent 必須在本機驗證後立即執行對應的非破壞性 `supabase db push`，再檢查目標 `medications` 已有 `brand_name_zh`、正確劑型與已連結資料的外觀欄位。若 CLI 因暫時沒有登入憑證而不可用，可改執行已驗證的手動 GitHub Action 資料回填；它只能補已確認的資料，且恢復 CLI 後仍須補套用 migration。原因是 TFDA 主檔同步只更新公開目錄；尚未套用回填時，照護畫面仍會讀到舊的個人藥單資料。不得以藥名模糊匹配或自行猜測照片來填補缺失。手動 `supabase db push` 仍受 [`AGENTS.md`](../../AGENTS.md) § 3.2 的核准規則約束。
 
 ## 後台安全與 UX
 
@@ -91,6 +95,12 @@ PRN 顯示在固定藥之外的獨立區塊，不產生黃色「尚未服用」�
 
 `formatDoseAmountLocalized()` 內部的劑型單位對照表已抽成獨立匯出的 `dosageFormUnitLabel(dosageForm, locale)`；下面「時段顆數摘要」需要同一份單位對照，直接呼叫這個函式，不再各自維護一份複本。加新劑型時仍是同一份對照表，不會因為多了呼叫端而變成要改兩處。
 
+### 單次劑量步距與分數顯示
+
+單次劑量（`dose_amount`）下拉選單步距是 1/4 顆（`0.25`），下限也是 `0.25`，上限維持 9；`validDoseAmount()`（`src/lib/medication/medicationAdminFormHelpers.ts`）與新增／調整藥單表單的下拉選單（`MedicationAdminFormFields.tsx` 的 `DOSE_OPTIONS`）共用這個步距。原本步距是半顆（`0.5`），2026-09 因應照護對象減藥需要更細的量而改細，讓照護者能選到 1/4、3/4 顆。
+
+零頭劑量一律顯示分數（¼／½／¾），不顯示成 `0.25`／`0.75` 這種小數，否則照護者容易誤讀成看不出來要怎麼分藥的數字：下拉選單標籤是 `doseOptionLabel()`；儲存後的顯示（藥單摘要、每週藥單、藥品詳情、服藥打卡分數）共用 `formatDoseAmount()` / `formatDoseAmountLocalized()` 內部匯出的 `formatDoseCountLabel()`，之後如果要再加更細的步距（例如 1/8），也只需要改這一個函式。目前規則刻意只在 1/4、3/4 兩種分數上跟整數合併顯示（例如 `1¼`）；單獨半顆（`0.5`）也顯示 `½`，但合併超過一顆的半顆（例如 `1.5`）維持顯示小數，這是既有測試鎖定的既定行為，未一併擴大。
+
 ### 時段顆數摘要：次數（dose_count）≠ 顆數（dose_amount），劑型也不能混算
 
 「服藥打卡」「每週藥單」「排藥」三個畫面的時段標題都會顯示一個顆數摘要，讓照護者不用逐項心算就知道這餐要準備幾種藥、共幾顆／幾包／幾份。這個數字牽涉兩層換算，兩層都不能簡化：
@@ -98,7 +108,7 @@ PRN 顯示在固定藥之外的獨立區塊，不產生黃色「尚未服用」�
 1. **次數（`dose_count`）不等於顆數（`dose_amount`）**：`dose_count` 是同一筆醫囑要在這個時段核對幾次（服藥打卡會拆成對應張數的卡片），`dose_amount` 是每次核對要吞的份量（例如鉀離子藥常見 `dose_amount = 2、dose_count = 1`，一次核對、吞兩顆）。「服藥打卡」畫面同時顯示「N 次已服用」與「M 顆已服用」兩個獨立分數，只顯示次數會讓照護者誤以為顆數也對得上。實際顆數＝該時段所有固定用藥（排除 PRN）的 `dose_amount × dose_count` 加總。
 2. **不同劑型不能直接加總**：藥錠／膠囊論「顆」，粉劑論「包」，液劑論「份」，同一時段常見同時有藥錠與粉包（例如鈣加 D 是沖泡粉包）。把 2 顆藥錠＋1 包粉直接加總說成「3 顆」會誤導照護者核對藥盒時對不上實際包裝數量，因此顆數摘要一律先按 `medications.dosage_form` 分組加總，每組各自套用正確單位，多種劑型時用「＋」接起來（例如「2 錠＋1 包」），不會硬併成一個數字。
 
-實作集中在 `src/lib/medicationSchedule.ts` 兩個函式，供上述三個畫面共用同一套換算，不各自寫一份：
+實作集中在 `src/lib/medication/medicationSchedule.ts` 兩個函式，供上述三個畫面共用同一套換算，不各自寫一份：
 
 - `medicationSlotQuantityText(plans)`：純總量（沒有「已服用」概念），排藥／每週藥單的時段徽章與「每日總計」都呼叫這個。
 - `medicationSlotQuantityProgressText(takenDoses, allDoses)`：「已服用／應服用」分數版本，服藥打卡的時段標題呼叫這個；輸入是已展開成一次一份的 dose 陣列（`{ dose_amount, dosage_form }`），不是原始的 plan 陣列。
@@ -125,9 +135,9 @@ PRN 顯示在固定藥之外的獨立區塊，不產生黃色「尚未服用」�
 
 稽核快照必須反映「真正被取代的舊資料」：RPC 在覆寫 `medications` 之前就先把舊列存進區域變數，`medication_plan_change_logs.before_snapshot` 一律用這份存好的舊值組成，不會重新查表讀到已經被本次 upsert 蓋掉的新值（修正前的舊版本會把「調整前」誤記成「調整後」的劑型，稽核紀錄無法追回真正被取代的值）。
 
-照片網址沿用「新增未驗證自訂藥品」表單的規則，只收 `https://` 開頭，避免修正把 `http://` 或打錯字的網址存進共用目錄。
+照片網址沿用「新增未驗證自訂藥品」表單的規則，只收 `https://` 開頭的官方網址，或我們自己上傳產生的 bucket path（見下一段），避免修正把 `http://` 或打錯字的值存進共用目錄。
 
-外觀照片改用手機「拍照／從相簿選取」上傳（`src/lib/medicationAppearancePhotos.ts`），不再要求照護者自備圖床貼網址；元件與壓縮流程比照照護大事記照片（見 `docs/features/care-timeline.md`），共用邏輯抽在 `src/lib/imageCompression.ts`／`src/lib/randomId.ts`。但 Storage 設計刻意與照護大事記不同：`medications` 本身跨病人共用，不像照護大事記綁定單一 `patient_id`，因此照片存進 **public** 的 `medication-appearance-photos` bucket、上傳後直接取得 public URL 存回 `appearance_photo_url`，不走 private bucket 與 signed URL；寫入 RLS 只檢查 `care_access.can_manage_medication`（任一病人皆可，不比對特定 `patient_id`），因為目錄本身沒有病人邊界可比對，真正的「哪個病人能改哪顆藥」授權仍由 `apply_medication_plan_change` RPC 把關。
+外觀照片改用手機「拍照／從相簿選取」上傳（`src/lib/medication/medicationAppearancePhotos.ts`），不再要求照護者自備圖床貼網址；元件與壓縮流程比照照護大事記照片（見 `docs/features/care-timeline.md`），共用邏輯抽在 `src/lib/imageCompression.ts`／`src/lib/randomId.ts`。Storage 設計與照護大事記的差異只在「有沒有病人邊界」：`medications` 本身跨病人共用，不像照護大事記綁定單一 `patient_id`，因此寫入 RLS 只檢查 `care_access.can_manage_medication`（任一病人皆可，不比對特定 `patient_id`）；真正的「哪個病人能改哪顆藥」授權仍由 `apply_medication_plan_change` RPC 把關。bucket 本身則與照護大事記一致改為 **private**（issue #591 中期修法，`20260913170000_privatize_medication_appearance_photo_storage.sql`）：`appearance_photo_url` 只存 bucket 內的 bare path（`photos/<uuid>.webp`），渲染前呼叫 `signMedicationAppearancePhotoPath()` 換一小時效期的簽名網址，不再有永久有效、不需簽章的公開連結；官方 TFDA 圖片仍是完整 `https://` 網址，兩種格式並存於同一個 `appearance_photo_url` 欄位、由 CHECK 限制。
 
 ### 加入一顆藥單已經有的藥
 
@@ -154,7 +164,7 @@ PRN 顯示在固定藥之外的獨立區塊，不產生黃色「尚未服用」�
 
 服藥工作區與輸入血壓工作區共用病人、頁首與底部導覽，但各自保持領域狀態；藥單管理與變更藥物避免在一張輸入表單中塞入醫囑編輯，改走獨立畫面。服藥頁固定顯示「服藥打卡」「每週藥單」「排藥」「變更藥物」四個頁籤（`MedicationViewTabs`），取代原本只把後三者降級成今日畫面角落文字連結的設計；四個頁籤共用同一套 `role="tablist"` 鍵盤左右鍵切換與 `aria-controls` 對應面板，跟每日照護的 `DailyCareSectionTabs` 是同一套規範。藥品外觀辨識卡只顯示已確認的資料，保健品可保存包裝劑量（例如 IU／µg）而不強轉成 mg。
 
-四個頁籤中的藥名一律用 `MedicationNameHeading`／`MedicationSnapshotNameHeading`（`src/features/medication/components/MedicationNameHeading.tsx`）呈現：紅色粗體主要名稱＋灰階次要名稱，避免各分頁各自重寫顏色與排序判斷。主要／次要名稱何者是英文商品名、何者是本地化品名由「藥名優先顯示英文商品名」帳號偏好決定（`src/lib/medicationDisplayPreference.ts` 的 `medication_name_english_first`，預設英文優先），跟「每餐是否展開」使用同一張 `user_settings` 表但各自獨立讀寫，登入帳號寫 Supabase、`/demo` 寫 localStorage。預設英文優先是因為外籍看護與家屬核藥時最先認得包裝上的英文商品名。
+四個頁籤中的藥名一律用 `MedicationNameHeading`／`MedicationSnapshotNameHeading`（`src/features/medication/components/MedicationNameHeading.tsx`）呈現：紅色粗體主要名稱＋灰階次要名稱，避免各分頁各自重寫顏色與排序判斷。主要／次要名稱何者是英文商品名、何者是本地化品名由「藥名優先顯示英文商品名」帳號偏好決定（`src/lib/preferences/medicationDisplayPreference.ts` 的 `medication_name_english_first`，預設英文優先），跟「每餐是否展開」使用同一張 `user_settings` 表但各自獨立讀寫，登入帳號寫 Supabase、`/demo` 寫 localStorage。預設英文優先是因為外籍看護與家屬核藥時最先認得包裝上的英文商品名。
 
 「每週藥單」是唯讀畫面，直接沿用目前固定套用的 `medication_plans`（服藥模組尚未有「星期幾」層級的排程，因此本週＝現行藥單），任何有讀取權限的人（包含被照顧者自己）都能看到，不受排藥權限限制，也不提供任何寫入操作。「排藥」（原「調整藥單」）與「變更藥物」（原「變更紀錄」）則只開放給 `care_access.can_manage_medication` 為真的照護者，沒有管理權的視角只會看到「服藥打卡」與「每週藥單」兩個頁籤（`MedicationViewTabs` 的 `canManage` 參數）。這個判斷完全走 `care_access` 資料表、不寫死任何 email——服務裡不會只有一組照顧者／被照顧者，之後每多一位被照顧者都要能沿用同一套機制，不能每加一位就多改一次程式碼：
 
@@ -185,7 +195,65 @@ PRN 顯示在固定藥之外的獨立區塊，不產生黃色「尚未服用」�
 
 既有舊 log 的 `upsert` 會在 migration 中依同一 plan 的時間順序保守轉成 `create`／`update`，並標記部分快照；不重建時間線、不刪除歷史，避免把未知的舊事件偽造得比實際更精確。新 UI 的時間線表單不再提供 `medication_change` 或任意藥單關聯；尚未套用的醫師指示請使用 `doctor_instruction`，真正調藥請到藥單管理。
 
-## 藥袋照片 OCR（issue #423 決策落地，MVP）
+### 服用方式（issue #622／#624／#625／#627 決策落地）
+
+回答「這顆藥到底能不能吞」，分兩層資料來源，A、B 兩層各自唯讀／可寫，互不覆蓋：
+
+- **A 層（系統自己知道的）**：`src/lib/medication/medicationSwallowGuidance.ts` 的 `resolveSwallowGuidance()`，
+  純前端靜態關鍵字對照表（結構比照 `medicationAtcCategories.ts`），輸入 `medications.official_dosage_form_text`
+  （官方劑型原文，由 `refresh_official_medication_dosage_details()` 從 TFDA 藥證主檔回填，跟 `atc_code`
+  同一套 service-role refresh 機制，`apply_medication_plan_change` 不碰）與收斂後的四值 `dosage_form`，
+  回傳 `{ level, severity, text }`。**只證明「不可以」（`sublingual`／`chewable`／`dissolve_in_water`／
+  `swallow_whole` 這幾個 caution 等級），證明不了「可以」**——沒命中任何關鍵字一律回 `unknown`，
+  把不確定明白講出來，不預設安全。`official_score_text`（刻痕）不參與判斷：刻痕只是外觀壓痕，不保證
+  剝半後藥效不變，膜衣緩釋錠一樣可能有刻痕，因此沒有 `scored` 等級。
+- **B 層（人講過的）**：`patient_medication_instructions`（`(patient_id, medication_id)` 為主鍵，一個病人的一顆藥
+  只有一種吃法）。刻意不塞進 `medications`（跨病人共用目錄，會波及別的病人）或 `medication_plans`
+  （同一顆藥早晚各一筆就要各填一次，且要動 20 參數 RPC）；只用一般 `supabase.from()` 讀寫，由 RLS
+  （`care_access` ＋寫入需 `can_manage_medication`）把關，完全不需要 RPC。`src/lib/medication/medicationInstructions.ts`
+  匯出 `MEDICATION_INSTRUCTION_CODES`（chip 代碼字典）、`SOURCE_LABELS`（藥師／醫師／藥袋仿單／家屬自行記錄）、
+  `readPatientMedicationInstructions()`／`savePatientMedicationInstruction()`／`clearPatientMedicationInstruction()`。
+  `updated_by`／`updated_at` 由資料庫 trigger 從 JWT 強制寫入，前端不送這兩欄；只寫自己這張表，不進
+  `medication_plan_change_logs`。
+
+**衝突不靜默裁決**：`detectInstructionConflict(guidanceLevel, codes)` 把 A 層等級與 B 層代碼都投影到同一組
+互斥的「給藥動作」（整顆吞下／破壞劑型／舌下含服／嚼碎／泡水溶解後喝／在口中化開）再兩兩比對，
+不是寫死配對清單——寫死的配對會漏掉 `sublingual`＋`swallow_whole`、`chewable`＋`swallow_whole` 這類真實
+可達的矛盾。兩層衝突時畫面**兩邊都照顯示**，另外加一條「官方劑型與紀錄不一致，請再跟藥師確認」，
+不隱藏任何一邊，也不自動判定哪邊比較安全。
+
+**顯示**：`src/features/medication/components/MedicationIntakeGuidance.tsx` 是唯一的「等級→顏色」判斷來源，
+`compact` prop 切精簡徽章／完整區塊，四個顯示點共用同一份邏輯：
+
+| 位置 | 呈現 |
+|---|---|
+| `MedicationDetailDialog.tsx` | 完整區塊，放在既有琥珀色「用途／副作用尚未提供」面板之前 |
+| `MedicationPage.tsx` 服藥打卡卡片（尚未服用） | 精簡徽章，只在 A 層 `caution` 或 B 層有紀錄時出現 |
+| `MedicationPage.tsx` 每週藥單（含 PRN） | 同上 |
+| `CareHandbookPage.tsx` 交接手冊 | 不經過互動元件；直接呼叫 `resolveSwallowGuidance()`／`instructionCodeText()`／
+  `sourceLabelText()` 產生**中／印並列**文字（不跟隨目前語系），跟該頁既有 `bilingual()` 寫法一致 |
+
+精簡徽章三種語氣互斥（衝突永遠蓋過其餘兩種）：紅（衝突，`bg-red-600`）／橘（A 層需注意，`bg-orange-700`）／
+藍（僅 B 層有紀錄，`bg-sky-700`），色階沿用 `VitalAlertBadge.tsx` 的 700／600 色階（WCAG AA 4.5:1），
+且徽章與完整區塊都是文字＋圖示（unicode 符號，`aria-hidden`）＋顏色三者齊備，不靠顏色單獨傳遞語意。
+
+**填寫入口**：`MedicationInstructionEditor.tsx` 掛在 `PlanFields` 裡，只在 `patientId`／`medicationId`
+都有值（已確認的病人專屬藥品）時渲染；新增自訂藥品當下 `medicationId` 尚未建立，因此該流程不會出現，
+要等藥品建立成新醫囑、以「調整既有醫囑」進來才會出現。刻意不放進會覆寫跨病人共用目錄的琥珀色
+「修正藥品資料」fieldset，避免照護者以為改的是共用藥品資料。
+
+**Demo**：`src/lib/demoData.ts` 的李阿姨藥單裡，伯基（腸溶微粒膠囊）示範 A 層——`official_dosage_form_text`
+直接填官方原文，讓 `resolveSwallowGuidance()` 命中 `swallow_whole`；立普妥示範 B 層——
+`getFallbackDemoLeePatientMedicationInstructions()` 模擬藥師交代過可磨粉配水、隨餐服用，跟藥單／藥品目錄
+一樣在 `initialDemoState()` 永遠存在，不需要真實資料或手動填寫就能驗證四個分頁與交接手冊。
+
+## 藥袋照片 OCR（issue #423 決策落地，MVP；2026-09-11 起前端入口暫時隱藏）
+
+**目前狀態**：production 尚未設定 `GOOGLE_CLOUD_VISION_API_KEY`，`MedicationAiDraftSection` 原本在 AI 配額用完或辨識失敗時
+提供的「改用基礎拍照辨識 (Vision OCR 備援)」切換按鈕，實際點開只會得到「尚未開通、請改用手動輸入」，對照護者是死路。
+`MedicationAdminSection` 因此暫時不再傳入 `onPickOcrCandidate`，讓 `MedicationAiDraftSection` 內的條件渲染整段跳過，
+`MedicationPhotoOcrSection` 元件與 `medication-ocr` Edge Function 都還在，未刪除任何程式碼；重新開通（設定 Vision Key
+並恢復傳入 `onPickOcrCandidate`）另外開票追蹤。
 
 拍藥袋只是幫忙猜品名，不是另一條寫入路徑：`MedicationPhotoOcrSection` 呼叫 `supabase/functions/medication-ocr`
 把壓縮後的照片位元組（沿用 `careEventPhotos.ts` 的 `prepareSingleCompressedImage`，不經 Storage、只存在單次
@@ -205,6 +273,65 @@ trigger（比照血壓/大事記的 `account_usage_limits` + `pg_advisory_xact_l
 辨識後由我方伺服器事後過濾捨棄」，`/privacy` 與 `/health-data-notice` 的文案與 `docs/product/growth-roadmap.md`
 P0-1 決策記錄都已同步更新為這個措辭，同意版本也一併升版到 2026-08-26（見 `src/lib/legalConsent.ts` 的
 `CURRENT_HEALTH_CONSENT_VERSION`）。
+
+## AI 藥單草稿（issue #663／#664／#665 決策落地，2026-09-11 開放免費限次試用）
+
+這是比上面「藥袋照片 OCR」更進一步的辨識：`MedicationAiDraftSection` 呼叫
+`supabase/functions/medication-ai-draft`，改用 Gemini 多模態模型一次讀出整張藥袋的結構化欄位
+（品名、劑型、單次劑量、一天次數、服藥時機、劑量標示原文），不只是猜品名字串。照護者點「套用到
+新增用藥表單」後，這些欄位只是預填進 `MedicationAdminSection`「新增用藥」表單（`NewMedicationForm`）
+的初始值——低信心或 AI 讀不出來的欄位一律留白並標示「藥袋上沒讀到，請自行填寫」，絕不用猜測值頂替；
+一天次數與服藥時機僅供畫面參考顯示，不會自動填入表單，因為誤填服藥時段的風險高於留白讓照護者自己選。
+最終仍要走同一套人工確認流程與 `createMedicationPlan`／`apply_medication_plan_change`，沒有新增任何
+繞過人工確認的儲存路徑，安全邊界與基礎版 OCR 完全一致。
+
+**權限模型與基礎版 OCR 不同**：基礎版 Vision OCR（上方段落）對所有使用者一律免費，只受
+`medication_ocr_daily_limit` 的每日上限保護；AI 藥單草稿則依 `account_usage_limits.medication_ai_draft_tier`
+分兩級配額——未開通帳號每天 3 次免費試用（`medication_ai_draft_free_daily_limit`），已開通
+（付費）帳號維持較高的每日額度（`medication_ai_draft_daily_limit`，預設 20，2026-09-12 起從 4 調高，
+拉開與免費額度的差距，讓付費升級有感）。兩者都算在
+`medication_ocr_call_logs`（`call_kind='llm_draft'`），配額 trigger 依 tier 讀不同欄位，
+兩種帳號互不影響彼此額度。免費額度用完時，畫面會顯示明確的「升級 Premium」提示（三語），
+不是單純的錯誤訊息；已開通帳號用完則只顯示「明天再試」，不重複推銷。詳細的產品決策、
+成本估算與被否決的替代方案見 [`docs/product/premium-entitlements-and-ai-medication-draft.md`](../product/premium-entitlements-and-ai-medication-draft.md)。
+
+**病人切換防呆（三道防線）**：拍照到辨識結果回來之間，照護者可能已經切換病人。Edge Function 會
+原樣帶回請求時的 `patientId`；前端 `src/lib/medication/medicationAiDraft.ts` 的 `draftMatchesPatient` 是這三道
+防線唯一共用的判斷式——(1) 回應抵達當下比對目前選定病人，不符就整包丟棄、不渲染；(2) 病人一旦切換，
+`useEffect` 立刻清空已顯示的草稿與錯誤訊息，不等遲到的回應決定；(3) 照護者按下「套用」當下再比對一次，
+避免草稿顯示後才切換病人的空窗期。三處共用同一個純函式，避免各自重複比較邏輯而出現不一致。
+
+**⚠️ 上傳 header 的 Content-Type 大小寫是硬性約定（issue #808 迴歸教訓）**：
+`MedicationAiDraftSection.tsx`／`MedicationPhotoOcrSection.tsx` 呼叫 `supabase.functions.invoke()`
+上傳照片時，自訂 content type 的 header key **必須寫成 `'Content-Type'`（開頭大寫），不能是
+`'content-type'`**。`@supabase/functions-js` 判斷「呼叫端是否已自訂 content type」用的是區分大小寫的
+`Object.prototype.hasOwnProperty.call(headers, 'Content-Type')`；用小寫會偵測不到，讓 library 自動幫
+Blob body 注入 `Content-Type: application/octet-stream`，兩個大小寫不同的 key 最終都被送進
+`fetch()`，瀏覽器把同名（大小寫不敏感）標頭合併成 `"application/octet-stream, image/webp"` 這種
+畸形值。Edge Function 端 `rawContentType.startsWith('image/')` 判斷因此失敗、悄悄退回寫死的
+`'image/jpeg'`——但瀏覽器實際編碼的是 WebP（`imageCompression.ts` 的 `detectWebpEncodeSupport()`，
+現代瀏覽器多半支援），mimeType 標錯讓 Gemini `inlineData` 解碼失敗，症狀是 AI 藥單辨識對每一張
+照片都回傳通用的「辨識失敗」，而基礎 Vision OCR 不受影響（Vision 用內容自動偵測格式，不依賴宣告的
+mimeType）。任何未來改動這兩個呼叫點、或把上傳邏輯換一套 HTTP client，都要保留這個大小寫約定；
+迴歸測試見 `tests/unit/medicationAiDraftContentTypeRegression.test.ts`（用真正的
+`@supabase/functions-js` `FunctionsClient` 重現瀏覽器實際送出的標頭，而非只 mock 整個 `invoke`）。
+
+**服藥頻率預設與時段複選（2026-09-11 升級）**：
+原本輸入藥物介面只支援單選固定時段，且「AI 藥袋辨識」會產出「一天次數 3, 一次服用量 2」等結果，但照護者必須重複選時段或手動建立多次。
+本次升級：
+1. **常用服藥頻率預設（`src/lib/medication/medicationFrequencyPresets.ts`）**：
+   定義台灣常見處方頻率預設組合（包含三語名稱、對應 schedule slots）：
+   - 一天三次（TID）：`tid_pc`（餐後：早餐後、午餐後、晚餐後）、`tid_any`（餐前餐後都可以：早餐後、午餐後、晚餐後）、`tid_ac`（餐前：早餐前、午餐前、晚餐前）。
+   - 一天四次（QID）：`qid_pc_hs`（三餐後及睡前）、`qid_ac_hs`（三餐前及睡前）。
+   - 一天二次（BID）：`bid_pc`（早晚飯後）、`bid_ac`（早晚飯前）。
+   - 一天一次（QD）：`qd_morning_pc`（早餐後）、`qd_morning_ac`（早餐前）、`qd_hs`（睡前）。
+2. **AI 草稿智慧比對（`matchFrequencyPreset`）**：
+   根據 LLM 產出的 `timesPerDay` 與 `timingHint`（如「一天三次，餐後」、「餐前餐後都可以」），智慧比對最相近的預設選項並預先勾選對應時段（草稿預覽卡亦會顯示「建議時段組合」）。
+3. **多時段批次寫入（`useMedicationAdminForm`）**：
+   新增藥物與安排既有藥物支援複選多個時段，前端在確認後依序批次呼叫 `createMedicationPlan` 或 `addExistingMedicationPlan`，後端 schema 與 RPC 維持完全相容。
+   批次寫入不是單一交易：中途若有一個時段失敗，前面已成功的時段仍留在資料庫。失敗時前端一律重新讀取藥單清單，讓照護者看到目前實際狀態；若原本選了多個時段，錯誤訊息會額外提醒「可能已部分儲存」，請照護者先核對清單再決定是否重試，避免對已成功的時段重複送出（`apply_medication_plan_change` 對同一 (patient, medication, slot) 是 idempotent 的，重送不會造成重複醫囑）。
+4. **移除重複區塊**：
+   移除排藥介面中原本單純猜測品名的舊版「拍藥袋辨識(實驗功能)」區塊（`MedicationPhotoOcrSection`），統一收斂至多模態 AI 藥袋辨識。
 
 ## 不採用的替代
 

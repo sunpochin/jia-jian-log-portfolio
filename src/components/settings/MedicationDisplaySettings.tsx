@@ -31,7 +31,7 @@ export function MedicationDisplaySettings({ slotsExpanded, onChange, saving, err
         <input id="medication-slots-expanded" type="checkbox" checked={slotsExpanded} disabled={saving} onChange={event => void onChange(event.target.checked)} aria-describedby="medication-display-settings-help" className="h-5 w-5 shrink-0 accent-blue-600" />
       </label>
       <p className="mt-3 text-xs text-gray-500">{text(isDemoMode
-        ? { id: 'Mode demo menyimpan pengaturan di browser ini saja.', zh: '展示模式只會把設定保存在這個瀏覽器。', en: 'Display mode will only save settings in this browser.' }
+        ? { id: 'Mode demo menyimpan pengaturan di browser ini saja.', zh: '展示模式只會把設定保存在這個瀏覽器。', en: 'Demo mode only saves settings in this browser.' }
         : slotsExpanded
           ? { id: 'Pengaturan akun ini akan digunakan saat Anda masuk di perangkat lain.', zh: '這個帳號設定會在你登入其他裝置時套用。', en: 'These account settings will be used when you sign in on another device.' }
           : { id: 'Tampilan ringkas tersimpan di akun ini dan akan mengikuti Anda ke perangkat lain.', zh: '精簡顯示會儲存在這個帳號，其他裝置也會跟著使用。', en: 'The compact display setting is saved to this account and follows you to other devices.' })}</p>

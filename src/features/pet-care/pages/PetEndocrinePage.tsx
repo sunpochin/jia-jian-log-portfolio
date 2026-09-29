@@ -86,12 +86,13 @@ export function PetEndocrinePage({ patientId, patientName, userEmail, careRecipi
     if (!userEmail) return
 
     if (insulinUnits === '' && bloodGlucoseMgDl === '') {
-      setMessage(text({ id: 'Masukkan setidaknya satu nilai.', zh: '請至少輸入一個值。' ,en: "Masukkan setidaknya satu nilai." }))
+      // 至少輸入一項提示英文修正
+      setMessage(text({ id: 'Masukkan setidaknya satu nilai.', zh: '請至少輸入一個值。' ,en: "Please enter at least one value." }))
       return
     }
     // 資料庫限制兩個數值都必須 > 0，這裡先擋掉才不會讓使用者填 0 卻只看到「暫時無法儲存」這種看不出原因的錯誤。
     if ((insulinUnits !== '' && insulinUnits <= 0) || (bloodGlucoseMgDl !== '' && bloodGlucoseMgDl <= 0)) {
-      setMessage(text({ id: 'Nilai harus lebih besar dari 0.', zh: '數值必須大於 0。' ,en: "Nilai must more besar from 0." }))
+      setMessage(text({ id: 'Nilai harus lebih besar dari 0.', zh: '數值必須大於 0。' ,en: "Value must be greater than 0." }))
       return
     }
 
@@ -137,7 +138,8 @@ export function PetEndocrinePage({ patientId, patientName, userEmail, careRecipi
             {text({ id: 'Insulin (unit)', zh: '胰島素（單位）' ,en: "Insulin (unit)" })}
           </label>
           <p className="mt-1 text-xs text-gray-500">
-            {text({ id: '(Opsional) Dosis insulin yang diberikan', zh: '（可不填）給藥的胰島素劑量' ,en: "(Opsional) Dose insulin that diberikan" })}
+            {/* 胰島素劑量說明英文修正 */}
+            {text({ id: '(Opsional) Dosis insulin yang diberikan', zh: '（可不填）給藥的胰島素劑量' ,en: "(Optional) Insulin dose administered" })}
           </p>
           <input
             type="number"
@@ -152,11 +154,11 @@ export function PetEndocrinePage({ patientId, patientName, userEmail, careRecipi
 
         <div>
           <label className="block text-sm font-semibold text-gray-800">
-            {text({ id: 'Kadar glukosa darah (mg/dL)', zh: '血糖值（mg/dL）' ,en: "Kadar glukosa blood (mg/dL)" })}
+            {text({ id: 'Kadar glukosa darah (mg/dL)', zh: '血糖值（mg/dL）' ,en: "Blood glucose (mg/dL)" })}
           </label>
           <p className="mt-1 text-xs text-gray-500">
             {isHuman
-              ? text({ id: '(Opsional) Rentang normal berbeda untuk manusia; ikuti target dari dokter.', zh: '（可不填）人類的正常範圍不同，請依醫師設定的目標值判讀。' ,en: "(Opsional) Normal range differs for people; follow the doctor-set target." })
+              ? text({ id: '(Opsional) Rentang normal berbeda untuk manusia; ikuti target dari dokter.', zh: '（可不填）人類的正常範圍不同，請依醫師設定的目標值判讀。' ,en: '(Optional) Normal ranges are different for humans; interpret readings using the targets set by your doctor.' })
               : targetRange
                 ? text({ id: `Rentang target: ${targetRange.low_mg_dl}-${targetRange.high_mg_dl} mg/dL`, zh: `目標範圍：${targetRange.low_mg_dl}-${targetRange.high_mg_dl} mg/dL`, en: `Target range: ${targetRange.low_mg_dl}-${targetRange.high_mg_dl} mg/dL` })
                 : text({ id: 'Rentang target belum diatur.', zh: '尚未設定血糖目標範圍。', en: 'Blood glucose target range is not configured.' })}
@@ -174,13 +176,13 @@ export function PetEndocrinePage({ patientId, patientName, userEmail, careRecipi
           {glucoseStatus && (
             <div className="mt-2 text-xs">
               {glucoseStatus === 'low' && (
-                <p className="text-yellow-600">{text({ id: '⚠ Rendah (hipoglikemia)', zh: '⚠ 低血糖' ,en: "⚠ Rendah (hipoglitomia)" })}</p>
+                <p className="text-yellow-600">{text({ id: '⚠ Rendah (hipoglikemia)', zh: '⚠ 低血糖' ,en: "⚠ Low (Hypoglycemia)" })}</p>
               )}
               {glucoseStatus === 'normal' && (
                 <p className="text-green-600">{text({ id: '✓ Normal', zh: '✓ 正常' ,en: "✓ Normal" })}</p>
               )}
               {glucoseStatus === 'high' && (
-                <p className="text-orange-600">{text({ id: '⚠ Tinggi (hiperglikemia)', zh: '⚠ 高血糖' ,en: "⚠ Tinggi (hiperglitomia)" })}</p>
+                <p className="text-orange-600">{text({ id: '⚠ Tinggi (hiperglikemia)', zh: '⚠ 高血糖' ,en: "⚠ High (Hyperglycemia)" })}</p>
               )}
             </div>
           )}
@@ -202,22 +204,22 @@ export function PetEndocrinePage({ patientId, patientName, userEmail, careRecipi
       </form>
 
       <div className="rounded-2xl bg-white p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-gray-800">{text({ id: 'Catatan hari ini', zh: '今天的紀錄' ,en: "Notes days this" })}</h3>
+        <h3 className="text-sm font-bold text-gray-800">{text({ id: 'Catatan hari ini', zh: '今天的紀錄' ,en: "Today's records" })}</h3>
         {loading ? (
           <p className="mt-2 text-sm text-gray-500">{text({ id: 'Memuat…', zh: '讀取中…' ,en: "Loading…" })}</p>
         ) : todayInsulin.length === 0 && todayGlucose.length === 0 ? (
-          <p className="mt-2 text-sm text-gray-500">{text({ id: 'Belum ada catatan hari ini.', zh: '今天還沒有紀錄。' ,en: "No recordan days this." })}</p>
+          <p className="mt-2 text-sm text-gray-500">{text({ id: 'Belum ada catatan hari ini.', zh: '今天還沒有紀錄。' ,en: "No records for today yet." })}</p>
         ) : (
           <ul className="mt-2 space-y-2">
             {todayInsulin.map(record => (
               <li key={record.id} className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 text-sm">
                 <span className="font-semibold text-gray-700">{text({ id: 'Insulin', zh: '胰島素' ,en: "Insulin" })}</span>
-                <span className="font-bold text-indigo-700">{record.insulin_units} {text({ id: 'unit', zh: '單位' ,en: "unit" })}</span>
+                <span className="font-bold text-indigo-700">{record.insulin_units} {text({ id: 'unit', zh: '單位' ,en: "units" })}</span>
               </li>
             ))}
             {todayGlucose.map(record => (
               <li key={record.id} className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 text-sm">
-                <span className="font-semibold text-gray-700">{text({ id: 'Glukosa darah', zh: '血糖' ,en: "Glukosa blood" })}</span>
+                <span className="font-semibold text-gray-700">{text({ id: 'Glukosa darah', zh: '血糖' ,en: "Blood glucose" })}</span>
                 <span className="font-bold text-indigo-700">{record.glucose_mg_dl} mg/dL</span>
               </li>
             ))}
@@ -233,7 +235,7 @@ export function PetEndocrinePage({ patientId, patientName, userEmail, careRecipi
       {/* 一頁式回診報告放在慢性病照護最常用到的內分泌分頁，讓照護者在回診前能直接列印／存 PDF；
           內容彙整體重、食慾、液體、消化與皮下點滴等模組，不受各模組個別的顯示開關限制。
           標題刻意用物種中性的「回診報告」而非「獸醫報告」，因為這個分頁現在人類病人也會用到。 */}
-      <ModuleTrendSection moduleId="petVetReport" titleId="pet-vet-report-title" title={{ id: 'Laporan kunjungan', zh: '回診報告' ,en: "Laporan kunjungan" }}>
+      <ModuleTrendSection moduleId="petVetReport" titleId="pet-vet-report-title" title={{ id: 'Laporan kunjungan', zh: '回診報告' ,en: "Visit Report" }}>
         {days => <PetVetReport patientId={patientId} subjectLabel={subjectLabel} days={days} careRecipientType={careRecipientType} />}
       </ModuleTrendSection>
     </section>

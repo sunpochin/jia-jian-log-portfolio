@@ -47,9 +47,9 @@ export function AppStatusBar() {
   return (
     <div className="print-hidden flex min-h-12 shrink-0 items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4">
       <time className="min-w-0 truncate text-sm tabular-nums text-gray-700" dateTime={now.toISOString()}>
-        {/* 中文使用「8月16日 (週日)」的月/日順序才符合閱讀習慣；印尼文維持 ddd, D MMM 的原生順序。 */}
+        {/* 中文使用「8月16日 (週日)」的月/日順序才符合閱讀習慣；印尼文與英文維持 ddd, D MMM，但星期名稱必須用各自的 locale（英文過去誤用印尼文「Jum」）。 */}
         <span className="font-medium capitalize text-gray-500">
-          {locale === 'zh' ? now.locale('zh-tw').format('M月D日 (ddd)') : now.locale('id').format('ddd, D MMM')}
+          {locale === 'zh' ? now.locale('zh-tw').format('M月D日 (ddd)') : now.locale(locale === 'id' ? 'id' : 'en').format('ddd, D MMM')}
         </span>
         <span className="ml-2 font-bold">{now.format('HH:mm')}</span>
       </time>

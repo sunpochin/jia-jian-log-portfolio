@@ -31,14 +31,14 @@ export function BloodPressureCountdownBanner({ session }: { session: BloodPressu
   const countdownToneClass = isReady ? 'border-green-700 text-green-900' : 'border-red-700 text-red-900'
 
   return (
-    <aside className={`sticky top-0 z-30 border-y px-4 py-3 shadow-md transition-colors ${bannerToneClass}`} aria-label={text({ id: 'Jeda pengukuran tekanan darah', zh: '血壓量測休息倒數', en: 'Jeda pengukuran blood pressure' })}>
+    <aside className={`sticky top-0 z-30 border-y px-4 py-3 shadow-md transition-colors ${bannerToneClass}`} aria-label={text({ id: 'Jeda pengukuran tekanan darah', zh: '血壓量測休息倒數', en: 'Blood pressure measurement rest countdown' })}>
       <div className="mx-auto flex max-w-md items-center gap-3">
         <div className="min-w-0 flex-1">
           <p className={`text-lg font-extrabold ${titleToneClass}`}>
-            {text({ id: 'Istirahat sebelum pengukuran kedua', zh: '第二次量測前請休息', en: 'Istirahat senot yet pengukuran kedua' })}
+            {text({ id: 'Istirahat sebelum pengukuran kedua', zh: '第二次量測前請休息', en: 'Rest before the second measurement' })}
           </p>
           <p className={`mt-0.5 text-base font-semibold ${subtitleToneClass}`}>
-            {isReady ? text({ id: 'Sekarang boleh ukur lagi', zh: '現在可以再量一次', en: 'Now you can measure it again' }) : text({ id: 'Anda boleh melihat catatan lain sementara menunggu', zh: '等待時可以查看其他紀錄', en: 'You boleh melihat record lain temporary menunggu' })}
+            {isReady ? text({ id: 'Sekarang boleh ukur lagi', zh: '現在可以再量一次', en: 'You can measure again now' }) : text({ id: 'Anda boleh melihat catatan lain sementara menunggu', zh: '等待時可以查看其他紀錄', en: 'You can view other records while waiting' })}
           </p>
         </div>
         <div className={`shrink-0 rounded-xl border-2 bg-white px-3 py-1 text-center text-4xl font-black leading-none tracking-wider tabular-nums shadow-sm transition-colors ${countdownToneClass}`} role="timer" aria-live="off">

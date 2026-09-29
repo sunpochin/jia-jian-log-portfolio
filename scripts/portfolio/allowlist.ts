@@ -27,6 +27,9 @@ export const ALLOWLIST_DIRS = [
 export const ALLOWLIST_FILES = [
   'package.json', // 會另外做 script 欄位篩選，見 build.ts pruneScripts()
   'bun.lock',
+  // 沒有它，bun test 不會 preload tests/unit/helpers/reactHookHarnessPreload.ts，
+  // 公開版跑較小檔案子集時就會重新踩到 issue #608 的 react hook mock 檔案順序脆弱性。
+  'bunfig.toml',
   'tsconfig.json',
   'tsconfig.app.json',
   'tsconfig.node.json',
@@ -76,6 +79,11 @@ export const EXCLUDE_WITHIN_ALLOWLIST = [
   'tests/unit/medicationCatalogBackfill.test.ts',
   'tests/unit/importNhiTcmProducts.test.ts',
   'tests/unit/tfdaDrugImport.test.ts',
+  'tests/unit/cliBootstrap.test.ts',
+  'tests/unit/functionRequiredSecrets.test.ts',
+  'tests/unit/missingSecretIssue.test.ts',
+  'tests/unit/stagingProjectRefScope.test.ts',
+  'tests/unit/publicRouteSmoke.test.ts',
   // 依賴 supabase/migrations/*.sql 內容（migration 逐條驗證測試；P0 決策：整個
   // supabase/ 不進 allowlist，見文件 1.2 第 4 點）：
   'tests/unit/calendarNotificationMigration.test.ts',
@@ -101,34 +109,119 @@ export const EXCLUDE_WITHIN_ALLOWLIST = [
   'tests/unit/weightRetentionMigration.test.ts',
   'tests/unit/securityReviewFollowupsMigration.test.ts',
   'tests/unit/analytics.test.ts', // 同樣以 readFileSync 讀取一個 migration 檔案驗證版本號
-  // 依賴 supabase/functions/*（Edge Function 原始碼，未進 allowlist）：
+  'tests/unit/adminConfigAuditAndSelfHealMigration.test.ts',
+  'tests/unit/adminIdentityConfigMigration.test.ts',
+  'tests/unit/blockBloodPressureDeleteWhileDeliveryPendingMigration.test.ts',
+  'tests/unit/bloodPressureDeliveryLedgerRpcMigration.test.ts',
+  'tests/unit/bloodPressureDeliveryReserveV2Migration.test.ts',
+  'tests/unit/careAccessEmailFallbackRemovalMigration.test.ts',
+  'tests/unit/careAccessIdentityBindingMigration.test.ts',
+  'tests/unit/careAccessProfileEmailSyncMigration.test.ts',
+  'tests/unit/careAccessRpcIdentityBindingMigration.test.ts',
+  'tests/unit/caregiverDensityModeDefaultMigration.test.ts',
+  'tests/unit/caregiverShareReadonlyMigration.test.ts',
+  'tests/unit/cascadeDeleteBloodPressureNotificationDeliveriesMigration.test.ts',
+  'tests/unit/ciAuthUsersFixture.test.ts',
+  'tests/unit/deliveryDeadlineMigration.test.ts',
+  'tests/unit/downstreamPolicyUidOnlyMigration.test.ts',
+  'tests/unit/enqueuePersonalNotificationsQueuedCountMigration.test.ts',
+  'tests/unit/grantPersonalNotificationTierMigration.test.ts',
+  'tests/unit/healthConsentVersionBumpForAiDraftMigration.test.ts',
+  'tests/unit/healthConsentVersionRegressionFix.test.ts',
+  'tests/unit/healthVisitStructureMigration.test.ts',
+  'tests/unit/incidentAcknowledgementGenerationMigration.test.ts',
+  'tests/unit/invitationAccountDeletionMigration.test.ts',
+  'tests/unit/medicationAiDraftEntitlementMigration.test.ts',
+  'tests/unit/medicationAiDraftFreeTierMigration.test.ts',
+  'tests/unit/medicationAiDraftPaidLimitMigration.test.ts',
+  'tests/unit/medicationCatalogCuratorEntitlementMigration.test.ts',
+  'tests/unit/medicationCatalogCuratorRpcsMigration.test.ts',
+  'tests/unit/mergePreservesPatientMedicationSideTablesMigration.test.ts',
+  'tests/unit/notificationDeliveryLedgerAlignmentMigration.test.ts',
+  'tests/unit/notificationDeliverySweeperMigration.test.ts',
+  'tests/unit/notificationProviderDisclosures.test.ts',
+  'tests/unit/notificationSubscriptionWritePathMigration.test.ts',
+  'tests/unit/notificationSubscriptionsMigration.test.ts',
+  'tests/unit/patientLabResultsMigration.test.ts',
+  'tests/unit/patientMedicationAppearanceOverridesMigration.test.ts',
+  'tests/unit/patientMedicationInstructionsMigration.test.ts',
+  'tests/unit/patientShareSummaryV2Migration.test.ts',
+  'tests/unit/personalNotificationChannelsMigration.test.ts',
+  'tests/unit/personalNotificationOutboxClaimMigration.test.ts',
+  'tests/unit/premiumTierEntitlementMigration.test.ts',
+  'tests/unit/providerFailureCodeBackfillMigration.test.ts',
+  'tests/unit/recordChangeLogsMigration.test.ts',
+  'tests/unit/shareConsentNotice.test.ts',
+  'tests/unit/shareLinkAccessAuditMigration.test.ts',
+  'tests/unit/shareLinkLegalVersionBumpMigration.test.ts',
+  'tests/unit/shareSummaryV2CreatorCheckMigration.test.ts',
+  'tests/unit/stopSharedMedicationCatalogSilentOverwriteMigration.test.ts',
+  'tests/unit/structuredShareProxyConsentMigration.test.ts',
+  'tests/unit/visitQuestionsMigration.test.ts',
+  // 依賴 supabase/functions/* 或 config.toml（Edge Function 原始碼，未進 allowlist）：
   'tests/unit/adminListUsers.test.ts',
   'tests/unit/adminListUsersFunction.test.ts',
+  'tests/unit/adminSetAccountEntitlement.test.ts',
+  'tests/unit/adminSyncIdentityFunction.test.ts',
   'tests/unit/bloodPressureNotifier.test.ts',
+  'tests/unit/bpRuleParity.test.ts',
   'tests/unit/calendarAgendaFunction.test.ts',
   'tests/unit/calendarAgendaRules.test.ts',
   'tests/unit/calendarNotifier.test.ts',
+  'tests/unit/calendarNotifierFunction.test.ts',
   'tests/unit/careDueRemindersFunction.test.ts',
   'tests/unit/careEventPhotoRetention.test.ts',
+  'tests/unit/cronShared.test.ts',
+  'tests/unit/deliveryPolicy.test.ts',
   'tests/unit/googleCalendarClient.test.ts',
   'tests/unit/invitationEmail.test.ts',
+  'tests/unit/lineShared.test.ts',
+  'tests/unit/lineWebhookFunction.test.ts',
+  'tests/unit/medicationAiDraft.test.ts',
+  'tests/unit/medicationAiDraftContentTypeRegression.test.ts',
+  'tests/unit/medicationAiDraftFunction.test.ts',
   'tests/unit/medicationAppearancePhotoRetention.test.ts',
   'tests/unit/medicationOcr.test.ts',
   'tests/unit/medicationOcrFunction.test.ts',
+  'tests/unit/ownerlessPending.test.ts',
+  'tests/unit/personalNotificationDrainFunction.test.ts',
   'tests/unit/sendInvitationEmailFunction.test.ts',
   'tests/unit/shareCors.test.ts',
   'tests/unit/shareLinkExchange.test.ts',
   'tests/unit/shareLinkFunctionsCors.test.ts',
   'tests/unit/shareSession.test.ts',
   'tests/unit/shareSummary.test.ts',
-  // 依賴 ios/（Capacitor 原生殼，未進 allowlist）：
+  'tests/unit/shareSummaryV2.test.ts',
+  'tests/unit/shareSummaryV2Function.test.ts',
+  'tests/unit/supabaseConfig.test.ts',
+  'tests/unit/supabaseFunctionsConfig.test.ts',
+  'tests/unit/telegramNotification.test.ts',
+  'tests/unit/telegramShared.test.ts',
+  'tests/unit/telegramWebhookFunction.test.ts',
+  // 依賴 api/（Vercel Serverless Function 原始碼，未進 allowlist）：
+  'tests/unit/tfdaAppearanceImage.test.ts',
+  'tests/unit/vercelFunctionImports.test.ts',
+  // 依賴 scripts/（私有測試腳本，未進 allowlist）：
+  'tests/unit/tfdaProxySmokeTest.test.ts',
+  // 依賴 ios/／android/（Capacitor 原生殼，未進 allowlist），且 mock.module platform 會全域污染 platform.test.ts：
   'tests/unit/nativeAuth.test.ts',
+  'tests/unit/nativeAuthFlow.test.ts',
+  'tests/unit/nativeUpdatePromptRender.test.ts',
   // 依賴 root 設定檔（未進 allowlist）：
   'tests/unit/vercelHeaders.test.ts', // 讀取 vercel.json
   'tests/unit/temperature.test.ts', // 同時讀取一個 migration 檔案驗證欄位定義
   // 依賴真實 email 值（替換後測試失敗）：
   'tests/unit/auth.test.ts',
   'tests/unit/medicationToday.test.ts',
+  // 依賴自訂 React hook 測試 harness 對 bun:test `mock.module('react', ...)` 的
+  // 全域、跨檔案共用行為（見這兩個檔案自己的註解：「bun 的 mock.module 是整個測試程序共用的」）。
+  // 這個環境依賴對「哪些檔案、用什麼順序跑」很敏感——完整跑 227 個測試檔時順序沒踩到問題，
+  // 但公開版只有較少檔案，執行順序不同，讓 harness 沒能正確接管 useContext，
+  // 產生 LocaleProvider／useI18n 相關的假失敗。跟個資／安全無關，純粹是測試環境的檔案子集
+  // 順序敏感性；公開 repo 自己的 portfolio-ci.yml 跑第一次（341 → 341 個檔案，commit
+  // aad50de）就踩到了這個問題，才發現需要排除。
+  'tests/unit/reactStateHooks.test.ts',
+  'tests/unit/latestVitalsRender.test.ts',
 ]
 
 // package.json 的 scripts 欄位裡，只保留跟「跑得起來這個 repo」直接相關的指令；

@@ -1,10 +1,10 @@
 /*
 檔案用途：驗證服藥時段的排序、雙語名稱與完成提示語意。
 所在層：tests/unit；保護每日服藥流程共用的時段文案與排序規則。
-主要關聯：測試 src/lib/medicationSchedule，供 MedicationPage 與藥單管理介面使用。
+主要關聯：測試 src/lib/medication/medicationSchedule，供 MedicationPage 與藥單管理介面使用。
 */
 import { describe, expect, test } from 'bun:test'
-import { compareMedicationSlots, getMedicationSlotCollapseDefaults, medicationSlotCompletionText, medicationSlotQuantityProgressText, medicationSlotQuantityText, medicationSlotText, MEDICATION_SLOTS } from '../../src/lib/medicationSchedule'
+import { compareMedicationSlots, getMedicationSlotCollapseDefaults, medicationSlotCompletionText, medicationSlotQuantityProgressText, medicationSlotQuantityText, medicationSlotText, MEDICATION_SLOTS } from '../../src/lib/medication/medicationSchedule'
 
 describe('medication schedule', () => {
   test('offers only the specific meal-based timings, with bedtime last', () => {
@@ -47,9 +47,9 @@ describe('medication schedule', () => {
     expect(medicationSlotQuantityText([
       { dose_amount: 2, dose_count: 1, dosage_form: 'tablet' }, // Const-K：單次 2 顆
       { dose_amount: 1, dose_count: 1, dosage_form: 'tablet' }, // Bokey：單次 1 顆
-    ])).toEqual({ id: '3 tablet', zh: '3 錠' ,en: "3 tablet" })
-    expect(medicationSlotQuantityText([{ dose_amount: 1, dose_count: 2, dosage_form: 'tablet' }])).toEqual({ id: '2 tablet', zh: '2 錠' ,en: "2 tablet" })
-    expect(medicationSlotQuantityText([])).toEqual({ id: '', zh: '' ,en: "" })
+    ])).toEqual({ id: '3 tablet', zh: '3 錠', en: '3 tablets' })
+    expect(medicationSlotQuantityText([{ dose_amount: 1, dose_count: 2, dosage_form: 'tablet' }])).toEqual({ id: '2 tablet', zh: '2 錠', en: '2 tablets' })
+    expect(medicationSlotQuantityText([])).toEqual({ id: '', zh: '', en: '' })
   })
 
   test('keeps dosage forms separate instead of mislabeling a powder sachet as a pill', () => {
@@ -57,13 +57,28 @@ describe('medication schedule', () => {
     expect(medicationSlotQuantityText([
       { dose_amount: 2, dose_count: 1, dosage_form: 'tablet' },
       { dose_amount: 1, dose_count: 1, dosage_form: 'powder' },
-    ])).toEqual({ id: '2 tablet + 1 sachet', zh: '2 錠＋1 包' ,en: "2 tablet + 1 sachet" })
+    ])).toEqual({ id: '2 tablet + 1 sachet', zh: '2 錠＋1 包', en: '2 tablets + 1 sachet' })
   })
 
   test('reports taken/total as a fraction per dosage form, e.g. 1 of 2 tablets and a completed sachet', () => {
     expect(medicationSlotQuantityProgressText(
       [{ dose_amount: 1, dosage_form: 'tablet' }, { dose_amount: 1, dosage_form: 'powder' }],
       [{ dose_amount: 1, dosage_form: 'tablet' }, { dose_amount: 1, dosage_form: 'tablet' }, { dose_amount: 1, dosage_form: 'powder' }],
-    )).toEqual({ id: '1/2 tablet + 1/1 sachet', zh: '1/2 錠＋1/1 包' ,en: "1/2 tablet + 1/1 sachet" })
+    )).toEqual({ id: '1/2 tablet + 1/1 sachet', zh: '1/2 錠＋1/1 包', en: '1/2 tablets + 1/1 sachet' })
+  })
+
+  test('shows a quarter-tablet taper dose as a fraction instead of a decimal', () => {
+    // 媽媽從半顆降到 1/4 顆時，進度分數也要寫成「1/4」而不是「0.25」，跟半顆的規則一致。
+    expect(medicationSlotQuantityProgressText(
+      [{ dose_amount: 0.25, dosage_form: 'tablet' }],
+      [{ dose_amount: 0.25, dosage_form: 'tablet' }],
+    )).toEqual({ id: '¼/¼ tablet', zh: '¼/¼ 錠', en: '¼/¼ tablet' })
+  })
+
+  test('keeps the quarter fraction when totals combine into a mixed amount like 1 and 1/4', () => {
+    // 同一時段多筆 1/4 顆藥品加總可能超過一顆（例如 5 個 1/4 = 1又1/4），總量摘要不能退回顯示成 1.25。
+    expect(medicationSlotQuantityText([
+      { dose_amount: 0.25, dose_count: 5, dosage_form: 'tablet' },
+    ])).toEqual({ id: '1¼ tablet', zh: '1¼ 錠', en: '1¼ tablets' })
   })
 })

@@ -1,7 +1,7 @@
 /*
 檔案用途：驗證免登入 Demo 的血壓與藥單本機試用狀態能新增、修改、刪除並持續讀回。
 所在層：tests/unit；保護 demo-only adapter 不會誤呼叫正式 Supabase 資料流。
-主要關聯：對應 src/lib/demoStorage.ts，模擬瀏覽器 localStorage 與 /demo 路徑。
+主要關聯：對應 src/lib/demoStorage/ 底下依領域拆分的模組，模擬瀏覽器 localStorage 與 /demo 路徑。
 */
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 import { calendarDateKey } from '../../src/lib/careDay'
@@ -20,6 +20,8 @@ import {
   readDemoMedicationAdminData,
   readDemoMedicationDay,
   readDemoMedicationHistory,
+  readDemoDementiaCareRecords,
+  readDemoFluidBalanceRecords,
   readDemoPetAppetiteRecords,
   readDemoPetDigestionRecords,
   readDemoPetDigestionRecord,
@@ -36,6 +38,8 @@ import {
   saveDemoPetGlucoseRecord,
   saveDemoPetInsulinRecord,
   saveDemoPetLiquidIntakeRecord,
+  saveDemoDementiaCareRecord,
+  saveDemoFluidBalanceRecord,
   saveDemoPrnDailyAssessment,
   saveDemoPrnMedicationEvent,
   saveDemoWeightRecord,
@@ -49,7 +53,11 @@ import {
   searchDemoMealFoodCatalog,
   updateDemoBpRecord,
   updateDemoTemperatureRecord,
+  readDemoCareTimeline,
+  saveDemoCareTimelineEntry,
+  deleteDemoCareTimelineEntry,
 } from '../../src/lib/demoStorage'
+import { getFallbackDemoCareTimeline } from '../../src/lib/demoData'
 
 const originalWindow = globalThis.window
 const values = new Map<string, string>()
@@ -326,6 +334,26 @@ describe('demo pet appetite, fluid, insulin, and glucose records (multiple rows 
   })
 })
 
+describe('demo dementia and fluid-balance records', () => {
+  test('keeps both care domains patient-scoped, date-bounded, and newest-first', () => {
+    const dementia = {
+      id: 'dementia-1', patient_id: DEMO_MEILING_PATIENT_ID, record_type: 'agitation' as const,
+      time_period: 'evening' as const, notes: '需要陪伴', occurred_at: '2026-08-05T18:00:00.000Z', recorded_by: 'demo@example.test', created_at: '2026-08-05T18:00:00.000Z',
+    }
+    const fluid = {
+      id: 'fluid-1', patient_id: DEMO_MEILING_PATIENT_ID, record_type: 'water_intake' as const,
+      weight_before_g: null, weight_after_g: null, amount_value: 240, notes: '分次飲用', occurred_at: '2026-08-05T09:00:00.000Z', recorded_by: 'demo@example.test', created_at: '2026-08-05T09:00:00.000Z',
+    }
+    saveDemoDementiaCareRecord(dementia)
+    saveDemoFluidBalanceRecord(fluid)
+
+    expect(readDemoDementiaCareRecords(DEMO_MEILING_PATIENT_ID, '2026-08-05T00:00:00.000Z')).toEqual([dementia])
+    expect(readDemoDementiaCareRecords(DEMO_MEILING_PATIENT_ID, '2026-08-05T00:00:00.000Z', '2026-08-05T12:00:00.000Z')).toEqual([])
+    expect(readDemoFluidBalanceRecords(DEMO_MEILING_PATIENT_ID, '2026-08-05T00:00:00.000Z')).toEqual([fluid])
+    expect(readDemoFluidBalanceRecords('another-patient', '2026-08-05T00:00:00.000Z')).toEqual([])
+  })
+})
+
 describe('demo PRN events', () => {
   const eventPayload = {
     id: 'demo-prn-1',
@@ -466,5 +494,122 @@ describe('demo storage resilience', () => {
     // 不能只挑出看似對的欄位就沿用，必須整份視為不相容並回到乾淨故事。
     values.set('jia-jian-log.demo-state.v1', JSON.stringify({ version: 1, bpRecords: 'not-an-array' }))
     expect(getDemoBpRecords(7, DEMO_MEILING_PATIENT_ID).every(record => record.id.startsWith('demo-bp-meiling') || record.id.startsWith('demo-bp-chen'))).toBe(true)
+  })
+})
+
+describe('demo care timeline storage', () => {
+  test('merges the seeded story with a locally added entry, newest first', () => {
+    const seeded = getFallbackDemoCareTimeline().filter(entry => entry.patient_id === DEMO_MEILING_PATIENT_ID)
+    saveDemoCareTimelineEntry({
+      id: 'demo-local-1',
+      patient_id: DEMO_MEILING_PATIENT_ID,
+      event_type: 'family_observation',
+      title: '傷口換藥記錄',
+      details: '',
+      occurred_at: new Date().toISOString(),
+      reassess_on: null,
+      created_by: 'demo.visitor@example.test',
+      created_at: new Date().toISOString(),
+      medication_plan_id: null,
+      demo_photo_urls: ['data:image/webp;base64,AA=='],
+    })
+    const merged = readDemoCareTimeline(DEMO_MEILING_PATIENT_ID)
+    expect(merged.length).toBe(seeded.length + 1)
+    expect(merged[0].id).toBe('demo-local-1')
+    expect(merged[0].demo_photo_urls).toEqual(['data:image/webp;base64,AA=='])
+  })
+
+  test('overwrites a seeded entry in place when saved again with the same id, without duplicating it', () => {
+    const [firstSeeded] = getFallbackDemoCareTimeline().filter(entry => entry.patient_id === DEMO_MEILING_PATIENT_ID)
+    saveDemoCareTimelineEntry({ ...firstSeeded, title: '已編輯的標題', demo_photo_urls: ['data:image/webp;base64,BB==', 'data:image/webp;base64,CC=='] })
+    const merged = readDemoCareTimeline(DEMO_MEILING_PATIENT_ID)
+    const seededCount = getFallbackDemoCareTimeline().filter(entry => entry.patient_id === DEMO_MEILING_PATIENT_ID).length
+    expect(merged.length).toBe(seededCount)
+    const edited = merged.find(entry => entry.id === firstSeeded.id)
+    expect(edited?.title).toBe('已編輯的標題')
+    expect(edited?.demo_photo_urls?.length).toBe(2)
+  })
+
+  test('deleting a seeded entry hides it via a tombstone instead of mutating the shared seed data', () => {
+    const [firstSeeded] = getFallbackDemoCareTimeline().filter(entry => entry.patient_id === DEMO_MEILING_PATIENT_ID)
+    const removed = deleteDemoCareTimelineEntry(firstSeeded.id, DEMO_MEILING_PATIENT_ID)
+    expect(removed).toBe(true)
+    expect(readDemoCareTimeline(DEMO_MEILING_PATIENT_ID).some(entry => entry.id === firstSeeded.id)).toBe(false)
+    // 種子資料本身（程式碼常數）完全沒被動到——這是另一位病人、甚至同一位病人下一次全新 loadState 都要看到原樣的保證。
+    expect(getFallbackDemoCareTimeline().some(entry => entry.id === firstSeeded.id)).toBe(true)
+  })
+
+  test('deleting a locally added entry removes it outright and reports success once', () => {
+    saveDemoCareTimelineEntry({
+      id: 'demo-local-2', patient_id: DEMO_MEILING_PATIENT_ID, event_type: 'milestone', title: 'x', details: '',
+      occurred_at: new Date().toISOString(), reassess_on: null, created_by: 'demo.visitor@example.test', created_at: new Date().toISOString(), medication_plan_id: null,
+    })
+    expect(deleteDemoCareTimelineEntry('demo-local-2', DEMO_MEILING_PATIENT_ID)).toBe(true)
+    expect(readDemoCareTimeline(DEMO_MEILING_PATIENT_ID).some(entry => entry.id === 'demo-local-2')).toBe(false)
+    // 已經刪過的 id 再刪一次要回報「沒有動作」，不能假裝又成功了一次。
+    expect(deleteDemoCareTimelineEntry('demo-local-2', DEMO_MEILING_PATIENT_ID)).toBe(false)
+  })
+
+  test('keeps a different patient’s timeline untouched by another patient’s additions and deletions', () => {
+    saveDemoCareTimelineEntry({
+      id: 'demo-local-3', patient_id: DEMO_CAT_PATIENT_ID, event_type: 'milestone', title: 'cat', details: '',
+      occurred_at: new Date().toISOString(), reassess_on: null, created_by: 'demo.visitor@example.test', created_at: new Date().toISOString(), medication_plan_id: null,
+    })
+    expect(readDemoCareTimeline(DEMO_MEILING_PATIENT_ID).some(entry => entry.id === 'demo-local-3')).toBe(false)
+    expect(readDemoCareTimeline(DEMO_CAT_PATIENT_ID).some(entry => entry.id === 'demo-local-3')).toBe(true)
+  })
+})
+
+describe('demo care timeline photo storage budget (Codex review on PR #727)', () => {
+  function entryWithPhotoBytes(id: string, createdAt: string, bytes: number) {
+    return {
+      id, patient_id: DEMO_MEILING_PATIENT_ID, event_type: 'family_observation' as const, title: id, details: '',
+      occurred_at: createdAt, reassess_on: null, created_by: 'demo.visitor@example.test', created_at: createdAt,
+      medication_plan_id: null,
+      demo_photo_urls: [`data:image/webp;base64,${'A'.repeat(bytes)}`],
+    }
+  }
+
+  test('reports success and keeps a photo-backed entry that fits comfortably within budget', () => {
+    expect(saveDemoCareTimelineEntry(entryWithPhotoBytes('demo-local-photo-1', '2026-01-01T00:00:00.000Z', 1000))).toBe(true)
+    expect(readDemoCareTimeline(DEMO_MEILING_PATIENT_ID).some(entry => entry.id === 'demo-local-photo-1')).toBe(true)
+  })
+
+  test('evicts the oldest photo-backed entries once the combined size exceeds the budget, newest wins', () => {
+    // 預算是 3MiB；四筆各佔 1MiB 的照片事件加起來會超過，最舊的那一筆應該被擠出去。
+    const oneMebibyte = 1024 * 1024
+    saveDemoCareTimelineEntry(entryWithPhotoBytes('demo-oldest', '2026-01-01T00:00:00.000Z', oneMebibyte))
+    saveDemoCareTimelineEntry(entryWithPhotoBytes('demo-older', '2026-01-02T00:00:00.000Z', oneMebibyte))
+    saveDemoCareTimelineEntry(entryWithPhotoBytes('demo-newer', '2026-01-03T00:00:00.000Z', oneMebibyte))
+    const persistedLast = saveDemoCareTimelineEntry(entryWithPhotoBytes('demo-newest', '2026-01-04T00:00:00.000Z', oneMebibyte))
+    expect(persistedLast).toBe(true)
+
+    const ids = readDemoCareTimeline(DEMO_MEILING_PATIENT_ID).map(entry => entry.id)
+    expect(ids).toContain('demo-newest')
+    expect(ids).toContain('demo-newer')
+    // 最舊的一筆超出預算，應該已經被裁掉；種子故事完全不受影響（下面另外斷言）。
+    expect(ids).not.toContain('demo-oldest')
+    expect(getFallbackDemoCareTimeline().some(entry => entry.patient_id === DEMO_MEILING_PATIENT_ID)).toBe(true)
+  })
+
+  test('never counts text-only entries against the photo budget', () => {
+    const oneMebibyte = 1024 * 1024
+    saveDemoCareTimelineEntry(entryWithPhotoBytes('demo-photo-big', '2026-01-01T00:00:00.000Z', 3 * oneMebibyte))
+    // 純文字事件（沒有 demo_photo_urls）不佔預算，即使前面已經有一筆吃滿預算的照片事件，這筆也該留下。
+    const persisted = saveDemoCareTimelineEntry({
+      id: 'demo-text-only', patient_id: DEMO_MEILING_PATIENT_ID, event_type: 'milestone', title: 'text', details: '',
+      occurred_at: '2026-01-02T00:00:00.000Z', reassess_on: null, created_by: 'demo.visitor@example.test', created_at: '2026-01-02T00:00:00.000Z', medication_plan_id: null,
+    })
+    expect(persisted).toBe(true)
+    expect(readDemoCareTimeline(DEMO_MEILING_PATIENT_ID).some(entry => entry.id === 'demo-text-only')).toBe(true)
+  })
+
+  test('reports failure when localStorage writes are blocked, instead of silently pretending success', () => {
+    writeFails = true
+    const persisted = saveDemoCareTimelineEntry({
+      id: 'demo-blocked', patient_id: DEMO_MEILING_PATIENT_ID, event_type: 'milestone', title: 'x', details: '',
+      occurred_at: new Date().toISOString(), reassess_on: null, created_by: 'demo.visitor@example.test', created_at: new Date().toISOString(), medication_plan_id: null,
+    })
+    expect(persisted).toBe(false)
   })
 })

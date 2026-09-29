@@ -2,6 +2,21 @@
 檔案用途：保存 Supabase 公開 schema 的前端 TypeScript 型別快照。
 所在層：src/lib；供資料庫轉接層與型別檢查使用，不承載畫面邏輯。
 主要關聯：supabase/migrations、src/lib/supabase.ts 與 src/types/database.ts。
+
+如何重新產生（issue #833 調查結論）：repo 內沒有任何自動化流程（package.json script、
+CI workflow）會重新產生本檔，一直是開發者本機手動執行後貼上送 PR；調查當下也證實這個手動流程
+已經漏更新——本檔缺少 20260915110000～20260915130000 幾支 migration 新增的
+medication_catalog_curator 相關表與 patient_medication_appearance_overrides。更新步驟：
+  1. `supabase login`（或設定 `SUPABASE_ACCESS_TOKEN` 環境變數）取得存取權杖。
+  2. 分支只改到既有 migration 已部署到 staging 的 schema → `bun run types:generate`
+     （對 `supabase/config.toml` 既有的 staging project id，CLI 版本釘住 2.109.1
+     與 migration workflow 一致；成功才覆寫本檔，CLI 失敗時不會清空既有內容）。
+     分支自己新增了 migration（staging 還沒部署，見 staging-supabase-migrations.yml
+     只在合併後才 push）→ 改用 `bun run types:generate:local`，先跑
+     `supabase start` 在本機 Docker 重播含分支自己 migration 的完整 schema，
+     否則 `--project-id` 只會讀到舊的 staging schema、生出仍然落後的型別。
+  3. 跑 `npx tsc --noEmit`，確認新型別沒有讓既有程式碼出現型別錯誤後再送 PR。
+詳見 `docs/architecture/data-model.md`「database.types.ts 產生流程」一節。
 */
 export type Json =
   | string
@@ -223,7 +238,8 @@ export type Database = {
           revoked_at: string | null
           status: string
           token_hash: string
-          invited_by_user_id: string
+          // #967：刪帳號後由外鍵 ON DELETE SET NULL 清成 NULL（已接受的邀請保留作授權來源紀錄）。
+          invited_by_user_id: string | null
         }
         Insert: {
           accepted_at?: string | null
@@ -241,7 +257,7 @@ export type Database = {
           revoked_at?: string | null
           status?: string
           token_hash: string
-          invited_by_user_id: string
+          invited_by_user_id?: string | null
         }
         Update: {
           accepted_at?: string | null
@@ -259,7 +275,7 @@ export type Database = {
           revoked_at?: string | null
           status?: string
           token_hash?: string
-          invited_by_user_id?: string
+          invited_by_user_id?: string | null
         }
         Relationships: []
       }
@@ -269,18 +285,21 @@ export type Database = {
           can_record: boolean
           patient_id: string
           profile_email: string
+          user_id: string
         }
         Insert: {
           can_manage_medication?: boolean
           can_record?: boolean
           patient_id: string
           profile_email: string
+          user_id: string
         }
         Update: {
           can_manage_medication?: boolean
           can_record?: boolean
           patient_id?: string
           profile_email?: string
+          user_id?: string
         }
         Relationships: [
           {
@@ -314,6 +333,9 @@ export type Database = {
           photo_paths: Json
           reassess_on: string | null
           title: string
+          visit_kind: string | null
+          visit_department: string | null
+          visit_institution: string | null
         }
         Insert: {
           created_at?: string
@@ -329,6 +351,9 @@ export type Database = {
           photo_paths?: Json
           reassess_on?: string | null
           title: string
+          visit_kind?: string | null
+          visit_department?: string | null
+          visit_institution?: string | null
         }
         Update: {
           created_at?: string
@@ -344,6 +369,9 @@ export type Database = {
           photo_paths?: Json
           reassess_on?: string | null
           title?: string
+          visit_kind?: string | null
+          visit_department?: string | null
+          visit_institution?: string | null
         }
         Relationships: [
           {
@@ -544,6 +572,50 @@ export type Database = {
         }
         Relationships: []
       }
+      medication_catalog_change_logs: {
+        Row: {
+          action: string
+          actor_email: string
+          actor_user_id: string | null
+          after_snapshot: Json | null
+          before_snapshot: Json | null
+          id: string
+          medication_id: string
+          reason: string | null
+          recorded_at: string
+        }
+        Insert: {
+          action: string
+          actor_email: string
+          actor_user_id?: string | null
+          after_snapshot?: Json | null
+          before_snapshot?: Json | null
+          id?: string
+          medication_id: string
+          reason?: string | null
+          recorded_at?: string
+        }
+        Update: {
+          action?: string
+          actor_email?: string
+          actor_user_id?: string | null
+          after_snapshot?: Json | null
+          before_snapshot?: Json | null
+          id?: string
+          medication_id?: string
+          reason?: string | null
+          recorded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medication_catalog_change_logs_medication_id_fkey"
+            columns: ["medication_id"]
+            isOneToOne: false
+            referencedRelation: "medications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       medication_intake_logs: {
         Row: {
           account_email: string
@@ -709,6 +781,59 @@ export type Database = {
         }
         Relationships: []
       }
+      // ADR-008 AUDIT-1（issue #967）：這一段由 `supabase gen types typescript --db-url <本機重播>` 產生後只貼入這張新表；
+      // 本檔其餘表的漂移屬 #971 §3.4 的 A6 票（type 產生流程尚未自動化），不在本次 PR 範圍內補。
+      record_change_logs: {
+        Row: {
+          action: string
+          actor_kind: string
+          actor_source: string | null
+          actor_user_id: string | null
+          after_diff: Json | null
+          before_row: Json | null
+          changed_at: string
+          changed_columns: string[] | null
+          expires_at: string | null
+          household_id: string | null
+          id: string
+          patient_id: string | null
+          row_id: string
+          table_name: string
+        }
+        Insert: {
+          action: string
+          actor_kind: string
+          actor_source?: string | null
+          actor_user_id?: string | null
+          after_diff?: Json | null
+          before_row?: Json | null
+          changed_at?: string
+          changed_columns?: string[] | null
+          expires_at?: string | null
+          household_id?: string | null
+          id?: string
+          patient_id?: string | null
+          row_id: string
+          table_name: string
+        }
+        Update: {
+          action?: string
+          actor_kind?: string
+          actor_source?: string | null
+          actor_user_id?: string | null
+          after_diff?: Json | null
+          before_row?: Json | null
+          changed_at?: string
+          changed_columns?: string[] | null
+          expires_at?: string | null
+          household_id?: string | null
+          id?: string
+          patient_id?: string | null
+          row_id?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
       medication_plan_change_logs: {
         Row: {
           action: string
@@ -861,15 +986,20 @@ export type Database = {
           catalog_source: string | null
           catalog_source_id: string | null
           created_at: string
+          created_by_user_id: string | null
           dosage_form: string
           drug_product_id: string | null
           generic_name: string
           id: string
+          merged_into_medication_id: string | null
           nhi_drug_code: string | null
+          product_kind: string
           specialties: string[]
           strength_label: string | null
-          strength_mg: number
+          strength_mg: number | null
           tfda_license_number: string | null
+          updated_at: string
+          updated_by_user_id: string | null
           verification_status: string
         }
         Insert: {
@@ -884,15 +1014,20 @@ export type Database = {
           catalog_source?: string | null
           catalog_source_id?: string | null
           created_at?: string
+          created_by_user_id?: string | null
           dosage_form?: string
           drug_product_id?: string | null
           generic_name: string
           id: string
+          merged_into_medication_id?: string | null
           nhi_drug_code?: string | null
+          product_kind?: string
           specialties?: string[]
           strength_label?: string | null
-          strength_mg: number
+          strength_mg?: number | null
           tfda_license_number?: string | null
+          updated_at?: string
+          updated_by_user_id?: string | null
           verification_status?: string
         }
         Update: {
@@ -907,15 +1042,20 @@ export type Database = {
           catalog_source?: string | null
           catalog_source_id?: string | null
           created_at?: string
+          created_by_user_id?: string | null
           dosage_form?: string
           drug_product_id?: string | null
           generic_name?: string
           id?: string
+          merged_into_medication_id?: string | null
           nhi_drug_code?: string | null
+          product_kind?: string
           specialties?: string[]
           strength_label?: string | null
-          strength_mg?: number
+          strength_mg?: number | null
           tfda_license_number?: string | null
+          updated_at?: string
+          updated_by_user_id?: string | null
           verification_status?: string
         }
         Relationships: [
@@ -1117,6 +1257,8 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          caregiver_density_mode: boolean | null
+          caregiver_density_mode_saved_at: string | null
           created_at: string
           medication_name_english_first: boolean
           medication_slots_expanded: boolean
@@ -1124,6 +1266,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          caregiver_density_mode?: boolean | null
+          caregiver_density_mode_saved_at?: string | null
           created_at?: string
           medication_name_english_first?: boolean
           medication_slots_expanded?: boolean
@@ -1131,6 +1275,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          caregiver_density_mode?: boolean | null
+          caregiver_density_mode_saved_at?: string | null
           created_at?: string
           medication_name_english_first?: boolean
           medication_slots_expanded?: boolean
@@ -1174,6 +1320,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      patient_anomaly_alert_settings: {
+        Row: {
+          bp_high_streak_threshold_days: number
+          enabled: boolean
+          missed_medication_threshold_days: number
+          night_low_bp_threshold_count: number
+          night_low_bp_window_days: number
+          patient_id: string
+          updated_at: string
+          weight_drop_threshold_percent: number
+          weight_drop_window_days: number
+        }
+        Insert: {
+          bp_high_streak_threshold_days?: number
+          enabled?: boolean
+          missed_medication_threshold_days?: number
+          night_low_bp_threshold_count?: number
+          night_low_bp_window_days?: number
+          patient_id: string
+          updated_at?: string
+          weight_drop_threshold_percent?: number
+          weight_drop_window_days?: number
+        }
+        Update: {
+          bp_high_streak_threshold_days?: number
+          enabled?: boolean
+          missed_medication_threshold_days?: number
+          night_low_bp_threshold_count?: number
+          night_low_bp_window_days?: number
+          patient_id?: string
+          updated_at?: string
+          weight_drop_threshold_percent?: number
+          weight_drop_window_days?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_anomaly_alert_settings_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: true
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       patient_daily_care_preferences: {
         Row: {
@@ -1376,8 +1566,10 @@ export type Database = {
               p_medication_id: string
               p_patient_id: string
               p_plan_id: string
+              p_product_kind?: string
               p_reason: string
               p_schedule_slot: string
+              p_strength_label?: string
               p_strength_mg: number
             }
             Returns: undefined
@@ -1401,11 +1593,20 @@ export type Database = {
             }
             Returns: undefined
           }
+      medication_catalog_usage: {
+        Args: { p_medication_ids: string[] }
+        Returns: {
+          all_managed_by_caller: boolean
+          medication_id: string
+          shared_with_others: boolean
+        }[]
+      }
       archive_household_pet: {
         Args: { p_patient_id: string }
         Returns: undefined
       }
       auto_provision_profile: { Args: never; Returns: Json }
+      sync_care_access_profile_email: { Args: never; Returns: number }
       begin_household_onboarding: {
         Args: { p_household_name: string; p_patient_name: string }
         Returns: {

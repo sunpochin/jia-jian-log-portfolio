@@ -8,8 +8,8 @@ import dayjs from 'dayjs'
 import timezone from 'dayjs/plugin/timezone'
 import utc from 'dayjs/plugin/utc'
 import { CARE_DAY_TIMEZONE } from '../../../lib/careDay'
-import { createPrnEventId, formatPrnEffectStatus, getActivePrnEvents, getPrnDailyStatus, prnDoseUnitForDosageForm, prnEventLocalDateTime, type SavePrnMedicationEventInput } from '../../../lib/prnMedication'
-import { formatMedicationDisplayName, formatMedicationLabel, type MedicationPlanView } from '../../../lib/medications'
+import { createPrnEventId, formatPrnEffectStatus, getActivePrnEvents, getPrnDailyStatus, prnDoseUnitForDosageForm, prnEventLocalDateTime, type SavePrnMedicationEventInput } from '../../../lib/medication/prnMedication'
+import { formatMedicationDisplayName, formatMedicationLabel, type MedicationPlanView } from '../../../lib/medication/medications'
 import type { PrnMedicationAssessmentStatus, PrnMedicationDailyAssessment, PrnMedicationEffectStatus, PrnMedicationEvent } from '../../../types/database'
 import { common, useI18n, type LocalizedText, type Locale } from '../../../lib/i18n'
 import { MedicationAppearance } from './MedicationAppearance'
@@ -43,9 +43,11 @@ function doseUnitLabel(unit: string, locale: Locale) {
 }
 
 const formErrorCopy = (error: unknown): LocalizedText => {
+  // 提取錯誤訊息以便比對已知情境
   const message = error instanceof Error ? error.message : ''
   if (message.includes('outside the selected care day')) return { id: 'Waktu penggunaan berada di luar hari perawatan yang dipilih.', zh: '實際使用時間不在所選照護日，請核對日期與時間。', en: 'The actual time of use is not on the selected day of care, please check the date and time.' }
-  if (message.includes('reason')) return { id: 'Masukkan alasan atau gejala sebelum menyimpan.', zh: '請先填寫使用原因或症狀。', en: 'Enter reason or symptoms senot yet saving.' }
+  // 修正儲存前需填寫原因之英文提示
+  if (message.includes('reason')) return { id: 'Masukkan alasan atau gejala sebelum menyimpan.', zh: '請先填寫使用原因或症狀。', en: 'Please enter the reason or symptoms before saving.' }
   return { id: 'Gagal menyimpan catatan PRN. Periksa internet lalu coba lagi.', zh: 'PRN 紀錄儲存失敗，請確認網路後再試。', en: 'PRN record save failed, please check your network and try again.' }
 }
 
@@ -165,7 +167,8 @@ export function PrnMedicationSection({ plans, events, assessments, careDate, onR
     <section className="space-y-4 rounded-3xl border border-violet-200 bg-violet-50 p-4 shadow-sm" aria-labelledby="prn-medication-title">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-bold text-violet-800">{text({ id: 'Obat bila perlu (PRN)', zh: '需要時服用（PRN）', en: 'Medication bila perlu (PRN)' })}</p>
+          {/* PRN 標題英文修正 */}
+          <p className="text-sm font-bold text-violet-800">{text({ id: 'Obat bila perlu (PRN)', zh: '需要時服用（PRN）', en: 'As needed (PRN)' })}</p>
           <h2 id="prn-medication-title" className="mt-1 text-xl font-black text-violet-950">{text({ id: 'Catatan penggunaan terpisah', zh: '獨立使用紀錄', en: 'Separate usage history' })}</h2>
           <p className="mt-2 text-sm font-medium leading-6 text-violet-900">{text({ id: 'Jumlah dan waktu diambil dari kejadian penggunaan yang benar-benar dicatat.', zh: '使用次數與時間只來自實際記錄的使用事件。', en: 'Usage counts and times are based on actual recorded usage events only.' })}</p>
         </div>
@@ -233,7 +236,8 @@ export function PrnMedicationSection({ plans, events, assessments, careDate, onR
 
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 <button type="button" disabled={Boolean(busyKey)} onClick={() => openRecordForm(plan)} className="min-h-12 rounded-xl bg-violet-700 px-4 text-base font-black text-white shadow-sm active:bg-violet-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2">
-                  {text({ id: 'Catat penggunaan', zh: '記錄使用', en: 'Catat use' })}
+                  {/* 記錄使用按鈕英文修正 */}
+                  {text({ id: 'Catat penggunaan', zh: '記錄使用', en: 'Record use' })}
                 </button>
                 {status === 'not_needed'
                   ? <button type="button" disabled={Boolean(busyKey)} onClick={() => void setAssessment(plan.id, 'not_assessed')} className="min-h-12 rounded-xl border border-slate-300 bg-white px-4 text-sm font-black text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2">{assessmentBusy ? text(common.loading) : text({ id: 'Kembalikan ke belum dinilai', zh: '恢復為尚未評估', en: 'Revert to Not Evaluated' })}</button>
@@ -246,8 +250,9 @@ export function PrnMedicationSection({ plans, events, assessments, careDate, onR
 
       <dialog ref={recordDialogRef} onCancel={event => { event.preventDefault(); if (!busyKey.startsWith('record:')) { setRecordingPlan(null); setRecordForm(null) } }} className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-3xl border border-violet-200 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-950/55" aria-labelledby="prn-record-title">
         {recordingPlan && recordForm && <form method="dialog" onSubmit={submitRecord} className="p-6">
-          <h2 id="prn-record-title" className="text-xl font-black text-violet-950">{text({ id: 'Catat penggunaan PRN', zh: '記錄 PRN 使用', en: 'Catat use PRN' })}</h2>
-          <p className="mt-2 text-sm font-semibold text-slate-700">{formatMedicationDisplayName(recordingPlan.medication, locale)} · {text({ id: 'Periksa label obat atau instruksi dokter.', zh: '請核對藥袋或醫囑。', en: 'Periksa label medication or instructions doctor.' })}</p>
+          {/* PRN 記錄對話框標題與提示英文修正 */}
+          <h2 id="prn-record-title" className="text-xl font-black text-violet-950">{text({ id: 'Catat penggunaan PRN', zh: '記錄 PRN 使用', en: 'Record PRN use' })}</h2>
+          <p className="mt-2 text-sm font-semibold text-slate-700">{formatMedicationDisplayName(recordingPlan.medication, locale)} · {text({ id: 'Periksa label obat atau instruksi dokter.', zh: '請核對藥袋或醫囑。', en: 'Please verify against the medication label or prescription instructions.' })}</p>
           <div className="mt-5 space-y-4">
             <label className="block text-sm font-black">{text({ id: 'Waktu penggunaan sebenarnya', zh: '實際使用時間', en: 'Actual time of use' })}
               <input required type="datetime-local" value={recordForm.takenAt} onChange={event => setRecordForm(current => current ? { ...current, takenAt: event.target.value } : current)} className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 px-3 text-base font-bold focus:border-violet-600 focus:outline-none focus:ring-2 focus:ring-violet-200" />
@@ -268,10 +273,11 @@ export function PrnMedicationSection({ plans, events, assessments, careDate, onR
             </label>
           </div>
           {formError && <p role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700">{text(formError)}</p>}
-          <p className="mt-4 text-xs font-semibold leading-5 text-slate-600">{text({ id: 'Catatan ini menyimpan kejadian penggunaan; aplikasi tidak memberi saran medis atau menghitung dosis berikutnya.', zh: '這會保存實際使用事件；系統不提供醫療建議，也不計算下次劑量。', en: 'Record this saving kejadian use; app not memberi saran medis or menghitung dose next.' })}</p>
+          {/* 免責聲明與儲存按鈕英文修正 */}
+          <p className="mt-4 text-xs font-semibold leading-5 text-slate-600">{text({ id: 'Catatan ini menyimpan kejadian penggunaan; aplikasi tidak memberi saran medis atau menghitung dosis berikutnya.', zh: '這會保存實際使用事件；系統不提供醫療建議，也不計算下次劑量。', en: 'This records actual usage events; the system does not provide medical advice or calculate next doses.' })}</p>
           <div className="mt-6 grid grid-cols-[.8fr_1.2fr] gap-3">
             <button type="button" disabled={busyKey.startsWith('record:')} onClick={() => { setRecordingPlan(null); setRecordForm(null) }} className="min-h-14 rounded-2xl border border-slate-300 bg-white px-4 text-base font-black text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600">{text({ id: 'Kembali', zh: '返回', en: 'Back' })}</button>
-            <button type="submit" disabled={Boolean(busyKey)} className="min-h-14 rounded-2xl bg-violet-700 px-4 text-base font-black text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2">{busyKey.startsWith('record:') ? text({ id: 'Menyimpan…', zh: '儲存中…', en: 'Saving...' }) : text({ id: 'Simpan catatan', zh: '儲存紀錄', en: 'Save Recording' })}</button>
+            <button type="submit" disabled={Boolean(busyKey)} className="min-h-14 rounded-2xl bg-violet-700 px-4 text-base font-black text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-600 focus-visible:ring-offset-2">{busyKey.startsWith('record:') ? text({ id: 'Menyimpan…', zh: '儲存中…', en: 'Saving...' }) : text({ id: 'Simpan catatan', zh: '儲存紀錄', en: 'Save record' })}</button>
           </div>
         </form>}
       </dialog>

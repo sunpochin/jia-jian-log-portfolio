@@ -122,7 +122,7 @@ export function HouseholdMemberManagement() {
                   {member.role === 'owner'
                     ? text({ id: 'Pemilik', zh: '建立者' ,en: 'Developer' })
                     : member.role === 'caregiver'
-                      ? text({ id: 'Pengasuh', zh: '看護' ,en: 'Pengasuh' })
+                      ? text({ id: 'Pengasuh', zh: '看護' ,en: 'Caregiver' })
                       : text({ id: 'Pengamat', zh: '檢視者' ,en: 'Viewer' })}
                 </span>
               </div>
@@ -142,7 +142,7 @@ export function HouseholdMemberManagement() {
                     <p className="font-semibold text-gray-700">{patient.display_name}</p>
                     <label className="mt-2 flex items-center gap-2 text-xs text-gray-700">
                       <input type="checkbox" checked={canView} onChange={event => void updateAccess(member.email, patient.patient_id, event.target.checked ? grant?.can_record ?? false : false, event.target.checked ? grant?.can_manage_medication ?? false : false)} />
-                      {text({ id: 'Lihat data', zh: '可查看資料' ,en: 'Data viewable' })}
+                      {text({ id: 'Lihat data', zh: '可查看資料' ,en: 'Can view data' })}
                     </label>
                     <label className="mt-2 flex items-center gap-2 text-xs text-gray-700">
                       <input type="checkbox" disabled={!canView} checked={grant?.can_record ?? false} onChange={event => void updateAccess(member.email, patient.patient_id, event.target.checked, grant?.can_manage_medication ?? false)} />
@@ -167,7 +167,7 @@ export function HouseholdMemberManagement() {
         </label>
         <div className="flex gap-2">
           <select value={newRole} onChange={event => setNewRole(event.target.value as HouseholdRole)} className="rounded-xl border border-gray-300 px-3 py-2 text-sm">
-            <option value="caregiver">{text({ id: 'Pengasuh', zh: '看護' ,en: 'Pengasuh' })}</option>
+            <option value="caregiver">{text({ id: 'Pengasuh', zh: '看護' ,en: 'Caregiver' })}</option>
             <option value="viewer">{text({ id: 'Pengamat', zh: '檢視者' ,en: 'Viewer' })}</option>
             <option value="owner">{text({ id: 'Pemilik bersama', zh: '共同管理者' ,en: 'Co-administrator' })}</option>
           </select>

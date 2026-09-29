@@ -19,7 +19,7 @@ import { PickleBirdMark } from '../../../components/system/PickleBirdMark'
 function describeInviteError(cause: unknown): LocalizedText | null {
   const message = cause instanceof Error ? cause.message : typeof cause === 'object' && cause !== null && 'message' in cause ? String((cause as { message: unknown }).message) : ''
   if (message.includes('already has a patient identity')) {
-    return { id: 'Email ini sudah punya identitas pasien sendiri (mungkin akun Anda sendiri atau anggota lain). Gunakan panel akses pasien yang sudah ada.', zh: '這個 Email 已經有自己的被照顧者身分（可能是你自己或其他成員的帳號），不能重複邀請；請改用既有的授權管理入口。' ,en: "Email this already punya identitas pasien sendiri (may akun You sendiri or anggota lain). Gunakan panel akses pasien that already ada." }
+    return { id: 'Email ini sudah punya identitas pasien sendiri (mungkin akun Anda sendiri atau anggota lain). Gunakan panel akses pasien yang sudah ada.', zh: '這個 Email 已經有自己的被照顧者身分（可能是你自己或其他成員的帳號），不能重複邀請；請改用既有的授權管理入口。', en: 'This email already has an existing patient identity (possibly your own account or another member) and cannot be invited again; please use the existing access management panel.' }
   }
   if (message.includes('Only a household owner')) {
     return { id: 'Hanya pemilik keluarga yang dapat mengundang pasien.', zh: '只有家庭管理者（owner）能邀請被照顧者。' ,en: 'Only the family owner can invite a patient.' }
@@ -213,8 +213,8 @@ export function CareRecipientManagement({ onCreated, onArchived, onViewArchived,
   }
 
   if (isDemoMode) return <section className="mt-6 rounded-2xl border border-indigo-100 bg-indigo-50 p-4" aria-labelledby="care-recipient-heading">
-    <h2 id="care-recipient-heading" className="font-bold text-indigo-950">{text({ id: 'Zon demo: pengelolaan keluarga', zh: '展示模式：家庭管理' ,en: 'Showcase Mode: Family Management' })}</h2>
-    <p className="mt-1 text-sm leading-6 text-indigo-900">{text({ id: 'Mode demo hanya menampilkan data fiktif. Penambahan orang, pengarsipan hewan, dan undangan keluarga tersedia setelah masuk secara resmi.', zh: '展示模式只顯示虛構資料；新增人員、封存寵物與家庭邀請，請在正式登入後使用。' ,en: 'Display mode shows only fictitious data; add people, archive pets, and family invitations after you’ve officially logged in.' })}</p>
+    <h2 id="care-recipient-heading" className="font-bold text-indigo-950">{text({ id: 'Zon demo: pengelolaan keluarga', zh: '展示模式：家庭管理' ,en: 'Demo mode: Family management' })}</h2>
+    <p className="mt-1 text-sm leading-6 text-indigo-900">{text({ id: 'Mode demo hanya menampilkan data fiktif. Penambahan orang, pengarsipan hewan, dan undangan keluarga tersedia setelah masuk secara resmi.', zh: '展示模式只顯示虛構資料；新增人員、封存寵物與家庭邀請，請在正式登入後使用。' ,en: 'Demo mode shows only fictional data. Adding people, archiving pets, and family invitations are available after you sign in.' })}</p>
   </section>
 
   if (role === null) return <section className="mt-6 rounded-2xl border border-indigo-100 bg-indigo-50 p-4" aria-labelledby="care-recipient-heading">
@@ -228,20 +228,30 @@ export function CareRecipientManagement({ onCreated, onArchived, onViewArchived,
   {confirmDialog}
   {canAddPeople && <section className="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-4" aria-labelledby="caregiver-invite-heading">
     {/* 邀請照顧者拆成獨立區塊，不再藏在「類型」下拉選單裡的「人」選項——原本的下拉選單讓這個入口很難被找到。 */}
-    <h2 id="caregiver-invite-heading" className="font-bold text-emerald-950">{text({ id: 'Undang orang yang dirawat', zh: '邀請被照顧者' ,en: 'Invite a patient' })}</h2>
+    <div className="flex items-center justify-between">
+      <h2 id="caregiver-invite-heading" className="font-bold text-emerald-950">{text({ id: 'Undang orang yang dirawat', zh: '邀請被照顧者' ,en: 'Invite a patient' })}</h2>
+      {/* 提供直接連到教學頁的入口，方便管理者了解被照顧者邀請機制 */}
+      <a
+        href="/guides/family-invitations"
+        className="text-xs font-semibold text-emerald-800 hover:text-emerald-950 hover:underline flex items-center gap-0.5"
+      >
+        <span>{text({ id: 'Panduan', zh: '操作教學', en: 'Guide' })}</span>
+        <span aria-hidden="true">↗</span>
+      </a>
+    </div>
     <p className="mt-1 text-sm text-emerald-900">{text({ id: 'Tambahkan orang yang dirawat dengan Google Email miliknya sendiri. Ia harus masuk dan menerima undangan sebelum siapa pun dapat mencatat datanya.', zh: '用被照顧者本人的 Google Email 建立邀請；對方必須自己登入並接受後，任何人才能開始記錄其健康資料。' ,en: 'Add a patient using their own Google email. They must sign in and accept the invitation before anyone can record their health data.' })}</p>
     <form onSubmit={submitInvite} className="mt-4 space-y-3">
       <label className="block text-sm font-bold text-gray-800">{text({ id: 'Nama', zh: '名稱' ,en: 'Name' })}
-        <input required maxLength={100} value={inviteName} onChange={event => setInviteName(event.target.value)} placeholder={text({ id: 'Contoh: Ibu', zh: '例如：媽媽' ,en: "Example: Ibu" })} className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5" />
+        <input required maxLength={100} value={inviteName} onChange={event => setInviteName(event.target.value)} placeholder={text({ id: 'Contoh: Ibu', zh: '例如：媽媽' ,en: 'Example: Mom' })} className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5" />
       </label>
-      <label className="block text-sm font-bold text-gray-800">{text({ id: 'Google Email orang yang dirawat', zh: '被照顧者 Google Email' ,en: 'Google Email person that dirawat' })}
+      <label className="block text-sm font-bold text-gray-800">{text({ id: 'Google Email orang yang dirawat', zh: '被照顧者 Google Email', en: 'Care recipient’s Google Email' })}
         <input required type="email" value={invitedEmail} onChange={event => setInvitedEmail(event.target.value)} placeholder="contoh@gmail.com" className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5" />
       </label>
-      <label className="block text-sm font-bold text-gray-800">{text({ id: 'Dasar kewenangan', zh: '授權依據' ,en: 'Authorized By' })}
-        <input required maxLength={200} value={authorizationBasis} onChange={event => setAuthorizationBasis(event.target.value)} placeholder={text({ id: 'Contoh: anak, dengan persetujuan ibu', zh: '例如：子女，經母親同意' ,en: 'Ex: Child, with mother’s consent' })} className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5" />
+      <label className="block text-sm font-bold text-gray-800">{text({ id: 'Dasar kewenangan', zh: '授權依據', en: 'Authorized By' })}
+        <input required maxLength={200} value={authorizationBasis} onChange={event => setAuthorizationBasis(event.target.value)} placeholder={text({ id: 'Contoh: anak, dengan persetujuan ibu', zh: '例如：子女，經母親同意', en: 'Ex: Child, with mother’s consent' })} className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5" />
       </label>
       {inviteMessage && <p role="status" className="text-sm text-emerald-900">{inviteMessage}</p>}
-      <button type="submit" disabled={inviteSaving} className="w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white disabled:opacity-60">{text({ id: 'Kirim undangan', zh: '送出邀請' ,en: 'Send invitation' })}</button>
+      <button type="submit" disabled={inviteSaving} className="w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-bold text-white disabled:opacity-60">{text({ id: 'Kirim undangan', zh: '送出邀請', en: 'Send invitation' })}</button>
     </form>
     {createdPatientInvite && <div className="mt-4 rounded-xl border border-emerald-200 bg-white p-3">
       <p className="text-sm font-bold text-emerald-950">{text({ id: 'Tautan undangan siap dibagikan', zh: '邀請連結已準備好，可分享給對方', en: 'Invitation link ready to share' })}</p>
@@ -265,19 +275,19 @@ export function CareRecipientManagement({ onCreated, onArchived, onViewArchived,
   </section>}
 
   <section className="mt-6 rounded-2xl border border-indigo-100 bg-indigo-50 p-4" aria-labelledby="care-recipient-heading">
-    <h2 id="care-recipient-heading" className="font-bold text-indigo-950">{text({ id: 'Tambah hewan', zh: '新增寵物' ,en: 'Add a pet' })}</h2>
-    <p className="mt-1 text-sm text-indigo-900">{text(canManagePets ? { id: 'Pemilik dan pengasuh dapat menambah atau menghapus hewan dari perawatan harian bersama. Riwayat hidup tetap disimpan.', zh: '家庭管理者與照護者可共同新增或從日常照護移除寵物；生命歷史會保留。' ,en: 'Family managers and caregivers can add or remove pets together from routine care; life history is preserved.' } : { id: 'Anda adalah anggota hanya-lihat: Anda dapat melihat hewan dan riwayatnya, tetapi tidak dapat menambah atau menghapusnya dari perawatan harian.', zh: '你是僅檢視成員：可查看寵物與生命歷史，但不能新增或從日常照護移除。' ,en: 'You’re a view-only member: You can view pets and life history, but you can’t add or remove them from routine care.' })}</p>
+    <h2 id="care-recipient-heading" className="font-bold text-indigo-950">{text({ id: 'Tambah hewan', zh: '新增寵物', en: 'Add a pet' })}</h2>
+    <p className="mt-1 text-sm text-indigo-900">{text(canManagePets ? { id: 'Pemilik dan pengasuh dapat menambah atau menghapus hewan dari perawatan harian bersama. Riwayat hidup tetap disimpan.', zh: '家庭管理者與照護者可共同新增或從日常照護移除寵物；生命歷史會保留。', en: 'Family managers and caregivers can add or remove pets together from routine care; life history is preserved.' } : { id: 'Anda adalah anggota hanya-lihat: Anda dapat melihat hewan dan riwayatnya, tetapi tidak dapat menambah atau menghapusnya dari perawatan harian.', zh: '你是僅檢視成員：可查看寵物與生命歷史，但不能新增或從日常照護移除。', en: 'You’re a view-only member: You can view pets and life history, but you can’t add or remove them from routine care.' })}</p>
     {canManagePets && <form onSubmit={submit} className="mt-4 space-y-3">
-      <label className="block text-sm font-bold text-gray-800">{text({ id: 'Nama', zh: '名稱' ,en: 'Name' })}
-        <input required maxLength={100} value={name} onChange={event => setName(event.target.value)} placeholder={text({ id: 'Contoh: Whiskers', zh: '例如：小乖' ,en: "Example: Whistors" })} className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5" />
+      <label className="block text-sm font-bold text-gray-800">{text({ id: 'Nama', zh: '名稱', en: 'Name' })}
+        <input required maxLength={100} value={name} onChange={event => setName(event.target.value)} placeholder={text({ id: 'Contoh: Whiskers', zh: '例如：小乖', en: 'e.g., Whiskers' })} className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5" />
       </label>
       <RecipientTypeMenu value={recipientType} open={typeMenuOpen} onToggle={() => setTypeMenuOpen(open => !open)} onChange={type => { setRecipientType(type); setTypeMenuOpen(false) }} text={text} />
-      {recipientType === 'other' && <p className="text-xs leading-5 text-indigo-900">{text({ id: 'Bedakan hewan lain melalui namanya, misalnya kura-kura atau reptil.', zh: '請用名稱區分其他動物，例如：烏龜或爬蟲類。' ,en: "Bedakan animal lain melalui namanya, misalnya kura-kura or reptil." })}</p>}
+      {recipientType === 'other' && <p className="text-xs leading-5 text-indigo-900">{text({ id: 'Bedakan hewan lain melalui namanya, misalnya kura-kura atau reptil.', zh: '請用名稱區分其他動物，例如：烏龜或爬蟲類。', en: 'Distinguish other animals by name, e.g., turtle or reptile.' })}</p>}
       {message && <p role="status" className="text-sm text-indigo-900">{message}</p>}
-      <button type="submit" disabled={saving} className="w-full rounded-xl bg-indigo-700 px-4 py-3 text-sm font-bold text-white disabled:opacity-60">{text({ id: 'Tambah penerima perawatan', zh: '新增照護對象' ,en: 'Add a care recipient' })}</button>
+      <button type="submit" disabled={saving} className="w-full rounded-xl bg-indigo-700 px-4 py-3 text-sm font-bold text-white disabled:opacity-60">{text({ id: 'Tambah penerima perawatan', zh: '新增照護對象', en: 'Add a care recipient' })}</button>
     </form>}
     {pets.length > 0 && <div className="mt-5 border-t border-indigo-100 pt-4">
-      <h3 className="text-sm font-bold text-indigo-950">{text({ id: 'Hewan yang dirawat', zh: '目前照護的寵物' ,en: 'Hewan that dirawat' })}</h3>
+      <h3 className="text-sm font-bold text-indigo-950">{text({ id: 'Hewan yang dirawat', zh: '目前照護的寵物', en: 'Pets currently under care' })}</h3>
       <ul className="mt-2 space-y-2">{pets.map(pet => <li key={pet.patient_id} className="flex items-center justify-between gap-3 rounded-xl bg-white p-3 text-sm"><span className="inline-flex min-w-0 items-center gap-2"><PetTypeMark type={pet.care_recipient_type} /><span className="truncate">{pet.display_name}</span></span>{canManagePets && <button type="button" disabled={saving} onClick={() => void removePet(pet)} className="rounded-lg border border-red-200 px-2.5 py-1 text-xs font-bold text-red-700 disabled:opacity-60">{text({ id: 'Hapus', zh: '移除' ,en: 'Delete' })}</button>}</li>)}</ul>
       <p className="mt-2 text-xs text-indigo-900">{text({ id: 'Menghapus dari perawatan harian menghentikan catatan baru, tetapi riwayat hidup tetap tersimpan.', zh: '從日常照護移除後不能再新增紀錄，但生命歷史會保留。' ,en: 'Records cannot be added after removal from routine care, but life history is preserved.' })}</p>
     </div>}
@@ -304,7 +314,7 @@ function RecipientTypeMenu({ value, open, onToggle, onChange, text }: { value: C
     <button type="button" aria-haspopup="listbox" aria-expanded={open} onClick={onToggle} className="mt-1 flex min-h-11 w-full items-center justify-between rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-left text-sm font-semibold text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600">
       <span className="inline-flex items-center gap-2">{selected.icon}{selected.label}</span><span aria-hidden="true" className="text-gray-500">⌄</span>
     </button>
-    {open && <div role="listbox" aria-label={text({ id: 'Jenis penerima perawatan', zh: '照護對象類型' ,en: 'Subject Type of Care' })} onKeyDown={event => { if (event.key === 'Escape') onToggle() }} className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-indigo-200 bg-white py-1 shadow-lg">
+    {open && <div role="listbox" aria-label={text({ id: 'Jenis penerima perawatan', zh: '照護對象類型' ,en: 'Care recipient type' })} onKeyDown={event => { if (event.key === 'Escape') onToggle() }} className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-indigo-200 bg-white py-1 shadow-lg">
       {options.map(option => <button key={option.type} type="button" role="option" aria-selected={value === option.type} onClick={() => onChange(option.type)} className={`flex min-h-11 w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-600 ${value === option.type ? 'bg-indigo-50 text-indigo-950' : 'text-gray-700 hover:bg-gray-50'}`}>{option.icon}{option.label}</button>)}
     </div>}
   </div>

@@ -59,7 +59,8 @@ export function MedicationDoseHistoryPanel({ patientId, days }: { patientId: str
     return () => { cancelled = true }
   }, [days, patientId])
 
-  if (failed) return <p role="alert" className="text-sm font-semibold text-red-700">{text({ id: 'Riwayat dosis tidak dapat dimuat.', zh: '目前無法讀取服藥次數紀錄。' ,en: 'History dose not can dimuat.' })}</p>
+  // 載入失敗與空狀態的英文翻譯修正為標準自然英文
+  if (failed) return <p role="alert" className="text-sm font-semibold text-red-700">{text({ id: 'Riwayat dosis tidak dapat dimuat.', zh: '目前無法讀取服藥次數紀錄。' ,en: 'Unable to load dose history.' })}</p>
   if (!points) return <p role="status" className="text-sm text-slate-500">{text(common.loading)}</p>
 
   return <>
@@ -68,13 +69,15 @@ export function MedicationDoseHistoryPanel({ patientId, days }: { patientId: str
       color="#0369A1"
       unit={{ id: 'dosis', zh: '劑次' ,en: 'Dosage' }}
       seriesLabel={{ id: 'Dosis tercatat per hari perawatan', zh: '每個照護日已記錄的服用劑次' ,en: 'Recorded doses per day of care' }}
-      emptyLabel={{ id: 'Belum ada catatan minum obat pada rentang ini.', zh: '這個區間還沒有服藥紀錄。' ,en: 'Not yet ada record take medication on rentang this.' }}
+      emptyLabel={{ id: 'Belum ada catatan minum obat pada rentang ini.', zh: '這個區間還沒有服藥紀錄。' ,en: 'No medication records in this date range.' }}
       valueFormatter={value => value.toFixed(0)}
     />
     <p className="mt-2 text-xs text-slate-500">
       {text({
         id: 'Menampilkan jumlah dosis yang benar-benar tercatat, bukan persentase kepatuhan — daftar obat dapat berubah seiring waktu.',
-        zh: '顯示的是實際記錄的服用劑次，不是遵從率百分比；藥單會隨醫囑調整，過去的應服次數無法可靠重建。', en: 'Showing amount dose that benar-benar recorded, not persentase kepatuhan — daftar medication can berubah seiring time.',
+        zh: '顯示的是實際記錄的服用劑次，不是遵從率百分比；藥單會隨醫囑調整，過去的應服次數無法可靠重建。',
+        // 修正破碎印尼文夾雜的英文翻譯
+        en: 'Shows actual recorded doses rather than adherence percentage — prescriptions change over time.',
       })}
     </p>
   </>

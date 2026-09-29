@@ -71,14 +71,11 @@ async function runPortfolioCheck(): Promise<void> {
 }
 
 async function initCommitAndPush(remoteUrl: string): Promise<void> {
-  const steps: [string, string[]][] = [
+  const initSteps: [string, string[]][] = [
     ['git', ['init', '-q']],
-    ['git', ['checkout', '-q', '-b', 'main']],
-    ['git', ['add', '-A']],
-    ['git', ['commit', '-q', '-m', 'chore: sanitized portfolio snapshot']],
     ['git', ['remote', 'add', 'origin', remoteUrl]],
   ]
-  for (const [command, args] of steps) {
+  for (const [command, args] of initSteps) {
     const { exitCode, stderr } = await run(command, args, OUTPUT_DIR)
     if (exitCode !== 0) {
       console.error(`❌ PORTFOLIO RELEASE FAILED: \`${command} ${args.join(' ')}\` 失敗。`)
@@ -87,15 +84,48 @@ async function initCommitAndPush(remoteUrl: string): Promise<void> {
     }
   }
 
+  // 繁體中文註解：嘗試取得遠端 main 分支狀態。若遠端已有既有發布歷史（例如已存在初始 commit），
+  // 透過 mixed reset 錨定到遠端最新 commit 並保留當前工作目錄產出，產生乾淨的線性更新 commit，
+  // 讓 git push 能直接 fast-forward，無須使用危險的 --force。
+  console.log(`→ 檢查遠端分支狀態：${remoteUrl}`)
+  const fetchRes = await run('git', ['fetch', 'origin', 'main', '-q'], OUTPUT_DIR)
+  if (fetchRes.exitCode === 0) {
+    console.log('✓ 遠端已有 main 分支，基於現有歷史建立更新 commit')
+    await run('git', ['reset', '--mixed', 'origin/main'], OUTPUT_DIR)
+  } else {
+    console.log('✓ 遠端為全新倉庫，建立初始 main 分支')
+    await run('git', ['checkout', '-q', '-b', 'main'], OUTPUT_DIR)
+  }
+
+  const addRes = await run('git', ['add', '-A'], OUTPUT_DIR)
+  if (addRes.exitCode !== 0) {
+    console.error('❌ git add 失敗：', addRes.stderr)
+    process.exit(1)
+  }
+
+  const diffRes = await run('git', ['diff', '--cached', '--quiet'], OUTPUT_DIR)
+  if (diffRes.exitCode === 0) {
+    console.log('✓ 快照內容與遠端 main 完全一致，無須新增 commit。')
+    return
+  }
+
+  const commitMsg = fetchRes.exitCode === 0
+    ? 'chore: update sanitized portfolio snapshot'
+    : 'chore: sanitized portfolio snapshot'
+  const commitRes = await run('git', ['commit', '-q', '-m', commitMsg], OUTPUT_DIR)
+  if (commitRes.exitCode !== 0) {
+    console.error('❌ git commit 失敗：', commitRes.stderr)
+    process.exit(1)
+  }
+
   console.log(`→ git push -u origin main（目標：${remoteUrl}）`)
-  // 刻意不加 --force：第一次發布時公開 repo 應該是空的，plain push 就會成功；
-  // 如果失敗（例如公開 repo 已經有不相關的歷史），直接停下來讓 owner 自己判斷，
-  // 絕不用 --force 覆蓋掉可能已經存在、且可能是有意義的既有內容。
+  // 刻意不加 --force：透過上面的 reset --mixed 形成線性 fast-forward 歷史；
+  // 如果失敗，直接停下來讓 owner 判斷，絕不用 --force 覆蓋既有內容。
   const proc = Bun.spawn(['git', 'push', '-u', 'origin', 'main'], { cwd: OUTPUT_DIR, stdout: 'inherit', stderr: 'inherit' })
   const exitCode = await proc.exited
   if (exitCode !== 0) {
     console.error('❌ PORTFOLIO RELEASE FAILED: git push 失敗（詳見上方輸出）。')
-    console.error('   常見原因：目標 repo 不是空的、沒有 push 權限、或網路問題。')
+    console.error('   常見原因：沒有 push 權限、或網路問題。')
     console.error('   不會自動改用 --force；請自行確認目標 repo 狀態後再重跑。')
     process.exit(1)
   }

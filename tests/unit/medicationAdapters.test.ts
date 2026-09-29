@@ -1,7 +1,7 @@
 /*
 檔案用途：驗證服藥、藥單管理與近期血壓摘要 adapter 的 Supabase 查詢契約。
 所在層：tests/unit 單元測試層；以鏈式 query mock 隔離遠端資料庫。
-主要關聯：對應 src/lib/medications.ts、src/lib/medicationToday.ts 與 InputPage.utils.ts。
+主要關聯：對應 src/lib/medication/medications.ts、src/lib/medication/medicationToday.ts 與 InputPage.utils.ts。
 */
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
@@ -48,17 +48,17 @@ const {
   createMedicationPlan,
   readMedicationAdminData,
   setMedicationPlanActive,
-} = await import('../../src/lib/medicationAdmin')
+} = await import('../../src/lib/medication/medicationAdmin')
 const {
   clearMedicationDose,
   readMedicationDay,
   saveMedicationDose,
-} = await import('../../src/lib/medications')
+} = await import('../../src/lib/medication/medications')
 const {
   clearMedicationTodayLog,
   readMedicationTodayLog,
   saveMedicationTodayLog,
-} = await import('../../src/lib/medicationToday')
+} = await import('../../src/lib/medication/medicationToday')
 const { fetchRecentSummary } = await import('../../src/features/vitals/pages/InputPage.utils')
 
 const plan = {
@@ -102,7 +102,8 @@ describe('medication admin adapters', () => {
   test('returns all admin datasets and stops on any failed query', async () => {
     responses.push({ data: [{ id: 'plan-1' }], error: null }, { data: [{ id: 'med-1' }], error: null }, { data: [{ id: 'change-1' }], error: null })
     await expect(readMedicationAdminData('patient-1')).resolves.toEqual({
-      plans: [{ id: 'plan-1' }], medications: [{ id: 'med-1' }], changes: [{ id: 'change-1' }],
+      // 沒有病人層覆蓋（issue #759）時，讀回的每筆藥品都會被標成 appearance_source: 'shared'。
+      plans: [{ id: 'plan-1' }], medications: [{ id: 'med-1', appearance_source: 'shared' }], changes: [{ id: 'change-1' }],
     })
     // 官方關聯若沒在 adapter 的明確 select 中，migration 雖已回填，前端仍會把它丟掉。
     expect(calls.find(call => call.table === 'medications' && call.method === 'select')?.args[0]).toContain('drug_product_id')
@@ -116,10 +117,19 @@ describe('medication admin adapters', () => {
     await addExistingMedicationPlan('med-1', 'patient-1', 'night', 0.5, true, 'dose adjusted')
     await addExistingMedicationPlan('med-1', 'patient-1', 'after_dinner', 1, false, 'schedule corrected', 'plan-1')
     await setMedicationPlanActive('plan-1', false, 'patient-1', 'stopped by doctor')
+    await addExistingMedicationPlan('med-1', 'patient-1', 'morning', 1, false, 'catalog corrected', 'plan-2', {
+      brandName: 'Example corrected', brandNameZh: '範例修正', genericName: 'Generic corrected', strengthMg: 10,
+      dosageForm: 'powder', appearanceColor: 'white', appearanceShape: 'sachet', appearancePhotoUrl: 'https://example.test/photo.webp',
+    })
 
-    expect(calls.filter(call => call.table === 'rpc').map(call => call.method)).toEqual(['apply_medication_plan_change', 'apply_medication_plan_change', 'apply_medication_plan_change'])
+    expect(calls.filter(call => call.table === 'rpc').map(call => call.method)).toEqual(['apply_medication_plan_change', 'apply_medication_plan_change', 'apply_medication_plan_change', 'apply_medication_plan_change'])
     expect(calls.filter(call => call.table === 'rpc').map(call => call.args[0])).toContainEqual(expect.objectContaining({ p_action: 'update', p_plan_id: 'plan-1', p_schedule_slot: 'after_dinner' }))
     expect(calls.filter(call => call.table === 'rpc').map(call => call.args[0])).toContainEqual(expect.objectContaining({ p_action: 'deactivate', p_reason: 'stopped by doctor' }))
+    // 藥品修正和 plan 更新共用一個 RPC，避免前端只改畫面上的藥名、卻沒改共用目錄。
+    expect(calls.filter(call => call.table === 'rpc').map(call => call.args[0])).toContainEqual(expect.objectContaining({
+      p_action: 'update', p_plan_id: 'plan-2', p_brand_name: 'Example corrected', p_brand_name_zh: '範例修正',
+      p_generic_name: 'Generic corrected', p_strength_mg: 10, p_dosage_form: 'powder', p_appearance_shape: 'sachet',
+    }))
   })
 
 })
@@ -129,10 +139,17 @@ describe('structured medication dose adapters', () => {
     responses.push(
       { data: [plan, { ...plan, id: 'missing-plan', medication_id: 'missing' }], error: null },
       { data: [plan.medication], error: null },
+      // 第三個查詢：服用方式 B 層紀錄，這裡沒有任何一顆藥被交代過吃法，回傳空陣列。
+      { data: [], error: null },
+      // 第四個查詢：病人層外觀覆蓋（issue #759），這裡沒有任何一顆藥被這位病人覆蓋過，回傳空陣列。
+      { data: [], error: null },
       { data: [log], error: null },
     )
 
-    await expect(readMedicationDay('patient-1', '2026-07-17')).resolves.toEqual({ plans: [plan], logs: [log], prnEvents: [], prnAssessments: [] })
+    await expect(readMedicationDay('patient-1', '2026-07-17')).resolves.toEqual({
+      plans: [{ ...plan, instruction: null, medication: { ...plan.medication, appearance_source: 'shared' } }],
+      logs: [log], prnEvents: [], prnAssessments: [],
+    })
   })
 
   test('returns the saved dose, reads a concurrent duplicate, and propagates failures', async () => {
